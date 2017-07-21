@@ -1,0 +1,20 @@
+language: go
+
+go:
+  - 1.8
+  - 1.7
+
+matrix:
+  fast_finish: true
+
+addons:
+  apt:
+    packages:
+    - moreutils
+
+install:
+  - sudo service cassandra start
+  - make get-deps
+
+script:
+  - make

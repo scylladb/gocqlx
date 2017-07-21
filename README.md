@@ -1,1 +1,1 @@
-# gocqlx
+# gocqlx [![GoDoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](http://godoc.org/github.com/mmatczuk/gocqlx) [![Go Report Card](https://goreportcard.com/badge/github.com/mmatczuk/gocqlx)](https://goreportcard.com/report/github.com/mmatczuk/gocqlx) [![Build Status](http://img.shields.io/travis/mmatczuk/gocqlx.svg?style=flat-square)](https://travis-ci.org/mmatczuk/gocqlx)
