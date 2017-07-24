@@ -13,7 +13,14 @@
 // Example, read all items for a given id
 //
 //     var v []*Item
-//     if err := gocqlx.Select(session.Query(`SELECT * FROM items WHERE id = ?`, id), &v); err != nil {
+//     if err := gocqlx.Select(&v, session.Query(`SELECT * FROM items WHERE id = ?`, id)); err != nil {
 //         log.Fatal("select failed", err)
+//     }
+//
+// Example, read first item for a given id
+//
+//     var v Item
+//     if err := gocqlx.Get(&v, session.Query(`SELECT * FROM items WHERE id = ?`, id)); err != nil {
+//         log.Fatal("get failed", err)
 //     }
 package gocqlx

@@ -17,12 +17,12 @@ import (
 var DefaultMapper = reflectx.NewMapperFunc("db", strings.ToLower)
 
 // Get is a convenience function for creating iterator and calling Get on it.
-func Get(q *gocql.Query, dest interface{}) error {
+func Get(dest interface{}, q *gocql.Query) error {
 	return Iter(q).Get(dest)
 }
 
 // Select is a convenience function for creating iterator and calling Select on it.
-func Select(q *gocql.Query, dest interface{}) error {
+func Select(dest interface{}, q *gocql.Query) error {
 	return Iter(q).Select(dest)
 }
 
@@ -55,9 +55,7 @@ func (iter *Iterx) Get(dest interface{}) error {
 		iter.err = err
 	}
 
-	if err := iter.Close(); err != nil {
-		iter.err = err
-	}
+	iter.Close()
 
 	return iter.err
 }
@@ -100,9 +98,7 @@ func (iter *Iterx) Select(dest interface{}) error {
 		iter.err = err
 	}
 
-	if err := iter.Close(); err != nil {
-		iter.err = err
-	}
+	iter.Close()
 
 	return iter.err
 }
@@ -216,6 +212,16 @@ func columnNames(ci []gocql.ColumnInfo) []string {
 		r[i] = column.Name
 	}
 	return r
+}
+
+// Close closes the iterator and returns any errors that happened during
+// the query or the iteration.
+func (iter *Iterx) Close() error {
+	err := iter.Iter.Close()
+	if err != nil && iter.err == nil {
+		iter.err = err
+	}
+	return err
 }
 
 // Err returns the error encountered while scanning.

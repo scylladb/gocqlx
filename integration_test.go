@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/mmatczuk/gocqlx"
 
 	"gopkg.in/inf.v0"
 )
@@ -43,7 +44,7 @@ func TestScannable(t *testing.T) {
 
 	t.Run("get", func(t *testing.T) {
 		var v FullName
-		if err := Get(session.Query(`SELECT testfullname FROM scannable_table`), &v); err != nil {
+		if err := gocqlx.Get(&v, session.Query(`SELECT testfullname FROM scannable_table`)); err != nil {
 			t.Fatal("get failed", err)
 		}
 
@@ -54,7 +55,7 @@ func TestScannable(t *testing.T) {
 
 	t.Run("select", func(t *testing.T) {
 		var v []FullName
-		if err := Select(session.Query(`SELECT testfullname FROM scannable_table`), &v); err != nil {
+		if err := gocqlx.Select(&v, session.Query(`SELECT testfullname FROM scannable_table`)); err != nil {
 			t.Fatal("get failed", err)
 		}
 
@@ -69,7 +70,7 @@ func TestScannable(t *testing.T) {
 
 	t.Run("select ptr", func(t *testing.T) {
 		var v []*FullName
-		if err := Select(session.Query(`SELECT testfullname FROM scannable_table`), &v); err != nil {
+		if err := gocqlx.Select(&v, session.Query(`SELECT testfullname FROM scannable_table`)); err != nil {
 			t.Fatal("get failed", err)
 		}
 
@@ -173,7 +174,7 @@ func TestStruct(t *testing.T) {
 
 	t.Run("get", func(t *testing.T) {
 		var v StructTable
-		if err := Get(session.Query(`SELECT * FROM struct_table`), &v); err != nil {
+		if err := gocqlx.Get(&v, session.Query(`SELECT * FROM struct_table`)); err != nil {
 			t.Fatal("get failed", err)
 		}
 
@@ -184,7 +185,7 @@ func TestStruct(t *testing.T) {
 
 	t.Run("select", func(t *testing.T) {
 		var v []StructTable
-		if err := Select(session.Query(`SELECT * FROM struct_table`), &v); err != nil {
+		if err := gocqlx.Select(&v, session.Query(`SELECT * FROM struct_table`)); err != nil {
 			t.Fatal("select failed", err)
 		}
 
@@ -199,7 +200,7 @@ func TestStruct(t *testing.T) {
 
 	t.Run("select ptr", func(t *testing.T) {
 		var v []*StructTable
-		if err := Select(session.Query(`SELECT * FROM struct_table`), &v); err != nil {
+		if err := gocqlx.Select(&v, session.Query(`SELECT * FROM struct_table`)); err != nil {
 			t.Fatal("select failed", err)
 		}
 
