@@ -1,4 +1,4 @@
-# gocqlx [![GoDoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](http://godoc.org/github.com/mmatczuk/gocqlx) [![Go Report Card](https://goreportcard.com/badge/github.com/mmatczuk/gocqlx)](https://goreportcard.com/report/github.com/mmatczuk/gocqlx) [![Build Status](http://img.shields.io/travis/mmatczuk/gocqlx.svg?style=flat-square)](https://travis-ci.org/mmatczuk/gocqlx)
+# gocqlx [![GoDoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](http://godoc.org/github.com/scylladb/gocqlx) [![Go Report Card](https://goreportcard.com/badge/github.com/scylladb/gocqlx)](https://goreportcard.com/report/github.com/scylladb/gocqlx) [![Build Status](http://img.shields.io/travis/scylladb/gocqlx.svg?style=flat-square)](https://travis-ci.org/scylladb/gocqlx)
 
 Package `gocqlx` is a `gocql` extension, similar to what `sqlx` is to `database/sql`.
 
@@ -14,8 +14,8 @@ also work with `gocqlx`.
 
 ## Installation
 
-    go get github.com/mmatczuk/gocqlx
+    go get github.com/scylladb/gocqlx
 
 ## Example
 
-See [example test](https://github.com/mmatczuk/gocqlx/blob/master/example_test.go).
+See [example test](https://github.com/scylladb/gocqlx/blob/master/example_test.go).

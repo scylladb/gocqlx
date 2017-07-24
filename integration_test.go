@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
-	"github.com/mmatczuk/gocqlx"
+	"github.com/scylladb/gocqlx"
 
 	"gopkg.in/inf.v0"
 )

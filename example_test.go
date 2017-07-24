@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/gocql/gocql"
-	"github.com/mmatczuk/gocqlx"
+	"github.com/scylladb/gocqlx"
 )
 
 var personSchema = `
