@@ -89,10 +89,10 @@ func TestExample(t *testing.T) {
 		for iter.StructScan(&place) {
 			fmt.Printf("%#v\n", place)
 		}
-		iter.Close()
-		if err := iter.Err(); err != nil {
+		if err := iter.Close(); err != nil {
 			t.Fatal("iter:", err)
 		}
+		iter.ReleaseQuery()
 		// gocqlx_test.Place{Country:"Hong Kong", City:"", TelCode:852}
 		// gocqlx_test.Place{Country:"United States", City:"New York", TelCode:1}
 		// gocqlx_test.Place{Country:"Singapore", City:"", TelCode:65}

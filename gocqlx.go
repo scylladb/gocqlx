@@ -29,19 +29,22 @@ func Select(dest interface{}, q *gocql.Query) error {
 // Iterx is a wrapper around gocql.Iter which adds struct scanning capabilities.
 type Iterx struct {
 	*gocql.Iter
+	query *gocql.Query
+	err   error
+
 	unsafe bool
 	Mapper *reflectx.Mapper
 	// these fields cache memory use for a rows during iteration w/ structScan
 	started bool
 	fields  [][]int
 	values  []interface{}
-	err     error
 }
 
 // Iter creates a new Iterx from gocql.Query using a default mapper.
 func Iter(q *gocql.Query) *Iterx {
 	return &Iterx{
 		Iter:   q.Iter(),
+		query:  q,
 		Mapper: DefaultMapper,
 	}
 }
@@ -51,11 +54,16 @@ func Iter(q *gocql.Query) *Iterx {
 // destination is some other type, then the row must only have one column which
 // can scan into that type.
 func (iter *Iterx) Get(dest interface{}) error {
+	if iter.query == nil {
+		return errors.New("using released query")
+	}
+
 	if err := iter.scanAny(dest, false); err != nil {
 		iter.err = err
 	}
 
 	iter.Close()
+	iter.ReleaseQuery()
 
 	return iter.err
 }
@@ -86,7 +94,7 @@ func (iter *Iterx) scanAny(dest interface{}, structOnly bool) error {
 		iter.Scan(dest)
 	}
 
-	return nil
+	return iter.err
 }
 
 // Select scans all rows into a destination, which must be a slice of any type
@@ -94,11 +102,16 @@ func (iter *Iterx) scanAny(dest interface{}, structOnly bool) error {
 // StructScan will be used on each row.  If the destination is some other type,
 // then each row must only have one column which can scan into that type.
 func (iter *Iterx) Select(dest interface{}) error {
+	if iter.query == nil {
+		return errors.New("using released query")
+	}
+
 	if err := iter.scanAll(dest, false); err != nil {
 		iter.err = err
 	}
 
 	iter.Close()
+	iter.ReleaseQuery()
 
 	return iter.err
 }
@@ -167,7 +180,7 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) error {
 		}
 	}
 
-	return iter.Err()
+	return iter.err
 }
 
 // StructScan is like gocql.Scan, but scans a single row into a single Struct.
@@ -177,6 +190,11 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) error {
 // safe to run StructScan on the same Iterx instance with different struct
 // types.
 func (iter *Iterx) StructScan(dest interface{}) bool {
+	if iter.query == nil {
+		iter.err = errors.New("using released query")
+		return false
+	}
+
 	v := reflect.ValueOf(dest)
 	if v.Kind() != reflect.Ptr {
 		iter.err = errors.New("must pass a pointer, not a value, to StructScan destination")
@@ -221,12 +239,16 @@ func (iter *Iterx) Close() error {
 	if err != nil && iter.err == nil {
 		iter.err = err
 	}
-	return err
+	return iter.err
 }
 
-// Err returns the error encountered while scanning.
-func (iter *Iterx) Err() error {
-	return iter.err
+// ReleaseQuery releases underling query back into a pool of queries. Note that
+// the iterator needs to be closed first.
+func (iter *Iterx) ReleaseQuery() {
+	if iter.query != nil {
+		iter.query.Release()
+		iter.query = nil
+	}
 }
 
 // structOnlyError returns an error appropriate for type when a non-scannable
