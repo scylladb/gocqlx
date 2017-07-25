@@ -3,8 +3,13 @@ package gocqlx
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"reflect"
 	"strconv"
 	"unicode"
+
+	"github.com/gocql/gocql"
+	"github.com/jmoiron/sqlx/reflectx"
 )
 
 // Allow digits and letters in bind params;  additionally runes are
@@ -71,4 +76,74 @@ func CompileNamedQuery(qs []byte) (stmt string, names []string, err error) {
 	}
 
 	return string(rebound), names, err
+}
+
+// Queryx is a wrapper around gocql.Query which adds struct binding capabilities.
+type Queryx struct {
+	*gocql.Query
+	Names  []string
+	Mapper *reflectx.Mapper
+}
+
+// BindStruct binds query named parameters using mapper.
+func (q Queryx) BindStruct(arg interface{}) error {
+	m := q.Mapper
+	if m == nil {
+		m = DefaultMapper
+	}
+
+	arglist, err := bindStructArgs(q.Names, arg, m)
+	if err != nil {
+		return err
+	}
+
+	q.Bind(arglist...)
+
+	return nil
+}
+
+func bindStructArgs(names []string, arg interface{}, m *reflectx.Mapper) ([]interface{}, error) {
+	arglist := make([]interface{}, 0, len(names))
+
+	// grab the indirected value of arg
+	v := reflect.ValueOf(arg)
+	for v = reflect.ValueOf(arg); v.Kind() == reflect.Ptr; {
+		v = v.Elem()
+	}
+
+	fields := m.TraversalsByName(v.Type(), names)
+	for i, t := range fields {
+		if len(t) == 0 {
+			return arglist, fmt.Errorf("could not find name %s in %#v", names[i], arg)
+		}
+		val := reflectx.FieldByIndexesReadOnly(v, t)
+		arglist = append(arglist, val.Interface())
+	}
+
+	return arglist, nil
+}
+
+// BindMap binds query named parameters using map.
+func (q Queryx) BindMap(arg map[string]interface{}) error {
+	arglist, err := bindMapArgs(q.Names, arg)
+	if err != nil {
+		return err
+	}
+
+	q.Bind(arglist...)
+
+	return nil
+}
+
+func bindMapArgs(names []string, arg map[string]interface{}) ([]interface{}, error) {
+	arglist := make([]interface{}, 0, len(names))
+
+	for _, name := range names {
+		val, ok := arg[name]
+		if !ok {
+			return arglist, fmt.Errorf("could not find name %s in %#v", name, arg)
+		}
+		arglist = append(arglist, val)
+	}
+	return arglist, nil
 }

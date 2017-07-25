@@ -69,9 +69,6 @@ func TestExample(t *testing.T) {
 		q.Release()
 	}
 
-	// TODO
-	// tx.NamedExec("INSERT INTO person (first_name, last_name, email) VALUES (:first_name, :last_name, :email)", &Person{"Jane", "Citizen", "jane.citzen@gocqlx_test.com"})
-
 	// Query the database, storing results in a []Person (wrapped in []interface{})
 	{
 		people := []Person{}
@@ -108,5 +105,36 @@ func TestExample(t *testing.T) {
 		// gocqlx_test.Place{Country:"Hong Kong", City:"", TelCode:852}
 		// gocqlx_test.Place{Country:"United States", City:"New York", TelCode:1}
 		// gocqlx_test.Place{Country:"Singapore", City:"", TelCode:65}
+	}
+
+	// Named queries, using `:name` as the bindvar
+	{
+		stmt, names, err := gocqlx.CompileNamedQuery([]byte("INSERT INTO person (first_name, last_name, email) VALUES (:first_name, :last_name, :email)"))
+		if err != nil {
+			t.Fatal("compile:", err)
+		}
+
+		q := gocqlx.Queryx{
+			Query: session.Query(stmt),
+			Names: names,
+		}
+
+		if err := q.BindStruct(&Person{
+			"Jane",
+			"Citizen",
+			[]string{"jane.citzen@gocqlx_test.com"},
+		}); err != nil {
+			t.Fatal("bind:", err)
+		}
+		mustExec(q.Query)
+
+		if err := q.BindMap(map[string]interface{}{
+			"first_name": "Bin",
+			"last_name":  "Smuth",
+			"email":      []string{"bensmith@allblacks.nz"},
+		}); err != nil {
+			t.Fatal("bind:", err)
+		}
+		mustExec(q.Query)
 	}
 }
