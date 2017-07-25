@@ -3,15 +3,9 @@ package gocqlx
 import (
 	"bytes"
 	"errors"
-	"github.com/gocql/gocql"
 	"strconv"
 	"unicode"
 )
-
-type Queryx struct {
-	*gocql.Query
-	names []string
-}
 
 // Allow digits and letters in bind params;  additionally runes are
 // checked against underscores, meaning that bind params can have be
@@ -21,7 +15,7 @@ var allowedBindRunes = []*unicode.RangeTable{unicode.Letter, unicode.Digit}
 
 // CompileNamedQuery compiles a named query into an unbound query using the
 // '?' bindvar and a list of names.
-func CompileNamedQuery(qs []byte) (cql string, names []string, err error) {
+func CompileNamedQuery(qs []byte) (stmt string, names []string, err error) {
 	// guess number of names
 	n := bytes.Count(qs, []byte(":"))
 	if n == 0 {
@@ -44,7 +38,7 @@ func CompileNamedQuery(qs []byte) (cql string, names []string, err error) {
 				continue
 			} else if inName {
 				err = errors.New("unexpected `:` while reading named param at " + strconv.Itoa(i))
-				return cql, names, err
+				return stmt, names, err
 			}
 			inName = true
 			name = []byte{}
