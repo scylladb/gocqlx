@@ -42,20 +42,32 @@ func TestExample(t *testing.T) {
 	session := createSession(t)
 	defer session.Close()
 
-	// Exec the schema or fail
 	mustExec := func(q *gocql.Query) {
 		if err := q.Exec(); err != nil {
 			t.Fatal("insert:", q, err)
 		}
 	}
-	mustExec(session.Query(personSchema))
-	mustExec(session.Query(placeSchema))
 
-	mustExec(session.Query("INSERT INTO gocqlx_test.person (first_name, last_name, email) VALUES (?, ?, ?)", "Jason", "Moiron", []string{"jmoiron@jmoiron.net"}))
-	mustExec(session.Query("INSERT INTO gocqlx_test.person (first_name, last_name, email) VALUES (?, ?, ?)", "John", "Doe", []string{"johndoeDNE@gmail.net"}))
-	mustExec(session.Query("INSERT INTO gocqlx_test.place (country, city, telcode) VALUES (?, ?, ?)", "United States", "New York", 1))
-	mustExec(session.Query("INSERT INTO gocqlx_test.place (country, city, telcode) VALUES (?, ?, ?)", "Hong Kong", "", 852))
-	mustExec(session.Query("INSERT INTO gocqlx_test.place (country, city, telcode) VALUES (?, ?, ?)", "Singapore", "", 65))
+	// Fill person table
+	{
+		mustExec(session.Query(personSchema))
+
+		q := session.Query("INSERT INTO gocqlx_test.person (first_name, last_name, email) VALUES (?, ?, ?)")
+		mustExec(q.Bind("Jason", "Moiron", []string{"jmoiron@jmoiron.net"}))
+		mustExec(q.Bind("John", "Doe", []string{"johndoeDNE@gmail.net"}))
+		q.Release()
+	}
+
+	// Fill place table
+	{
+		mustExec(session.Query(placeSchema))
+
+		q := session.Query("INSERT INTO gocqlx_test.place (country, city, telcode) VALUES (?, ?, ?)")
+		mustExec(q.Bind("United States", "New York", 1))
+		mustExec(q.Bind("Hong Kong", "", 852))
+		mustExec(q.Bind("Singapore", "", 65))
+		q.Release()
+	}
 
 	// TODO
 	// tx.NamedExec("INSERT INTO person (first_name, last_name, email) VALUES (:first_name, :last_name, :email)", &Person{"Jane", "Citizen", "jane.citzen@gocqlx_test.com"})
