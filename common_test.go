@@ -1,4 +1,4 @@
-package gocqlx
+package gocqlx_test
 
 import (
 	"flag"

@@ -1,6 +1,6 @@
 // +build all integration
 
-package gocqlx
+package gocqlx_test
 
 import (
 	"math/big"
