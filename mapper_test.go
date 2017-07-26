@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-var snakeTests = []struct {
-	name     string
-	expected string
+var snakeTable = []struct {
+	N string
+	V string
 }{
 	{"a", "a"},
 	{"snake", "snake"},
@@ -60,25 +60,25 @@ var snakeTests = []struct {
 }
 
 func TestSnakeCase(t *testing.T) {
-	for _, tt := range snakeTests {
-		if actual := snakeCase(tt.name); actual != tt.expected {
-			t.Error("expected", tt.expected, "got", actual, tt)
+	for _, test := range snakeTable {
+		if actual := snakeCase(test.N); actual != test.V {
+			t.Error("V", test.V, "got", actual, test)
 		}
 	}
 }
 
 func BenchmarkSnakeCase(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		for _, test := range snakeTests {
-			snakeCase(test.name)
+		for _, test := range snakeTable {
+			snakeCase(test.N)
 		}
 	}
 }
 
 func BenchmarkToLower(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		for _, test := range snakeTests {
-			strings.ToLower(test.name)
+		for _, test := range snakeTable {
+			strings.ToLower(test.N)
 		}
 	}
 }
