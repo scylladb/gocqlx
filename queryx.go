@@ -6,17 +6,10 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"unicode"
 
 	"github.com/gocql/gocql"
 	"github.com/jmoiron/sqlx/reflectx"
 )
-
-// Allow digits and letters in bind params;  additionally runes are
-// checked against underscores, meaning that bind params can have be
-// alphanumeric with underscores.  Mind the difference between unicode
-// digits and numbers, where '5' is a digit but '五' is not.
-var allowedBindRunes = []*unicode.RangeTable{unicode.Letter, unicode.Digit}
 
 // CompileNamedQuery compiles a named query into an unbound query using the
 // '?' bindvar and a list of names.
@@ -48,7 +41,7 @@ func CompileNamedQuery(qs []byte) (stmt string, names []string, err error) {
 			inName = true
 			name = []byte{}
 			// if we're in a name, and this is an allowed character, continue
-		} else if inName && (unicode.IsOneOf(allowedBindRunes, rune(b)) || b == '_' || b == '.') && i != last {
+		} else if inName && (allowedBindRune(b) || b == '_' || b == '.') && i != last {
 			// append the byte to the name if we are in a name and not on the last byte
 			name = append(name, b)
 			// if we're in a name and it's not an allowed character, the name is done
@@ -56,7 +49,7 @@ func CompileNamedQuery(qs []byte) (stmt string, names []string, err error) {
 			inName = false
 			// if this is the final byte of the string and it is part of the name, then
 			// make sure to add it to the name
-			if i == last && unicode.IsOneOf(allowedBindRunes, rune(b)) {
+			if i == last && allowedBindRune(b) {
 				name = append(name, b)
 			}
 			// add the string representation to the names list
@@ -66,7 +59,7 @@ func CompileNamedQuery(qs []byte) (stmt string, names []string, err error) {
 			// add this byte to string unless it was not part of the name
 			if i != last {
 				rebound = append(rebound, b)
-			} else if !unicode.IsOneOf(allowedBindRunes, rune(b)) {
+			} else if !allowedBindRune(b) {
 				rebound = append(rebound, b)
 			}
 		} else {
@@ -76,6 +69,10 @@ func CompileNamedQuery(qs []byte) (stmt string, names []string, err error) {
 	}
 
 	return string(rebound), names, err
+}
+
+func allowedBindRune(b byte) bool {
+	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
 }
 
 // Queryx is a wrapper around gocql.Query which adds struct binding capabilities.
