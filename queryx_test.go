@@ -12,7 +12,7 @@ func TestCompileQuery(t *testing.T) {
 		Q, R string
 		V    []string
 	}{
-		// basic test for named parameters, invalid char ',' terminating
+		// Basic test for named parameters, invalid char ',' terminating
 		{
 			Q: `INSERT INTO foo (a,b,c,d) VALUES (:name, :age, :first, :last)`,
 			R: `INSERT INTO foo (a,b,c,d) VALUES (?, ?, ?, ?)`,
@@ -59,10 +59,10 @@ func TestCompileQuery(t *testing.T) {
 }
 
 func BenchmarkCompileNamedQuery(b *testing.B) {
-	q1 := `INSERT INTO foo (a, b, c, d) VALUES (:name, :age, :first, :last)`
+	q := []byte("INSERT INTO foo (name, age, first, last) VALUES (:name, :age, :first, :last)")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		CompileNamedQuery([]byte(q1))
+		CompileNamedQuery(q)
 	}
 }
 
