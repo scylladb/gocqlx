@@ -22,20 +22,22 @@ var placeSchema = `
 CREATE TABLE gocqlx_test.place (
     country text,
     city text,
-    telcode int,
+    code int,
     PRIMARY KEY(country, city)
 )`
 
+// Field names are converted to camel case by default, no need to add
+// `db:"first_name"`, if you want to disable a filed add `db:"-"` tag
 type Person struct {
-	FirstName string `db:"first_name"`
-	LastName  string `db:"last_name"`
+	FirstName string
+	LastName  string
 	Email     []string
 }
 
 type Place struct {
 	Country string
 	City    string
-	TelCode int
+	TelCode int `db:"code"`
 }
 
 func TestExample(t *testing.T) {
@@ -62,7 +64,7 @@ func TestExample(t *testing.T) {
 	{
 		mustExec(session.Query(placeSchema))
 
-		q := session.Query("INSERT INTO gocqlx_test.place (country, city, telcode) VALUES (?, ?, ?)")
+		q := session.Query("INSERT INTO gocqlx_test.place (country, city, code) VALUES (?, ?, ?)")
 		mustExec(q.Bind("United States", "New York", 1))
 		mustExec(q.Bind("Hong Kong", "", 852))
 		mustExec(q.Bind("Singapore", "", 65))

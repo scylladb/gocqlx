@@ -4,17 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/gocql/gocql"
 	"github.com/jmoiron/sqlx/reflectx"
 )
-
-// DefaultMapper uses `db` tag and strings.ToLower to lowercase struct field
-// names.  It can be set to whatever you want, but it is encouraged to be set
-// before gocqlx is used as name-to-field mappings are cached after first
-// use on a type.
-var DefaultMapper = reflectx.NewMapperFunc("db", strings.ToLower)
 
 // structOnlyError returns an error appropriate for type when a non-scannable
 // struct is expected but something else is given
