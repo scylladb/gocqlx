@@ -13,12 +13,24 @@ type expr interface {
 	WriteCql(cql *bytes.Buffer) (names []string)
 }
 
+type columns []string
+
+func (cols columns) writeCql(cql *bytes.Buffer) (names []string) {
+	for i, c := range cols {
+		cql.WriteString(c)
+		if i < len(cols)-1 {
+			cql.WriteByte(',')
+		}
+	}
+	return
+}
+
 type using struct {
 	timestamp time.Time
 	ttl       time.Duration
 }
 
-func (u using) WriteCql(cql *bytes.Buffer) (names []string) {
+func (u using) writeCql(cql *bytes.Buffer) (names []string) {
 	var v []string
 	if !u.timestamp.IsZero() {
 		v = append(v, fmt.Sprint("TIMESTAMP ", u.timestamp.UnixNano()/1000))
@@ -29,8 +41,41 @@ func (u using) WriteCql(cql *bytes.Buffer) (names []string) {
 	if len(v) > 0 {
 		cql.WriteString("USING ")
 		cql.WriteString(strings.Join(v, ","))
-		cql.WriteString(" ")
+		cql.WriteByte(' ')
 	}
 
+	return
+}
+
+type where []expr
+
+func (w where) writeCql(cql *bytes.Buffer) (names []string) {
+	if len(w) == 0 {
+		return
+	}
+
+	cql.WriteString("WHERE ")
+	return writeCql(w, cql)
+}
+
+type _if []expr
+
+func (w _if) writeCql(cql *bytes.Buffer) (names []string) {
+	if len(w) == 0 {
+		return
+	}
+
+	cql.WriteString("IF ")
+	return writeCql(w, cql)
+}
+
+func writeCql(es []expr, cql *bytes.Buffer) (names []string) {
+	for i, c := range es {
+		names = append(names, c.WriteCql(cql)...)
+		if i < len(es)-1 {
+			cql.WriteString(" AND ")
+		}
+	}
+	cql.WriteByte(' ')
 	return
 }

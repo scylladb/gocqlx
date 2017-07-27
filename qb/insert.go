@@ -6,13 +6,12 @@ package qb
 import (
 	"bytes"
 	"errors"
-	"strings"
 	"time"
 )
 
 type InsertBuilder struct {
 	table   string
-	columns []string
+	columns columns
 	unique  bool
 	using   using
 }
@@ -41,17 +40,17 @@ func (b *InsertBuilder) ToCql() (stmt string, names []string, err error) {
 
 	cql.WriteString("INTO ")
 	cql.WriteString(b.table)
-	cql.WriteString(" ")
+	cql.WriteByte(' ')
 
-	cql.WriteString("(")
-	cql.WriteString(strings.Join(b.columns, ","))
+	cql.WriteByte('(')
+	b.columns.writeCql(&cql)
 	cql.WriteString(") ")
 
 	cql.WriteString("VALUES (")
-	cql.WriteString(placeholders(len(b.columns)))
+	placeholders(&cql, len(b.columns))
 	cql.WriteString(") ")
 
-	b.using.WriteCql(&cql)
+	b.using.writeCql(&cql)
 
 	if b.unique {
 		cql.WriteString("IF NOT EXISTS ")

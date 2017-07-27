@@ -1,14 +1,18 @@
 package qb
 
 import (
-	"strings"
+	"bytes"
 )
 
 // placeholders returns a string with count ? placeholders joined with commas.
-func placeholders(count int) string {
+func placeholders(cql *bytes.Buffer, count int) {
 	if count < 1 {
-		return ""
+		return
 	}
 
-	return strings.Repeat(",?", count)[1:]
+	for i := 0; i < count-1; i++ {
+		cql.WriteByte('?')
+		cql.WriteByte(',')
+	}
+	cql.WriteByte('?')
 }

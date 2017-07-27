@@ -59,7 +59,7 @@ func TestCompileQuery(t *testing.T) {
 }
 
 func BenchmarkCompileNamedQuery(b *testing.B) {
-	q := []byte("INSERT INTO foo (name, age, first, last) VALUES (:name, :age, :first, :last)")
+	q := []byte("INSERT INTO cycling.cyclist_name (id, user_uuid, firstname, stars) VALUES (:id, :user_uuid, :firstname, :stars)")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		CompileNamedQuery(q)
