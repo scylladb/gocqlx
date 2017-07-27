@@ -15,14 +15,13 @@ type expr interface {
 
 type columns []string
 
-func (cols columns) writeCql(cql *bytes.Buffer) (names []string) {
+func (cols columns) writeCql(cql *bytes.Buffer) {
 	for i, c := range cols {
 		cql.WriteString(c)
 		if i < len(cols)-1 {
 			cql.WriteByte(',')
 		}
 	}
-	return
 }
 
 type using struct {
@@ -30,7 +29,7 @@ type using struct {
 	ttl       time.Duration
 }
 
-func (u using) writeCql(cql *bytes.Buffer) (names []string) {
+func (u using) writeCql(cql *bytes.Buffer) {
 	var v []string
 	if !u.timestamp.IsZero() {
 		v = append(v, fmt.Sprint("TIMESTAMP ", u.timestamp.UnixNano()/1000))
@@ -43,8 +42,6 @@ func (u using) writeCql(cql *bytes.Buffer) (names []string) {
 		cql.WriteString(strings.Join(v, ","))
 		cql.WriteByte(' ')
 	}
-
-	return
 }
 
 type where []expr
