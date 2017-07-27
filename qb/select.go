@@ -120,8 +120,8 @@ func (b *SelectBuilder) Distinct(columns... string) *SelectBuilder {
 	return b
 }
 
-func (b *SelectBuilder) Where(e ...expr) *SelectBuilder {
-	b.where = append(b.where, e...)
+func (b *SelectBuilder) Where(w ...Cmp) *SelectBuilder {
+	b.where = append(b.where, w...)
 	return b
 }
 

@@ -77,13 +77,13 @@ func (b *DeleteBuilder) Timestamp(t time.Time) *DeleteBuilder {
 	return b
 }
 
-func (b *DeleteBuilder) Where(e ...expr) *DeleteBuilder {
-	b.where = append(b.where, e...)
+func (b *DeleteBuilder) Where(w ...Cmp) *DeleteBuilder {
+	b.where = append(b.where, w...)
 	return b
 }
 
-func (b *DeleteBuilder) If(e ...expr) *DeleteBuilder {
-	b._if = append(b._if, e...)
+func (b *DeleteBuilder) If(w ...Cmp) *DeleteBuilder {
+	b._if = append(b._if, w...)
 	return b
 }
 

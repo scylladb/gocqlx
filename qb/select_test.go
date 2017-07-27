@@ -7,10 +7,7 @@ import (
 )
 
 func TestSelectBuilder(t *testing.T) {
-	m := mockExpr{
-		cql:   "expr",
-		names: []string{"expr"},
-	}
+	w := EqNamed("id", "expr")
 
 	table := []struct {
 		B *SelectBuilder
@@ -39,15 +36,9 @@ func TestSelectBuilder(t *testing.T) {
 		},
 		// Add WHERE
 		{
-			B: Select("cycling.cyclist_name").Where(m).Where(mockExpr{
-				cql:   "expr_1",
-				names: []string{"expr_1"},
-			}, mockExpr{
-				cql:   "expr_2",
-				names: []string{"expr_2"},
-			}),
-			S: "SELECT * FROM cycling.cyclist_name WHERE expr AND expr_1 AND expr_2 ",
-			N: []string{"expr", "expr_1", "expr_2"},
+			B: Select("cycling.cyclist_name").Where(w, Gt("firstname")),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? AND firstname>? ",
+			N: []string{"expr", "firstname"},
 		},
 		// Add GROUP BY
 		{
@@ -56,26 +47,26 @@ func TestSelectBuilder(t *testing.T) {
 		},
 		// Add ORDER BY
 		{
-			B: Select("cycling.cyclist_name").Where(m).OrderBy("firstname", ASC),
-			S: "SELECT * FROM cycling.cyclist_name WHERE expr ORDER BY firstname ASC ",
+			B: Select("cycling.cyclist_name").Where(w).OrderBy("firstname", ASC),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? ORDER BY firstname ASC ",
 			N: []string{"expr"},
 		},
 		// Add LIMIT
 		{
-			B: Select("cycling.cyclist_name").Where(m).Limit(10),
-			S: "SELECT * FROM cycling.cyclist_name WHERE expr LIMIT 10 ",
+			B: Select("cycling.cyclist_name").Where(w).Limit(10),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? LIMIT 10 ",
 			N: []string{"expr"},
 		},
 		// Add PER PARTITION LIMIT
 		{
-			B: Select("cycling.cyclist_name").Where(m).LimitPerPartition(10),
-			S: "SELECT * FROM cycling.cyclist_name WHERE expr PER PARTITION LIMIT 10 ",
+			B: Select("cycling.cyclist_name").Where(w).LimitPerPartition(10),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? PER PARTITION LIMIT 10 ",
 			N: []string{"expr"},
 		},
 		// Add ALLOW FILTERING
 		{
-			B: Select("cycling.cyclist_name").Where(m).AllowFiltering(),
-			S: "SELECT * FROM cycling.cyclist_name WHERE expr ALLOW FILTERING ",
+			B: Select("cycling.cyclist_name").Where(w).AllowFiltering(),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? ALLOW FILTERING ",
 			N: []string{"expr"},
 		},
 	}
@@ -95,12 +86,8 @@ func TestSelectBuilder(t *testing.T) {
 }
 
 func BenchmarkSelectBuilder(b *testing.B) {
-	m := mockExpr{
-		cql:   "expr",
-		names: []string{"expr"},
-	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Select("cycling.cyclist_name").Columns("id", "user_uuid", "firstname", "stars").Where(m)
+		Select("cycling.cyclist_name").Columns("id", "user_uuid", "firstname", "stars").Where(Eq("id"))
 	}
 }

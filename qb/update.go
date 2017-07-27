@@ -94,13 +94,13 @@ func (b *UpdateBuilder) Set(columns ...string) *UpdateBuilder {
 	return b
 }
 
-func (b *UpdateBuilder) Where(e ...expr) *UpdateBuilder {
-	b.where = append(b.where, e...)
+func (b *UpdateBuilder) Where(w ...Cmp) *UpdateBuilder {
+	b.where = append(b.where, w...)
 	return b
 }
 
-func (b *UpdateBuilder) If(e ...expr) *UpdateBuilder {
-	b._if = append(b._if, e...)
+func (b *UpdateBuilder) If(w ...Cmp) *UpdateBuilder {
+	b._if = append(b._if, w...)
 	return b
 }
 

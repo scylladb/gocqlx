@@ -3,15 +3,8 @@ package qb
 import (
 	"bytes"
 	"fmt"
-	"strings"
 	"time"
 )
-
-type expr interface {
-	// WriteCql writes a CQL representation of the expr to a buffer and returns
-	// slice of parameter names.
-	WriteCql(cql *bytes.Buffer) (names []string)
-}
 
 type columns []string
 
@@ -30,21 +23,26 @@ type using struct {
 }
 
 func (u using) writeCql(cql *bytes.Buffer) {
-	var v []string
-	if !u.timestamp.IsZero() {
-		v = append(v, fmt.Sprint("TIMESTAMP ", u.timestamp.UnixNano()/1000))
+	ts := !u.timestamp.IsZero()
+
+	if ts {
+		cql.WriteString("USING TIMESTAMP ")
+		cql.WriteString(fmt.Sprint(u.timestamp.UnixNano() / 1000))
+		cql.WriteByte(' ')
 	}
+
 	if u.ttl != 0 {
-		v = append(v, fmt.Sprint("TTL ", int(u.ttl.Seconds())))
-	}
-	if len(v) > 0 {
-		cql.WriteString("USING ")
-		cql.WriteString(strings.Join(v, ","))
+		if ts {
+			cql.WriteString("AND TTL ")
+		} else {
+			cql.WriteString("USING TTL ")
+		}
+		cql.WriteString(fmt.Sprint(int(u.ttl.Seconds())))
 		cql.WriteByte(' ')
 	}
 }
 
-type where []expr
+type where cmps
 
 func (w where) writeCql(cql *bytes.Buffer) (names []string) {
 	if len(w) == 0 {
@@ -52,10 +50,10 @@ func (w where) writeCql(cql *bytes.Buffer) (names []string) {
 	}
 
 	cql.WriteString("WHERE ")
-	return writeCql(w, cql)
+	return cmps(w).writeCql(cql)
 }
 
-type _if []expr
+type _if cmps
 
 func (w _if) writeCql(cql *bytes.Buffer) (names []string) {
 	if len(w) == 0 {
@@ -63,16 +61,5 @@ func (w _if) writeCql(cql *bytes.Buffer) (names []string) {
 	}
 
 	cql.WriteString("IF ")
-	return writeCql(w, cql)
-}
-
-func writeCql(es []expr, cql *bytes.Buffer) (names []string) {
-	for i, c := range es {
-		names = append(names, c.WriteCql(cql)...)
-		if i < len(es)-1 {
-			cql.WriteString(" AND ")
-		}
-	}
-	cql.WriteByte(' ')
-	return
+	return cmps(w).writeCql(cql)
 }

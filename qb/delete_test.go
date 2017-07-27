@@ -8,10 +8,7 @@ import (
 )
 
 func TestDeleteBuilder(t *testing.T) {
-	m := mockExpr{
-		cql:   "expr",
-		names: []string{"expr"},
-	}
+	w := EqNamed("id", "expr")
 
 	table := []struct {
 		B *DeleteBuilder
@@ -20,56 +17,44 @@ func TestDeleteBuilder(t *testing.T) {
 	}{
 		// Basic test for delete
 		{
-			B: Delete("cycling.cyclist_name").Where(m),
-			S: "DELETE FROM cycling.cyclist_name WHERE expr ",
+			B: Delete("cycling.cyclist_name").Where(w),
+			S: "DELETE FROM cycling.cyclist_name WHERE id=? ",
 			N: []string{"expr"},
 		},
 		// Change table name
 		{
-			B: Delete("cycling.cyclist_name").Where(m).From("Foobar"),
-			S: "DELETE FROM Foobar WHERE expr ",
+			B: Delete("cycling.cyclist_name").Where(w).From("Foobar"),
+			S: "DELETE FROM Foobar WHERE id=? ",
 			N: []string{"expr"},
 		},
 		// Add column
 		{
-			B: Delete("cycling.cyclist_name").Where(m).Columns("stars"),
-			S: "DELETE stars FROM cycling.cyclist_name WHERE expr ",
+			B: Delete("cycling.cyclist_name").Where(w).Columns("stars"),
+			S: "DELETE stars FROM cycling.cyclist_name WHERE id=? ",
 			N: []string{"expr"},
 		},
 		// Add WHERE
 		{
-			B: Delete("cycling.cyclist_name").Where(m).Where(mockExpr{
-				cql:   "expr_1",
-				names: []string{"expr_1"},
-			}, mockExpr{
-				cql:   "expr_2",
-				names: []string{"expr_2"},
-			}),
-			S: "DELETE FROM cycling.cyclist_name WHERE expr AND expr_1 AND expr_2 ",
-			N: []string{"expr", "expr_1", "expr_2"},
+			B: Delete("cycling.cyclist_name").Where(w, Gt("firstname")),
+			S: "DELETE FROM cycling.cyclist_name WHERE id=? AND firstname>? ",
+			N: []string{"expr", "firstname"},
 		},
 		// Add IF
 		{
-			B: Delete("cycling.cyclist_name").Where(m).If(mockExpr{
-				cql:   "expr_1",
-				names: []string{"expr_1"},
-			}, mockExpr{
-				cql:   "expr_2",
-				names: []string{"expr_2"},
-			}),
-			S: "DELETE FROM cycling.cyclist_name WHERE expr IF expr_1 AND expr_2 ",
-			N: []string{"expr", "expr_1", "expr_2"},
+			B: Delete("cycling.cyclist_name").Where(w).If(Gt("firstname")),
+			S: "DELETE FROM cycling.cyclist_name WHERE id=? IF firstname>? ",
+			N: []string{"expr", "firstname"},
 		},
 		// Add TIMESTAMP
 		{
-			B: Delete("cycling.cyclist_name").Where(m).Timestamp(time.Unix(0, 0).Add(time.Microsecond * 123456789)),
-			S: "DELETE FROM cycling.cyclist_name USING TIMESTAMP 123456789 WHERE expr ",
+			B: Delete("cycling.cyclist_name").Where(w).Timestamp(time.Unix(0, 0).Add(time.Microsecond * 123456789)),
+			S: "DELETE FROM cycling.cyclist_name USING TIMESTAMP 123456789 WHERE id=? ",
 			N: []string{"expr"},
 		},
 		// Add IF EXISTS
 		{
-			B: Delete("cycling.cyclist_name").Where(m).Existing(),
-			S: "DELETE FROM cycling.cyclist_name WHERE expr IF EXISTS ",
+			B: Delete("cycling.cyclist_name").Where(w).Existing(),
+			S: "DELETE FROM cycling.cyclist_name WHERE id=? IF EXISTS ",
 			N: []string{"expr"},
 		},
 	}
@@ -89,12 +74,8 @@ func TestDeleteBuilder(t *testing.T) {
 }
 
 func BenchmarkDeleteBuilder(b *testing.B) {
-	m := mockExpr{
-		cql:   "expr",
-		names: []string{"expr"},
-	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Delete("cycling.cyclist_name").Columns("id", "user_uuid", "firstname", "stars").Where(m)
+		Delete("cycling.cyclist_name").Columns("id", "user_uuid", "firstname", "stars").Where(Eq("id"))
 	}
 }
