@@ -11,7 +11,7 @@ import (
 )
 
 var personSchema = `
-CREATE TABLE gocqlx_test.person (
+CREATE TABLE IF NOT EXISTS gocqlx_test.person (
     first_name text,
     last_name text,
     email list<text>,
@@ -19,7 +19,7 @@ CREATE TABLE gocqlx_test.person (
 )`
 
 var placeSchema = `
-CREATE TABLE gocqlx_test.place (
+CREATE TABLE IF NOT EXISTS gocqlx_test.place (
     country text,
     city text,
     code int,
@@ -78,7 +78,7 @@ func TestExample(t *testing.T) {
 	// Query the database, storing results in a []Person (wrapped in []interface{}).
 	{
 		var people []Person
-		if err := gocqlx.Select(&people, session.Query("SELECT * FROM person")); err != nil {
+		if err := gocqlx.Select(&people, session.Query("SELECT * FROM gocqlx_test.person")); err != nil {
 			t.Fatal("select:", err)
 		}
 		t.Log(people)
@@ -89,7 +89,7 @@ func TestExample(t *testing.T) {
 	// Get a single result.
 	{
 		var jason Person
-		if err := gocqlx.Get(&jason, session.Query("SELECT * FROM person WHERE first_name=?", "Jason")); err != nil {
+		if err := gocqlx.Get(&jason, session.Query("SELECT * FROM gocqlx_test.person WHERE first_name=?", "Jason")); err != nil {
 			t.Fatal("get:", err)
 		}
 		t.Log(jason)
@@ -100,7 +100,7 @@ func TestExample(t *testing.T) {
 	// Loop through rows using only one struct.
 	{
 		var place Place
-		iter := gocqlx.Iter(session.Query("SELECT * FROM place"))
+		iter := gocqlx.Iter(session.Query("SELECT * FROM gocqlx_test.place"))
 		for iter.StructScan(&place) {
 			t.Log(place)
 		}
@@ -127,7 +127,7 @@ func TestExample(t *testing.T) {
 
 		// Insert
 		{
-			q := Query(qb.Insert("person").Columns("first_name", "last_name", "email").ToCql())
+			q := Query(qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email").ToCql())
 			if err := q.BindStruct(p); err != nil {
 				t.Fatal("bind:", err)
 			}
@@ -138,7 +138,7 @@ func TestExample(t *testing.T) {
 		{
 			p.Email = append(p.Email, "patricia1.citzen@gocqlx_test.com")
 
-			q := Query(qb.Update("person").Set("email").Where(qb.Eq("first_name"), qb.Eq("last_name")).ToCql())
+			q := Query(qb.Update("gocqlx_test.person").Set("email").Where(qb.Eq("first_name"), qb.Eq("last_name")).ToCql())
 			if err := q.BindStruct(p); err != nil {
 				t.Fatal("bind:", err)
 			}
@@ -147,7 +147,7 @@ func TestExample(t *testing.T) {
 
 		// Select
 		{
-			q := Query(qb.Select("person").Where(qb.In("first_name")).ToCql())
+			q := Query(qb.Select("gocqlx_test.person").Where(qb.In("first_name")).ToCql())
 			m := map[string]interface{}{
 				"first_name": []string{"Patricia", "John"},
 			}
@@ -168,7 +168,7 @@ func TestExample(t *testing.T) {
 	// Named queries, using `:name` as the bindvar.
 	{
 		// compile query to valid gocqlx query and list of named parameters
-		stmt, names, err := gocqlx.CompileNamedQuery([]byte("INSERT INTO person (first_name, last_name, email) VALUES (:first_name, :last_name, :email)"))
+		stmt, names, err := gocqlx.CompileNamedQuery([]byte("INSERT INTO gocqlx_test.person (first_name, last_name, email) VALUES (:first_name, :last_name, :email)"))
 		if err != nil {
 			t.Fatal("compile:", err)
 		}

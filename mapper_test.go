@@ -69,16 +69,12 @@ func TestSnakeCase(t *testing.T) {
 
 func BenchmarkSnakeCase(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		for _, test := range snakeTable {
-			snakeCase(test.N)
-		}
+		snakeCase(snakeTable[b.N%len(snakeTable)].N)
 	}
 }
 
 func BenchmarkToLower(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		for _, test := range snakeTable {
-			strings.ToLower(test.N)
-		}
+		strings.ToLower(snakeTable[b.N%len(snakeTable)].N)
 	}
 }
