@@ -3,11 +3,11 @@
 package gocqlx_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/gocqlx/qb"
 )
 
 var personSchema = `
@@ -27,7 +27,7 @@ CREATE TABLE gocqlx_test.place (
 )`
 
 // Field names are converted to camel case by default, no need to add
-// `db:"first_name"`, if you want to disable a filed add `db:"-"` tag
+// `db:"first_name"`, if you want to disable a filed add `db:"-"` tag.
 type Person struct {
 	FirstName string
 	LastName  string
@@ -46,13 +46,15 @@ func TestExample(t *testing.T) {
 
 	mustExec := func(q *gocql.Query) {
 		if err := q.Exec(); err != nil {
-			t.Fatal("insert:", q, err)
+			t.Fatal("query:", q, err)
 		}
 	}
 
-	// Fill person table
+	// Fill person table.
 	{
-		mustExec(session.Query(personSchema))
+		if err := createTable(session, personSchema); err != nil {
+			t.Fatal("create table:", err)
+		}
 
 		q := session.Query("INSERT INTO gocqlx_test.person (first_name, last_name, email) VALUES (?, ?, ?)")
 		mustExec(q.Bind("Jason", "Moiron", []string{"jmoiron@jmoiron.net"}))
@@ -60,9 +62,11 @@ func TestExample(t *testing.T) {
 		q.Release()
 	}
 
-	// Fill place table
+	// Fill place table.
 	{
-		mustExec(session.Query(placeSchema))
+		if err := createTable(session, placeSchema); err != nil {
+			t.Fatal("create table:", err)
+		}
 
 		q := session.Query("INSERT INTO gocqlx_test.place (country, city, code) VALUES (?, ?, ?)")
 		mustExec(q.Bind("United States", "New York", 1))
@@ -71,72 +75,131 @@ func TestExample(t *testing.T) {
 		q.Release()
 	}
 
-	// Query the database, storing results in a []Person (wrapped in []interface{})
+	// Query the database, storing results in a []Person (wrapped in []interface{}).
 	{
-		people := []Person{}
+		var people []Person
 		if err := gocqlx.Select(&people, session.Query("SELECT * FROM person")); err != nil {
 			t.Fatal("select:", err)
 		}
+		t.Log(people)
 
-		fmt.Printf("%#v\n%#v\n", people[0], people[1])
-		// gocqlx_test.Person{FirstName:"John", LastName:"Doe", Email:[]string{"johndoeDNE@gmail.net"}}
-		// gocqlx_test.Person{FirstName:"Jason", LastName:"Moiron", Email:[]string{"jmoiron@jmoiron.net"}}
+		// [{John Doe [johndoeDNE@gmail.net]} {Jason Moiron [jmoiron@jmoiron.net]}]
 	}
 
-	// Get a single result, a la QueryRow
+	// Get a single result.
 	{
 		var jason Person
 		if err := gocqlx.Get(&jason, session.Query("SELECT * FROM person WHERE first_name=?", "Jason")); err != nil {
 			t.Fatal("get:", err)
 		}
-		fmt.Printf("%#v\n", jason)
-		// gocqlx_test.Person{FirstName:"Jason", LastName:"Moiron", Email:[]string{"jmoiron@jmoiron.net"}}
+		t.Log(jason)
+
+		// Jason Moiron [jmoiron@jmoiron.net]}
 	}
 
-	// Loop through rows using only one struct
+	// Loop through rows using only one struct.
 	{
 		var place Place
 		iter := gocqlx.Iter(session.Query("SELECT * FROM place"))
 		for iter.StructScan(&place) {
-			fmt.Printf("%#v\n", place)
+			t.Log(place)
 		}
 		if err := iter.Close(); err != nil {
 			t.Fatal("iter:", err)
 		}
 		iter.ReleaseQuery()
-		// gocqlx_test.Place{Country:"Hong Kong", City:"", TelCode:852}
-		// gocqlx_test.Place{Country:"United States", City:"New York", TelCode:1}
-		// gocqlx_test.Place{Country:"Singapore", City:"", TelCode:65}
+
+		// {Hong Kong  852}
+		// {United States New York 1}
+		// {Singapore  65}
 	}
 
-	// Named queries, using `:name` as the bindvar
+	// Query builder, using DSL to build queries, using `:name` as the bindvar.
 	{
+		// helper function for creating session queries
+		Query := gocqlx.SessionQuery(session)
+
+		p := &Person{
+			"Patricia",
+			"Citizen",
+			[]string{"patricia.citzen@gocqlx_test.com"},
+		}
+
+		// Insert
+		{
+			q := Query(qb.Insert("person").Columns("first_name", "last_name", "email").ToCql())
+			if err := q.BindStruct(p); err != nil {
+				t.Fatal("bind:", err)
+			}
+			mustExec(q.Query)
+		}
+
+		// Update
+		{
+			p.Email = append(p.Email, "patricia1.citzen@gocqlx_test.com")
+
+			q := Query(qb.Update("person").Set("email").Where(qb.Eq("first_name"), qb.Eq("last_name")).ToCql())
+			if err := q.BindStruct(p); err != nil {
+				t.Fatal("bind:", err)
+			}
+			mustExec(q.Query)
+		}
+
+		// Select
+		{
+			q := Query(qb.Select("person").Where(qb.In("first_name")).ToCql())
+			m := map[string]interface{}{
+				"first_name": []string{"Patricia", "John"},
+			}
+			if err := q.BindMap(m); err != nil {
+				t.Fatal("bind:", err)
+			}
+
+			var people []Person
+			if err := gocqlx.Select(&people, q.Query); err != nil {
+				t.Fatal("select:", err)
+			}
+			t.Log(people)
+
+			// [{Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]} {John Doe [johndoeDNE@gmail.net]}]
+		}
+	}
+
+	// Named queries, using `:name` as the bindvar.
+	{
+		// compile query to valid gocqlx query and list of named parameters
 		stmt, names, err := gocqlx.CompileNamedQuery([]byte("INSERT INTO person (first_name, last_name, email) VALUES (:first_name, :last_name, :email)"))
 		if err != nil {
 			t.Fatal("compile:", err)
 		}
+		q := gocqlx.Query(session.Query(stmt), names)
 
-		q := gocqlx.Queryx{
-			Query: session.Query(stmt),
-			Names: names,
+		// bind named parameters from a struct
+		{
+			p := &Person{
+				"Jane",
+				"Citizen",
+				[]string{"jane.citzen@gocqlx_test.com"},
+			}
+
+			if err := q.BindStruct(p); err != nil {
+				t.Fatal("bind:", err)
+			}
+			mustExec(q.Query)
 		}
 
-		if err := q.BindStruct(&Person{
-			"Jane",
-			"Citizen",
-			[]string{"jane.citzen@gocqlx_test.com"},
-		}); err != nil {
-			t.Fatal("bind:", err)
-		}
-		mustExec(q.Query)
+		// bind named parameters from a map
+		{
+			m := map[string]interface{}{
+				"first_name": "Bin",
+				"last_name":  "Smuth",
+				"email":      []string{"bensmith@allblacks.nz"},
+			}
 
-		if err := q.BindMap(map[string]interface{}{
-			"first_name": "Bin",
-			"last_name":  "Smuth",
-			"email":      []string{"bensmith@allblacks.nz"},
-		}); err != nil {
-			t.Fatal("bind:", err)
+			if err := q.BindMap(m); err != nil {
+				t.Fatal("bind:", err)
+			}
+			mustExec(q.Query)
 		}
-		mustExec(q.Query)
 	}
 }

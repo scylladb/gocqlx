@@ -1,16 +1,14 @@
 package qb
 
+// UPDATE reference:
+// https://cassandra.apache.org/doc/latest/cql/dml.html#update
+
 import (
 	"bytes"
-)
-
-// UPDATE reference:
-// http://docs.datastax.com/en/dse/5.1/cql/cql/cql_reference/cql_commands/cqlUpdate.html
-
-import (
 	"time"
 )
 
+// UpdateBuilder builds CQL UPDATE statements.
 type UpdateBuilder struct {
 	table   string
 	using   using
@@ -27,6 +25,7 @@ func Update(table string) *UpdateBuilder {
 	}
 }
 
+// ToCql builds the query into a CQL string and named args.
 func (b *UpdateBuilder) ToCql() (stmt string, names []string) {
 	cql := bytes.Buffer{}
 
@@ -64,31 +63,39 @@ func (b *UpdateBuilder) Table(table string) *UpdateBuilder {
 	return b
 }
 
+// Timestamp sets a USING TIMESTAMP clause on the query.
 func (b *UpdateBuilder) Timestamp(t time.Time) *UpdateBuilder {
 	b.using.timestamp = t
 	return b
 }
 
+// TTL sets a USING TTL clause on the query.
 func (b *UpdateBuilder) TTL(d time.Duration) *UpdateBuilder {
 	b.using.ttl = d
 	return b
 }
 
+// Set adds SET clauses to the query.
 func (b *UpdateBuilder) Set(columns ...string) *UpdateBuilder {
 	b.columns = append(b.columns, columns...)
 	return b
 }
 
+// Where adds an expression to the WHERE clause of the query. Expressions are
+// ANDed together in the generated CQL.
 func (b *UpdateBuilder) Where(w ...Cmp) *UpdateBuilder {
 	b.where = append(b.where, w...)
 	return b
 }
 
+// If adds an expression to the IF clause of the query. Expressions are ANDed
+// together in the generated CQL.
 func (b *UpdateBuilder) If(w ...Cmp) *UpdateBuilder {
 	b._if = append(b._if, w...)
 	return b
 }
 
+// Existing sets a IF EXISTS clause on the query.
 func (b *UpdateBuilder) Existing() *UpdateBuilder {
 	b.exists = true
 	return b

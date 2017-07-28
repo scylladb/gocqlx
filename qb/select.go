@@ -1,20 +1,24 @@
 package qb
 
 // SELECT reference:
-// http://docs.datastax.com/en/dse/5.1/cql/cql/cql_reference/cql_commands/cqlSelect.html
+// https://cassandra.apache.org/doc/latest/cql/dml.html#select
 
 import (
 	"bytes"
 	"fmt"
 )
 
+// Order specifies sorting order.
 type Order bool
 
 const (
-	ASC  Order = true
-	DESC       = false
+	// ASC is ascending order
+	ASC Order = true
+	// DESC is descending order
+	DESC = false
 )
 
+// SelectBuilder builds CQL SELECT statements.
 type SelectBuilder struct {
 	table             string
 	columns           columns
@@ -35,6 +39,7 @@ func Select(table string) *SelectBuilder {
 	}
 }
 
+// ToCql builds the query into a CQL string and named args.
 func (b *SelectBuilder) ToCql() (stmt string, names []string) {
 	cql := bytes.Buffer{}
 
@@ -100,16 +105,20 @@ func (b *SelectBuilder) From(table string) *SelectBuilder {
 	return b
 }
 
+// Columns adds result columns to the query.
 func (b *SelectBuilder) Columns(columns ...string) *SelectBuilder {
 	b.columns = append(b.columns, columns...)
 	return b
 }
 
-func (b *SelectBuilder) Distinct(columns... string) *SelectBuilder {
+// Distinct sets DISTINCT clause on the query.
+func (b *SelectBuilder) Distinct(columns ...string) *SelectBuilder {
 	b.distinct = append(b.distinct, columns...)
 	return b
 }
 
+// Where adds an expression to the WHERE clause of the query. Expressions are
+// ANDed together in the generated CQL.
 func (b *SelectBuilder) Where(w ...Cmp) *SelectBuilder {
 	b.where = append(b.where, w...)
 	return b
@@ -117,26 +126,30 @@ func (b *SelectBuilder) Where(w ...Cmp) *SelectBuilder {
 
 // GroupBy sets GROUP BY clause on the query. Columns must be a primary key,
 // this will automatically add the the columns as first selectors.
-func (b *SelectBuilder) GroupBy(columns... string) *SelectBuilder {
+func (b *SelectBuilder) GroupBy(columns ...string) *SelectBuilder {
 	b.groupBy = append(b.groupBy, columns...)
 	return b
 }
 
+// OrderBy sets ORDER BY clause on the query.
 func (b *SelectBuilder) OrderBy(column string, o Order) *SelectBuilder {
 	b.orderBy, b.order = column, o
 	return b
 }
 
+// Limit sets a LIMIT clause on the query.
 func (b *SelectBuilder) Limit(limit uint) *SelectBuilder {
 	b.limit = limit
 	return b
 }
 
+// LimitPerPartition sets a PER PARTITION LIMIT clause on the query.
 func (b *SelectBuilder) LimitPerPartition(limit uint) *SelectBuilder {
 	b.limitPerPartition = limit
 	return b
 }
 
+// AllowFiltering sets a ALLOW FILTERING clause on the query.
 func (b *SelectBuilder) AllowFiltering() *SelectBuilder {
 	b.allowFiltering = true
 	return b

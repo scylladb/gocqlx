@@ -1,13 +1,14 @@
 package qb
 
 // DELETE reference:
-// http://docs.datastax.com/en/dse/5.1/cql/cql/cql_reference/cql_commands/cqlDelete.html
+// https://cassandra.apache.org/doc/latest/cql/dml.html#delete
 
 import (
 	"bytes"
 	"time"
 )
 
+// DeleteBuilder builds CQL DELETE statements.
 type DeleteBuilder struct {
 	table   string
 	columns columns
@@ -24,6 +25,7 @@ func Delete(table string) *DeleteBuilder {
 	}
 }
 
+// ToCql builds the query into a CQL string and named args.
 func (b *DeleteBuilder) ToCql() (stmt string, names []string) {
 	cql := bytes.Buffer{}
 
@@ -61,21 +63,27 @@ func (b *DeleteBuilder) Columns(columns ...string) *DeleteBuilder {
 	return b
 }
 
+// Timestamp sets a USING TIMESTAMP clause on the query.
 func (b *DeleteBuilder) Timestamp(t time.Time) *DeleteBuilder {
 	b.using.timestamp = t
 	return b
 }
 
+// Where adds an expression to the WHERE clause of the query. Expressions are
+// ANDed together in the generated CQL.
 func (b *DeleteBuilder) Where(w ...Cmp) *DeleteBuilder {
 	b.where = append(b.where, w...)
 	return b
 }
 
+// If adds an expression to the IF clause of the query. Expressions are ANDed
+// together in the generated CQL.
 func (b *DeleteBuilder) If(w ...Cmp) *DeleteBuilder {
 	b._if = append(b._if, w...)
 	return b
 }
 
+// Existing sets a IF EXISTS clause on the query.
 func (b *DeleteBuilder) Existing() *DeleteBuilder {
 	b.exists = true
 	return b

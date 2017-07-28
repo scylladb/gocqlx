@@ -2,6 +2,7 @@ package qb
 
 import "bytes"
 
+// op specifies Cmd operation type.
 type op byte
 
 const (
@@ -14,6 +15,7 @@ const (
 	cnt
 )
 
+// Cmp if a filtering comparator that is used in WHERE and IF clauses.
 type Cmp struct {
 	op     op
 	column string
@@ -45,6 +47,7 @@ func (cmp Cmp) writeCql(cql *bytes.Buffer) string {
 	return cmp.name
 }
 
+// Eq produces column=?.
 func Eq(column string) Cmp {
 	return Cmp{
 		op:     eq,
@@ -53,6 +56,7 @@ func Eq(column string) Cmp {
 	}
 }
 
+// EqNamed produces column=? with a custom parameter name.
 func EqNamed(column, name string) Cmp {
 	return Cmp{
 		op:     eq,
@@ -61,6 +65,7 @@ func EqNamed(column, name string) Cmp {
 	}
 }
 
+// Lt produces column<?.
 func Lt(column string) Cmp {
 	return Cmp{
 		op:     lt,
@@ -69,6 +74,7 @@ func Lt(column string) Cmp {
 	}
 }
 
+// LtNamed produces column<? with a custom parameter name.
 func LtNamed(column, name string) Cmp {
 	return Cmp{
 		op:     lt,
@@ -77,6 +83,7 @@ func LtNamed(column, name string) Cmp {
 	}
 }
 
+// LtOrEq produces column<=?.
 func LtOrEq(column string) Cmp {
 	return Cmp{
 		op:     leq,
@@ -85,6 +92,7 @@ func LtOrEq(column string) Cmp {
 	}
 }
 
+// LtOrEqNamed produces column<=? with a custom parameter name.
 func LtOrEqNamed(column, name string) Cmp {
 	return Cmp{
 		op:     leq,
@@ -93,6 +101,7 @@ func LtOrEqNamed(column, name string) Cmp {
 	}
 }
 
+// Gt produces column>?.
 func Gt(column string) Cmp {
 	return Cmp{
 		op:     gt,
@@ -101,6 +110,7 @@ func Gt(column string) Cmp {
 	}
 }
 
+// GtNamed produces column>? with a custom parameter name.
 func GtNamed(column, name string) Cmp {
 	return Cmp{
 		op:     gt,
@@ -109,6 +119,7 @@ func GtNamed(column, name string) Cmp {
 	}
 }
 
+// GtOrEq produces column>=?.
 func GtOrEq(column string) Cmp {
 	return Cmp{
 		op:     geq,
@@ -117,6 +128,7 @@ func GtOrEq(column string) Cmp {
 	}
 }
 
+// GtOrEqNamed produces column>=? with a custom parameter name.
 func GtOrEqNamed(column, name string) Cmp {
 	return Cmp{
 		op:     geq,
@@ -125,6 +137,7 @@ func GtOrEqNamed(column, name string) Cmp {
 	}
 }
 
+// In produces column IN ?.
 func In(column string) Cmp {
 	return Cmp{
 		op:     in,
@@ -133,6 +146,7 @@ func In(column string) Cmp {
 	}
 }
 
+// InNamed produces column IN ? with a custom parameter name.
 func InNamed(column, name string) Cmp {
 	return Cmp{
 		op:     in,
@@ -141,6 +155,7 @@ func InNamed(column, name string) Cmp {
 	}
 }
 
+// Contains produces column CONTAINS ?.
 func Contains(column string) Cmp {
 	return Cmp{
 		op:     cnt,
@@ -149,6 +164,7 @@ func Contains(column string) Cmp {
 	}
 }
 
+// ContainsNamed produces column CONTAINS ? with a custom parameter name.
 func ContainsNamed(column, name string) Cmp {
 	return Cmp{
 		op:     cnt,

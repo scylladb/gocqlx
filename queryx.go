@@ -82,14 +82,18 @@ type Queryx struct {
 	Mapper *reflectx.Mapper
 }
 
+// Query creates a new Queryx from gocql.Query using a default mapper.
+func Query(q *gocql.Query, names []string) Queryx {
+	return Queryx{
+		Query:  q,
+		Names:  names,
+		Mapper: DefaultMapper,
+	}
+}
+
 // BindStruct binds query named parameters using mapper.
 func (q Queryx) BindStruct(arg interface{}) error {
-	m := q.Mapper
-	if m == nil {
-		m = DefaultMapper
-	}
-
-	arglist, err := bindStructArgs(q.Names, arg, m)
+	arglist, err := bindStructArgs(q.Names, arg, q.Mapper)
 	if err != nil {
 		return err
 	}
@@ -143,4 +147,14 @@ func bindMapArgs(names []string, arg map[string]interface{}) ([]interface{}, err
 		arglist = append(arglist, val)
 	}
 	return arglist, nil
+}
+
+// QueryFunc creates Queryx from qb.Builder.ToCql() output.
+type QueryFunc func(stmt string, names []string) Queryx
+
+// SessionQuery creates QueryFunc that's session aware.
+func SessionQuery(session *gocql.Session) QueryFunc {
+	return func(stmt string, names []string) Queryx {
+		return Query(session.Query(stmt), names)
+	}
 }

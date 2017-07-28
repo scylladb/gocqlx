@@ -101,10 +101,7 @@ func TestBindStruct(t *testing.T) {
 }
 
 func BenchmarkBindStruct(b *testing.B) {
-	q := Queryx{
-		Query: &gocql.Query{},
-		Names: []string{"name", "age", "first", "last"},
-	}
+	q := Query(&gocql.Query{}, []string{"name", "age", "first", "last"})
 	type t struct {
 		Name  string
 		Age   int
