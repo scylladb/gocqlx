@@ -5,8 +5,6 @@ package qb
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"time"
 )
 
@@ -26,16 +24,7 @@ func Delete(table string) *DeleteBuilder {
 	}
 }
 
-func (b *DeleteBuilder) ToCql() (stmt string, names []string, err error) {
-	if b.table == "" {
-		err = errors.New("delete statements must specify a table")
-		return
-	}
-	if len(b.where) == 0 {
-		err = fmt.Errorf("delete statements must have at least one WHERE clause")
-		return
-	}
-
+func (b *DeleteBuilder) ToCql() (stmt string, names []string) {
 	cql := bytes.Buffer{}
 
 	cql.WriteString("DELETE ")

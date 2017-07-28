@@ -5,7 +5,6 @@ package qb
 
 import (
 	"bytes"
-	"errors"
 	"time"
 )
 
@@ -23,17 +22,7 @@ func Insert(table string) *InsertBuilder {
 	}
 }
 
-func (b *InsertBuilder) ToCql() (stmt string, names []string, err error) {
-	if b.table == "" {
-		err = errors.New("insert statements must specify a table")
-		return
-	}
-
-	if len(b.columns) == 0 {
-		err = errors.New("insert statements must specify columns")
-		return
-	}
-
+func (b *InsertBuilder) ToCql() (stmt string, names []string) {
 	cql := bytes.Buffer{}
 
 	cql.WriteString("INSERT ")

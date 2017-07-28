@@ -2,8 +2,6 @@ package qb
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 )
 
 // UPDATE reference:
@@ -29,20 +27,7 @@ func Update(table string) *UpdateBuilder {
 	}
 }
 
-func (b *UpdateBuilder) ToCql() (stmt string, names []string, err error) {
-	if b.table == "" {
-		err = errors.New("update statements must specify a table")
-		return
-	}
-	if len(b.columns) == 0 {
-		err = fmt.Errorf("update statements must have at least one SET clause")
-		return
-	}
-	if len(b.where) == 0 {
-		err = fmt.Errorf("update statements must have at least one WHERE clause")
-		return
-	}
-
+func (b *UpdateBuilder) ToCql() (stmt string, names []string) {
 	cql := bytes.Buffer{}
 
 	cql.WriteString("UPDATE ")

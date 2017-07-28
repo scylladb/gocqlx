@@ -5,7 +5,6 @@ package qb
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 )
 
@@ -36,16 +35,7 @@ func Select(table string) *SelectBuilder {
 	}
 }
 
-func (b *SelectBuilder) ToCql() (stmt string, names []string, err error) {
-	if b.table == "" {
-		err = errors.New("select statements must specify a table")
-		return
-	}
-	if b.distinct != "" && len(b.columns) > 0 {
-		err = fmt.Errorf("select statements must specify either a column list or DISTINCT partition_key")
-		return
-	}
-
+func (b *SelectBuilder) ToCql() (stmt string, names []string) {
 	cql := bytes.Buffer{}
 
 	cql.WriteString("SELECT ")

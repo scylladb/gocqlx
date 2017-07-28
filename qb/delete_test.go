@@ -60,10 +60,7 @@ func TestDeleteBuilder(t *testing.T) {
 	}
 
 	for _, test := range table {
-		stmt, names, err := test.B.ToCql()
-		if err != nil {
-			t.Error("unexpected error", err)
-		}
+		stmt, names := test.B.ToCql()
 		if diff := cmp.Diff(test.S, stmt); diff != "" {
 			t.Error(diff)
 		}
