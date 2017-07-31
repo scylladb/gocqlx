@@ -1,4 +1,4 @@
-all: check test
+all: check test integration-test
 
 .PHONY: check
 check:
@@ -10,8 +10,11 @@ check:
 
 .PHONY: test
 test:
-	go test -race ./...
-	go test -tags integration ./...
+	go test -cover -race ./...
+
+.PHONY: integration-test
+integration-test:
+	go test -cover -tags integration
 
 .PHONY: get-deps
 get-deps:
