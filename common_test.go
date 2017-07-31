@@ -72,7 +72,6 @@ func createKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace string
 		panic(err)
 	}
 	defer session.Close()
-	defer tb.Log("closing keyspace session")
 
 	err = createTable(session, `DROP KEYSPACE IF EXISTS `+keyspace)
 	if err != nil {

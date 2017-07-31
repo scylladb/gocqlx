@@ -12,7 +12,7 @@ func TestCompileQuery(t *testing.T) {
 		Q, R string
 		V    []string
 	}{
-		// basic test for named parameters, invalid char ',' terminating
+		// Basic test for named parameters, invalid char ',' terminating
 		{
 			Q: `INSERT INTO foo (a,b,c,d) VALUES (:name, :age, :first, :last)`,
 			R: `INSERT INTO foo (a,b,c,d) VALUES (?, ?, ?, ?)`,
@@ -59,10 +59,10 @@ func TestCompileQuery(t *testing.T) {
 }
 
 func BenchmarkCompileNamedQuery(b *testing.B) {
-	q1 := `INSERT INTO foo (a, b, c, d) VALUES (:name, :age, :first, :last)`
+	q := []byte("INSERT INTO cycling.cyclist_name (id, user_uuid, firstname, stars) VALUES (:id, :user_uuid, :firstname, :stars)")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		CompileNamedQuery([]byte(q1))
+		CompileNamedQuery(q)
 	}
 }
 
@@ -101,10 +101,7 @@ func TestBindStruct(t *testing.T) {
 }
 
 func BenchmarkBindStruct(b *testing.B) {
-	q := Queryx{
-		Query: &gocql.Query{},
-		Names: []string{"name", "age", "first", "last"},
-	}
+	q := Query(&gocql.Query{}, []string{"name", "age", "first", "last"})
 	type t struct {
 		Name  string
 		Age   int
