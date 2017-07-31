@@ -1,6 +1,6 @@
 # gocqlx [![GoDoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](http://godoc.org/github.com/scylladb/gocqlx) [![Go Report Card](https://goreportcard.com/badge/github.com/scylladb/gocqlx)](https://goreportcard.com/report/github.com/scylladb/gocqlx) [![Build Status](https://travis-ci.org/scylladb/gocqlx.svg?branch=master)](https://travis-ci.org/scylladb/gocqlx)
 
-Package `gocqlx` is a Scylla / Cassandra productivity toolkit for `gocql`, it's 
+Package `gocqlx` is a Scylla / Cassandra productivity toolkit for `gocql`. It's 
 similar to what `sqlx` is to `database/sql`.
 
 It contains wrappers over `gocql` types that provide convenience methods which

@@ -1,4 +1,4 @@
-// Package gocqlx is a Scylla / Cassandra productivity toolkit for `gocql`, it's
+// Package gocqlx is a Scylla / Cassandra productivity toolkit for `gocql`. It's
 // similar to what `sqlx` is to `database/sql`.
 //
 // It contains wrappers over gocql types that provide convenience methods which
