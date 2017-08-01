@@ -2,8 +2,6 @@ package qb
 
 import (
 	"bytes"
-	"fmt"
-	"time"
 )
 
 type columns []string
@@ -18,28 +16,26 @@ func (cols columns) writeCql(cql *bytes.Buffer) {
 }
 
 type using struct {
-	timestamp time.Time
-	ttl       time.Duration
+	timestamp bool
+	ttl       bool
 }
 
-func (u using) writeCql(cql *bytes.Buffer) {
-	ts := !u.timestamp.IsZero()
-
-	if ts {
-		cql.WriteString("USING TIMESTAMP ")
-		cql.WriteString(fmt.Sprint(u.timestamp.UnixNano() / 1000))
-		cql.WriteByte(' ')
+func (u using) writeCql(cql *bytes.Buffer) (names []string) {
+	if u.timestamp {
+		cql.WriteString("USING TIMESTAMP ? ")
+		names = append(names, "_ts")
 	}
 
-	if u.ttl != 0 {
-		if ts {
-			cql.WriteString("AND TTL ")
+	if u.ttl {
+		if u.timestamp {
+			cql.WriteString("AND TTL ? ")
 		} else {
-			cql.WriteString("USING TTL ")
+			cql.WriteString("USING TTL ? ")
 		}
-		cql.WriteString(fmt.Sprint(int(u.ttl.Seconds())))
-		cql.WriteByte(' ')
+		names = append(names, "_ttl")
 	}
+
+	return
 }
 
 type where cmps

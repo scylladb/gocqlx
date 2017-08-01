@@ -5,7 +5,6 @@ package qb
 
 import (
 	"bytes"
-	"time"
 )
 
 // DeleteBuilder builds CQL DELETE statements.
@@ -38,8 +37,7 @@ func (b *DeleteBuilder) ToCql() (stmt string, names []string) {
 	cql.WriteString(b.table)
 	cql.WriteByte(' ')
 
-	b.using.writeCql(&cql)
-
+	names = append(names, b.using.writeCql(&cql)...)
 	names = append(names, b.where.writeCql(&cql)...)
 	names = append(names, b._if.writeCql(&cql)...)
 
@@ -64,8 +62,8 @@ func (b *DeleteBuilder) Columns(columns ...string) *DeleteBuilder {
 }
 
 // Timestamp sets a USING TIMESTAMP clause on the query.
-func (b *DeleteBuilder) Timestamp(t time.Time) *DeleteBuilder {
-	b.using.timestamp = t
+func (b *DeleteBuilder) Timestamp() *DeleteBuilder {
+	b.using.timestamp = true
 	return b
 }
 
