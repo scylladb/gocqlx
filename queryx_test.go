@@ -83,7 +83,7 @@ func TestBindStruct(t *testing.T) {
 
 	t.Run("simple", func(t *testing.T) {
 		names := []string{"name", "age", "first", "last"}
-		args, err := bindStructArgs(names, v, DefaultMapper)
+		args, err := bindStructArgs(names, v, nil, DefaultMapper)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -94,8 +94,34 @@ func TestBindStruct(t *testing.T) {
 	})
 
 	t.Run("error", func(t *testing.T) {
-		names := []string{"name", "first", "not_found"}
-		_, err := bindStructArgs(names, v, DefaultMapper)
+		names := []string{"name", "age", "first", "not_found"}
+		_, err := bindStructArgs(names, v, nil, DefaultMapper)
+		if err == nil {
+			t.Fatal("unexpected error")
+		}
+	})
+
+	t.Run("fallback", func(t *testing.T) {
+		names := []string{"name", "age", "first", "not_found"}
+		m := map[string]interface{}{
+			"not_found": "last",
+		}
+		args, err := bindStructArgs(names, v, m, DefaultMapper)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(args, []interface{}{"name", 30, "first", "last"}); diff != "" {
+			t.Error("args mismatch", diff)
+		}
+	})
+
+	t.Run("fallback error", func(t *testing.T) {
+		names := []string{"name", "age", "first", "not_found", "really_not_found"}
+		m := map[string]interface{}{
+			"not_found": "last",
+		}
+		_, err := bindStructArgs(names, v, m, DefaultMapper)
 		if err == nil {
 			t.Fatal("unexpected error")
 		}
