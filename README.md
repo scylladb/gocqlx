@@ -30,41 +30,53 @@ p := &Person{
 
 // Insert
 {
-	q := Query(qb.Insert("person").Columns("first_name", "last_name", "email").ToCql())
-	if err := q.BindStruct(p); err != nil {
-		t.Fatal("bind:", err)
-	}
-	mustExec(q.Query)
+    stmt, names := qb.Insert("person").Columns("first_name", "last_name", "email").ToCql()
+    q := gocqlx.Query(session.Query(stmt), names)
+
+    if err := q.BindStruct(p).Exec(); err != nil {
+        log.Fatal(err)
+    }
+}
+
+// Insert with TTL
+{
+    stmt, names := qb.Insert("person").Columns("first_name", "last_name", "email").TTL().ToCql()
+    q := gocqlx.Query(session.Query(stmt), names)
+
+    if err := q.BindStructMap(p, qb.M{"_ttl": qb.TTL(86400 * time.Second)}).Exec(); err != nil {
+        log.Fatal(err)
+    }
 }
 
 // Update
 {
-	p.Email = append(p.Email, "patricia1.citzen@gocqlx_test.com")
+    p.Email = append(p.Email, "patricia1.citzen@gocqlx_test.com")
 
-	q := Query(qb.Update("person").Set("email").Where(qb.Eq("first_name"), qb.Eq("last_name")).ToCql())
-	if err := q.BindStruct(p); err != nil {
-		t.Fatal("bind:", err)
-	}
-	mustExec(q.Query)
+    stmt, names := qb.Update("person").Set("email").Where(qb.Eq("first_name"), qb.Eq("last_name")).ToCql()
+    q := gocqlx.Query(session.Query(stmt), names)
+
+    if err := q.BindStruct(p).Exec(); err != nil {
+        log.Fatal(err)
+    }
 }
 
 // Select
 {
-	q := Query(qb.Select("person").Where(qb.In("first_name")).ToCql())
-	m := map[string]interface{}{
-		"first_name": []string{"Patricia", "John"},
-	}
-	if err := q.BindMap(m); err != nil {
-		t.Fatal("bind:", err)
-	}
+    stmt, names := qb.Select("person").Where(qb.In("first_name")).ToCql()
+    q := gocqlx.Query(session.Query(stmt), names)
 
-	var people []Person
-	if err := gocqlx.Select(&people, q.Query); err != nil {
-		t.Fatal(err)
-	}
-	t.Log(people)
+    q.BindMap(qb.M{"first_name": []string{"Patricia", "John"}})
+    if err := q.Err(); err != nil {
+        log.Fatal(err)
+    }
 
-	// [{Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]} {John Doe [johndoeDNE@gmail.net]}]
+    var people []Person
+    if err := gocqlx.Select(&people, q.Query); err != nil {
+        log.Fatal("select:", err)
+    }
+    log.Println(people)
+
+    // [{Patricia Citizen [patricia.citzen@com patricia1.citzen@com]} {John Doe [johndoeDNE@gmail.net]}]
 }
 ```
 

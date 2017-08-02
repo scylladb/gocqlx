@@ -80,6 +80,7 @@ type Queryx struct {
 	*gocql.Query
 	Names  []string
 	Mapper *reflectx.Mapper
+	err    error
 }
 
 // Query creates a new Queryx from gocql.Query using a default mapper.
@@ -93,29 +94,31 @@ func Query(q *gocql.Query, names []string) Queryx {
 
 // BindStruct binds query named parameters to values from arg using mapper. If
 // value cannot be found error is reported.
-func (q Queryx) BindStruct(arg interface{}) error {
+func (q *Queryx) BindStruct(arg interface{}) *Queryx {
 	arglist, err := bindStructArgs(q.Names, arg, nil, q.Mapper)
 	if err != nil {
-		return err
+		q.err = fmt.Errorf("bind error: %s", err)
+	} else {
+		q.err = nil
+		q.Bind(arglist...)
 	}
 
-	q.Bind(arglist...)
-
-	return nil
+	return q
 }
 
 // BindStructMap binds query named parameters to values from arg0 and arg1
 // using a mapper. If value cannot be found in arg0 it's looked up in arg1
 // before reporting an error.
-func (q Queryx) BindStructMap(arg0 interface{}, arg1 map[string]interface{}) error {
+func (q *Queryx) BindStructMap(arg0 interface{}, arg1 map[string]interface{}) *Queryx {
 	arglist, err := bindStructArgs(q.Names, arg0, arg1, q.Mapper)
 	if err != nil {
-		return err
+		q.err = fmt.Errorf("bind error: %s", err)
+	} else {
+		q.err = nil
+		q.Bind(arglist...)
 	}
 
-	q.Bind(arglist...)
-
-	return nil
+	return q
 }
 
 func bindStructArgs(names []string, arg0 interface{}, arg1 map[string]interface{}, m *reflectx.Mapper) ([]interface{}, error) {
@@ -145,15 +148,16 @@ func bindStructArgs(names []string, arg0 interface{}, arg1 map[string]interface{
 }
 
 // BindMap binds query named parameters using map.
-func (q Queryx) BindMap(arg map[string]interface{}) error {
+func (q *Queryx) BindMap(arg map[string]interface{}) *Queryx {
 	arglist, err := bindMapArgs(q.Names, arg)
 	if err != nil {
-		return err
+		q.err = fmt.Errorf("bind error: %s", err)
+	} else {
+		q.err = nil
+		q.Bind(arglist...)
 	}
 
-	q.Bind(arglist...)
-
-	return nil
+	return q
 }
 
 func bindMapArgs(names []string, arg map[string]interface{}) ([]interface{}, error) {
@@ -167,6 +171,19 @@ func bindMapArgs(names []string, arg map[string]interface{}) ([]interface{}, err
 		arglist = append(arglist, val)
 	}
 	return arglist, nil
+}
+
+// Err returns any binding errors.
+func (q *Queryx) Err() error {
+	return q.err
+}
+
+// Exec executes the query without returning any rows.
+func (q *Queryx) Exec() error {
+	if q.err != nil {
+		return q.err
+	}
+	return q.Query.Exec()
 }
 
 // QueryFunc creates Queryx from qb.Builder.ToCql() output.
