@@ -4,6 +4,7 @@ package gocqlx_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx"
@@ -129,6 +130,17 @@ func TestExample(t *testing.T) {
 		{
 			q := Query(qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email").ToCql())
 			if err := q.BindStruct(p); err != nil {
+				t.Fatal("bind:", err)
+			}
+			mustExec(q.Query)
+		}
+
+		// Insert with TTL
+		{
+			q := Query(qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email").TTL().ToCql())
+			if err := q.BindStructMap(p, map[string]interface{}{
+				"_ttl": qb.TTL(86400 * time.Second),
+			}); err != nil {
 				t.Fatal("bind:", err)
 			}
 			mustExec(q.Query)

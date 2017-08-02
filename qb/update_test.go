@@ -2,7 +2,6 @@ package qb
 
 import (
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -47,15 +46,15 @@ func TestUpdateBuilder(t *testing.T) {
 		},
 		// Add TTL
 		{
-			B: Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname").Where(w).TTL(time.Second * 86400),
-			S: "UPDATE cycling.cyclist_name USING TTL 86400 SET id=?,user_uuid=?,firstname=? WHERE id=? ",
-			N: []string{"id", "user_uuid", "firstname", "expr"},
+			B: Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname").Where(w).TTL(),
+			S: "UPDATE cycling.cyclist_name USING TTL ? SET id=?,user_uuid=?,firstname=? WHERE id=? ",
+			N: []string{"_ttl", "id", "user_uuid", "firstname", "expr"},
 		},
 		// Add TIMESTAMP
 		{
-			B: Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname").Where(w).Timestamp(time.Unix(0, 0).Add(time.Microsecond * 123456789)),
-			S: "UPDATE cycling.cyclist_name USING TIMESTAMP 123456789 SET id=?,user_uuid=?,firstname=? WHERE id=? ",
-			N: []string{"id", "user_uuid", "firstname", "expr"},
+			B: Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname").Where(w).Timestamp(),
+			S: "UPDATE cycling.cyclist_name USING TIMESTAMP ? SET id=?,user_uuid=?,firstname=? WHERE id=? ",
+			N: []string{"_ts", "id", "user_uuid", "firstname", "expr"},
 		},
 		// Add IF EXISTS
 		{

@@ -5,7 +5,6 @@ package qb
 
 import (
 	"bytes"
-	"time"
 )
 
 // UpdateBuilder builds CQL UPDATE statements.
@@ -33,7 +32,7 @@ func (b *UpdateBuilder) ToCql() (stmt string, names []string) {
 	cql.WriteString(b.table)
 	cql.WriteByte(' ')
 
-	b.using.writeCql(&cql)
+	names = append(names, b.using.writeCql(&cql)...)
 
 	cql.WriteString("SET ")
 	for i, c := range b.columns {
@@ -64,14 +63,14 @@ func (b *UpdateBuilder) Table(table string) *UpdateBuilder {
 }
 
 // Timestamp sets a USING TIMESTAMP clause on the query.
-func (b *UpdateBuilder) Timestamp(t time.Time) *UpdateBuilder {
-	b.using.timestamp = t
+func (b *UpdateBuilder) Timestamp() *UpdateBuilder {
+	b.using.timestamp = true
 	return b
 }
 
 // TTL sets a USING TTL clause on the query.
-func (b *UpdateBuilder) TTL(d time.Duration) *UpdateBuilder {
-	b.using.ttl = d
+func (b *UpdateBuilder) TTL() *UpdateBuilder {
+	b.using.ttl = true
 	return b
 }
 

@@ -5,7 +5,6 @@ package qb
 
 import (
 	"bytes"
-	"time"
 )
 
 // InsertBuilder builds CQL INSERT statements.
@@ -35,19 +34,20 @@ func (b *InsertBuilder) ToCql() (stmt string, names []string) {
 
 	cql.WriteByte('(')
 	b.columns.writeCql(&cql)
+	names = append(names, b.columns...)
 	cql.WriteString(") ")
 
 	cql.WriteString("VALUES (")
 	placeholders(&cql, len(b.columns))
 	cql.WriteString(") ")
 
-	b.using.writeCql(&cql)
+	names = append(names, b.using.writeCql(&cql)...)
 
 	if b.unique {
 		cql.WriteString("IF NOT EXISTS ")
 	}
 
-	stmt, names = cql.String(), b.columns
+	stmt = cql.String()
 	return
 }
 
@@ -70,13 +70,13 @@ func (b *InsertBuilder) Unique() *InsertBuilder {
 }
 
 // Timestamp sets a USING TIMESTAMP clause on the query.
-func (b *InsertBuilder) Timestamp(t time.Time) *InsertBuilder {
-	b.using.timestamp = t
+func (b *InsertBuilder) Timestamp() *InsertBuilder {
+	b.using.timestamp = true
 	return b
 }
 
 // TTL sets a USING TTL clause on the query.
-func (b *InsertBuilder) TTL(d time.Duration) *InsertBuilder {
-	b.using.ttl = d
+func (b *InsertBuilder) TTL() *InsertBuilder {
+	b.using.ttl = true
 	return b
 }

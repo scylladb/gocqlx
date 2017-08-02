@@ -1,4 +1,4 @@
-// +build integration
+// +build all integration
 
 package gocqlx_test
 

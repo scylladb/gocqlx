@@ -91,9 +91,10 @@ func Query(q *gocql.Query, names []string) Queryx {
 	}
 }
 
-// BindStruct binds query named parameters using mapper.
+// BindStruct binds query named parameters to values from arg using mapper. If
+// value cannot be found error is reported.
 func (q Queryx) BindStruct(arg interface{}) error {
-	arglist, err := bindStructArgs(q.Names, arg, q.Mapper)
+	arglist, err := bindStructArgs(q.Names, arg, nil, q.Mapper)
 	if err != nil {
 		return err
 	}
@@ -103,22 +104,41 @@ func (q Queryx) BindStruct(arg interface{}) error {
 	return nil
 }
 
-func bindStructArgs(names []string, arg interface{}, m *reflectx.Mapper) ([]interface{}, error) {
+// BindStructMap binds query named parameters to values from arg0 and arg1
+// using a mapper. If value cannot be found in arg0 it's looked up in arg1
+// before reporting an error.
+func (q Queryx) BindStructMap(arg0 interface{}, arg1 map[string]interface{}) error {
+	arglist, err := bindStructArgs(q.Names, arg0, arg1, q.Mapper)
+	if err != nil {
+		return err
+	}
+
+	q.Bind(arglist...)
+
+	return nil
+}
+
+func bindStructArgs(names []string, arg0 interface{}, arg1 map[string]interface{}, m *reflectx.Mapper) ([]interface{}, error) {
 	arglist := make([]interface{}, 0, len(names))
 
 	// grab the indirected value of arg
-	v := reflect.ValueOf(arg)
-	for v = reflect.ValueOf(arg); v.Kind() == reflect.Ptr; {
+	v := reflect.ValueOf(arg0)
+	for v = reflect.ValueOf(arg0); v.Kind() == reflect.Ptr; {
 		v = v.Elem()
 	}
 
 	fields := m.TraversalsByName(v.Type(), names)
 	for i, t := range fields {
-		if len(t) == 0 {
-			return arglist, fmt.Errorf("could not find name %s in %#v", names[i], arg)
+		if len(t) != 0 {
+			val := reflectx.FieldByIndexesReadOnly(v, t)
+			arglist = append(arglist, val.Interface())
+		} else {
+			val, ok := arg1[names[i]]
+			if !ok {
+				return arglist, fmt.Errorf("could not find name %s in %#v and %#v", names[i], arg0, arg1)
+			}
+			arglist = append(arglist, val)
 		}
-		val := reflectx.FieldByIndexesReadOnly(v, t)
-		arglist = append(arglist, val.Interface())
 	}
 
 	return arglist, nil

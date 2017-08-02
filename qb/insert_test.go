@@ -2,7 +2,6 @@ package qb
 
 import (
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -34,15 +33,15 @@ func TestInsertBuilder(t *testing.T) {
 		},
 		// Add TTL
 		{
-			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").TTL(time.Second * 86400),
-			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) USING TTL 86400 ",
-			N: []string{"id", "user_uuid", "firstname"},
+			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").TTL(),
+			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) USING TTL ? ",
+			N: []string{"id", "user_uuid", "firstname", "_ttl"},
 		},
 		// Add TIMESTAMP
 		{
-			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Timestamp(time.Unix(0, 0).Add(time.Microsecond * 123456789)),
-			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) USING TIMESTAMP 123456789 ",
-			N: []string{"id", "user_uuid", "firstname"},
+			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Timestamp(),
+			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) USING TIMESTAMP ? ",
+			N: []string{"id", "user_uuid", "firstname", "_ts"},
 		},
 		// Add IF NOT EXISTS
 		{

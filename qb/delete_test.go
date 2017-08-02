@@ -2,7 +2,6 @@ package qb
 
 import (
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -47,9 +46,9 @@ func TestDeleteBuilder(t *testing.T) {
 		},
 		// Add TIMESTAMP
 		{
-			B: Delete("cycling.cyclist_name").Where(w).Timestamp(time.Unix(0, 0).Add(time.Microsecond * 123456789)),
-			S: "DELETE FROM cycling.cyclist_name USING TIMESTAMP 123456789 WHERE id=? ",
-			N: []string{"expr"},
+			B: Delete("cycling.cyclist_name").Where(w).Timestamp(),
+			S: "DELETE FROM cycling.cyclist_name USING TIMESTAMP ? WHERE id=? ",
+			N: []string{"_ts", "expr"},
 		},
 		// Add IF EXISTS
 		{
