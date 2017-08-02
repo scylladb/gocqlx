@@ -117,9 +117,6 @@ func TestExample(t *testing.T) {
 
 	// Query builder, using DSL to build queries, using `:name` as the bindvar.
 	{
-		// helper function for creating session queries
-		Query := gocqlx.SessionQuery(session)
-
 		p := &Person{
 			"Patricia",
 			"Citizen",
@@ -128,43 +125,44 @@ func TestExample(t *testing.T) {
 
 		// Insert
 		{
-			q := Query(qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email").ToCql())
-			if err := q.BindStruct(p); err != nil {
-				t.Fatal("bind:", err)
+			stmt, names := qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email").ToCql()
+			q := gocqlx.Query(session.Query(stmt), names)
+
+			if err := q.BindStruct(p).Exec(); err != nil {
+				t.Fatal(err)
 			}
-			mustExec(q.Query)
 		}
 
 		// Insert with TTL
 		{
-			q := Query(qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email").TTL().ToCql())
-			if err := q.BindStructMap(p, map[string]interface{}{
-				"_ttl": qb.TTL(86400 * time.Second),
-			}); err != nil {
-				t.Fatal("bind:", err)
+			stmt, names := qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email").TTL().ToCql()
+			q := gocqlx.Query(session.Query(stmt), names)
+
+			if err := q.BindStructMap(p, qb.M{"_ttl": qb.TTL(86400 * time.Second)}).Exec(); err != nil {
+				t.Fatal(err)
 			}
-			mustExec(q.Query)
 		}
 
 		// Update
 		{
 			p.Email = append(p.Email, "patricia1.citzen@gocqlx_test.com")
 
-			q := Query(qb.Update("gocqlx_test.person").Set("email").Where(qb.Eq("first_name"), qb.Eq("last_name")).ToCql())
-			if err := q.BindStruct(p); err != nil {
-				t.Fatal("bind:", err)
+			stmt, names := qb.Update("gocqlx_test.person").Set("email").Where(qb.Eq("first_name"), qb.Eq("last_name")).ToCql()
+			q := gocqlx.Query(session.Query(stmt), names)
+
+			if err := q.BindStruct(p).Exec(); err != nil {
+				t.Fatal(err)
 			}
-			mustExec(q.Query)
 		}
 
 		// Select
 		{
-			q := Query(qb.Select("gocqlx_test.person").Where(qb.In("first_name")).ToCql())
-			m := map[string]interface{}{
-				"first_name": []string{"Patricia", "John"},
-			}
-			if err := q.BindMap(m); err != nil {
-				t.Fatal("bind:", err)
+			stmt, names := qb.Select("gocqlx_test.person").Where(qb.In("first_name")).ToCql()
+			q := gocqlx.Query(session.Query(stmt), names)
+
+			q.BindMap(qb.M{"first_name": []string{"Patricia", "John"}})
+			if err := q.Err(); err != nil {
+				t.Fatal(err)
 			}
 
 			var people []Person
@@ -194,10 +192,9 @@ func TestExample(t *testing.T) {
 				[]string{"jane.citzen@gocqlx_test.com"},
 			}
 
-			if err := q.BindStruct(p); err != nil {
-				t.Fatal("bind:", err)
+			if err := q.BindStruct(p).Exec(); err != nil {
+				t.Fatal(err)
 			}
-			mustExec(q.Query)
 		}
 
 		// bind named parameters from a map
@@ -208,10 +205,9 @@ func TestExample(t *testing.T) {
 				"email":      []string{"bensmith@allblacks.nz"},
 			}
 
-			if err := q.BindMap(m); err != nil {
-				t.Fatal("bind:", err)
+			if err := q.BindMap(m).Exec(); err != nil {
+				t.Fatal(err)
 			}
-			mustExec(q.Query)
 		}
 	}
 }

@@ -102,13 +102,8 @@ func BenchmarkE2EGocqlxInsert(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		// prepare
 		p := people[i%len(people)]
-		if err := q.BindStruct(p); err != nil {
-			b.Fatal("bind:", err)
-		}
-		// insert
-		if err := q.Exec(); err != nil {
+		if err := q.BindStruct(p).Exec(); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -229,10 +224,7 @@ func initTable(b *testing.B, session *gocql.Session, people []*benchPerson) {
 	q := gocqlx.Query(session.Query(stmt), names)
 
 	for _, p := range people {
-		if err := q.BindStruct(p); err != nil {
-			b.Fatal(err)
-		}
-		if err := q.Exec(); err != nil {
+		if err := q.BindStruct(p).Exec(); err != nil {
 			b.Fatal(err)
 		}
 	}
