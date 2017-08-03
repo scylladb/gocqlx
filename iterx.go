@@ -110,8 +110,6 @@ func (iter *Iterx) Select(dest interface{}) error {
 }
 
 func (iter *Iterx) scanAll(dest interface{}, structOnly bool) error {
-	var v, vp reflect.Value
-
 	value := reflect.ValueOf(dest)
 
 	// json.Unmarshal returns errors for these
@@ -121,12 +119,14 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) error {
 	if value.IsNil() {
 		return errors.New("nil pointer passed to StructScan destination")
 	}
-	direct := reflect.Indirect(value)
 
 	slice, err := baseType(value.Type(), reflect.Slice)
 	if err != nil {
 		return err
 	}
+
+	// allocate memory for the page data
+	v := reflect.MakeSlice(slice, 0, iter.Iter.NumRows())
 
 	isPtr := slice.Elem().Kind() == reflect.Ptr
 	base := reflectx.Deref(slice.Elem())
@@ -141,37 +141,33 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) error {
 		return fmt.Errorf("non-struct dest type %s with >1 columns (%d)", base.Kind(), len(iter.Columns()))
 	}
 
-	if !scannable {
-		for {
-			// create a new struct type (which returns PtrTo) and indirect it
-			vp = reflect.New(base)
-			v = reflect.Indirect(vp)
-			// scan into the struct field pointers and append to our results
-			if ok := iter.StructScan(vp.Interface()); !ok {
-				break
-			}
+	var (
+		vp reflect.Value
+		ok bool
+	)
+	for {
+		// create a new struct type (which returns PtrTo) and indirect it
+		vp = reflect.New(base)
 
-			if isPtr {
-				direct.Set(reflect.Append(direct, vp))
-			} else {
-				direct.Set(reflect.Append(direct, v))
-			}
+		// scan into the struct field pointers
+		if !scannable {
+			ok = iter.StructScan(vp.Interface())
+		} else {
+			ok = iter.Scan(vp.Interface())
 		}
-	} else {
-		for {
-			vp = reflect.New(base)
-			if ok := iter.Scan(vp.Interface()); !ok {
-				break
-			}
+		if !ok {
+			break
+		}
 
-			// append
-			if isPtr {
-				direct.Set(reflect.Append(direct, vp))
-			} else {
-				direct.Set(reflect.Append(direct, reflect.Indirect(vp)))
-			}
+		if isPtr {
+			v = reflect.Append(v, vp)
+		} else {
+			v = reflect.Append(v, reflect.Indirect(vp))
 		}
 	}
+
+	// update dest
+	reflect.Indirect(value).Set(v)
 
 	return iter.err
 }
