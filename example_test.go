@@ -155,6 +155,37 @@ func TestExample(t *testing.T) {
 			}
 		}
 
+		// Batch
+		{
+			i := qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email")
+
+			stmt, names := qb.Batch().
+				Add("a.", i).
+				Add("b.", i).
+				ToCql()
+			q := gocqlx.Query(session.Query(stmt), names)
+
+			b := struct {
+				A Person
+				B Person
+			}{
+				A: Person{
+					"Ian",
+					"Citizen",
+					[]string{"ian.citzen@gocqlx_test.com"},
+				},
+				B: Person{
+					"Igy",
+					"Citizen",
+					[]string{"igy.citzen@gocqlx_test.com"},
+				},
+			}
+
+			if err := q.BindStruct(&b).Exec(); err != nil {
+				t.Fatal(err)
+			}
+		}
+
 		// Select
 		{
 			stmt, names := qb.Select("gocqlx_test.person").Where(qb.In("first_name")).ToCql()
