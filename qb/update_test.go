@@ -78,6 +78,6 @@ func TestUpdateBuilder(t *testing.T) {
 func BenchmarkUpdateBuilder(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname", "stars").Where(Eq("id"))
+		Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname", "stars").Where(Eq("id")).ToCql()
 	}
 }

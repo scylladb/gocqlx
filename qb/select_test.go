@@ -85,6 +85,6 @@ func TestSelectBuilder(t *testing.T) {
 func BenchmarkSelectBuilder(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Select("cycling.cyclist_name").Columns("id", "user_uuid", "firstname", "stars").Where(Eq("id"))
+		Select("cycling.cyclist_name").Columns("id", "user_uuid", "firstname", "stars").Where(Eq("id")).ToCql()
 	}
 }
