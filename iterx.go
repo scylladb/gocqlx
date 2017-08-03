@@ -62,15 +62,15 @@ func (iter *Iterx) Get(dest interface{}) error {
 }
 
 func (iter *Iterx) scanAny(dest interface{}, structOnly bool) error {
-	v := reflect.ValueOf(dest)
-	if v.Kind() != reflect.Ptr {
+	value := reflect.ValueOf(dest)
+	if value.Kind() != reflect.Ptr {
 		return errors.New("must pass a pointer, not a value, to StructScan destination")
 	}
-	if v.IsNil() {
+	if value.IsNil() {
 		return errors.New("nil pointer passed to StructScan destination")
 	}
 
-	base := reflectx.Deref(v.Type())
+	base := reflectx.Deref(value.Type())
 	scannable := isScannable(base)
 
 	if structOnly && scannable {
