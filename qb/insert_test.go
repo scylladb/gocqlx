@@ -65,6 +65,6 @@ func TestInsertBuilder(t *testing.T) {
 func BenchmarkInsertBuilder(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname", "stars")
+		Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname", "stars").ToCql()
 	}
 }

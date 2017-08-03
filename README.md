@@ -9,11 +9,17 @@ hood it uses `sqlx/reflectx` package so `sqlx` models will also work with `gocql
 
 ## Installation
 
-    go get github.com/scylladb/gocqlx
+    go get -u github.com/scylladb/gocqlx
 
 ## Features
 
-Fast, boilerplate free and flexible `SELECTS`, `INSERTS`, `UPDATES` and `DELETES`.
+* Flexible `SELECT`, `INSERT`, `UPDATE` `DELETE` and `BATCH` query building using a DSL
+* Support for named parameters (:identifier) in queries
+* Binding parameters form struct or map
+* Scanning results into structs
+* Fast!
+
+Example, see [full example here](https://github.com/scylladb/gocqlx/blob/master/example_test.go)
 
 ```go
 type Person struct {
@@ -38,57 +44,69 @@ p := &Person{
     }
 }
 
-// Insert with TTL
+// Batch
 {
-    stmt, names := qb.Insert("person").Columns("first_name", "last_name", "email").TTL().ToCql()
-    q := gocqlx.Query(session.Query(stmt), names)
+	i := qb.Insert("person").Columns("first_name", "last_name", "email")
 
-    if err := q.BindStructMap(p, qb.M{"_ttl": qb.TTL(86400 * time.Second)}).Exec(); err != nil {
-        log.Fatal(err)
-    }
+	stmt, names := qb.Batch().
+		Add("a.", i).
+		Add("b.", i).
+		ToCql()
+	q := gocqlx.Query(session.Query(stmt), names)
+
+	b := struct {
+		A Person
+		B Person
+	}{
+		A: Person{
+			"Igy",
+			"Citizen",
+			[]string{"ian.citzen@gocqlx_test.com"},
+		},
+		B: Person{
+			"Ian",
+			"Citizen",
+			[]string{"igy.citzen@gocqlx_test.com"},
+		},
+	}
+
+	if err := q.BindStruct(&b).Exec(); err != nil {
+		t.Fatal(err)
+	}
 }
 
-// Update
+// Get
 {
-    p.Email = append(p.Email, "patricia1.citzen@gocqlx_test.com")
-
-    stmt, names := qb.Update("person").Set("email").Where(qb.Eq("first_name"), qb.Eq("last_name")).ToCql()
-    q := gocqlx.Query(session.Query(stmt), names)
-
-    if err := q.BindStruct(p).Exec(); err != nil {
-        log.Fatal(err)
-    }
+	var p Person
+	if err := gocqlx.Get(&p, session.Query("SELECT * FROM gocqlx_test.person WHERE first_name=?", "Patricia")); err != nil {
+		t.Fatal("get:", err)
+	}
+	t.Log(p)  // {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]}
 }
 
 // Select
 {
-    stmt, names := qb.Select("person").Where(qb.In("first_name")).ToCql()
-    q := gocqlx.Query(session.Query(stmt), names)
+	stmt, names := qb.Select("gocqlx_test.person").Where(qb.In("first_name")).ToCql()
+	q := gocqlx.Query(session.Query(stmt), names)
 
-    q.BindMap(qb.M{"first_name": []string{"Patricia", "John"}})
-    if err := q.Err(); err != nil {
-        log.Fatal(err)
-    }
+	q.BindMap(qb.M{"first_name": []string{"Patricia", "Igy", "Ian"}})
+	if err := q.Err(); err != nil {
+		t.Fatal(err)
+	}
 
-    var people []Person
-    if err := gocqlx.Select(&people, q.Query); err != nil {
-        log.Fatal("select:", err)
-    }
-    log.Println(people)
-
-    // [{Patricia Citizen [patricia.citzen@com patricia1.citzen@com]} {John Doe [johndoeDNE@gmail.net]}]
+	var people []Person
+	if err := gocqlx.Select(&people, q.Query); err != nil {
+		t.Fatal("select:", err)
+	}
+	t.Log(people)  // [{Ian Citizen [igy.citzen@gocqlx_test.com]} {Igy Citizen [ian.citzen@gocqlx_test.com]} {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]}]
 }
 ```
 
-For more details see [example test](https://github.com/scylladb/gocqlx/blob/master/example_test.go).
-
 ## Performance
 
-Gocqlx is fast, below is a benchmark result comparing `gocqlx` to raw `gocql` on
-my machine, see the benchmark [here](https://github.com/scylladb/gocqlx/blob/master/benchmark_test.go).
-
-For query binding gocqlx is faster as it does not require parameter rewriting 
-while binding. For get and insert the performance is comparable.
+Gocqlx is fast, this is a benchmark result comparing `gocqlx` to raw `gocql` 
+on a local machine. For query binding (insert) `gocqlx` is faster then `gocql` 
+thanks to smart caching, otherwise the performance is comparable.
 
 ```
 BenchmarkE2EGocqlInsert-4         500000            258434 ns/op            2627 B/op         59 allocs/op
@@ -99,23 +117,4 @@ BenchmarkE2EGocqlSelect-4          30000           2588562 ns/op           34605
 BenchmarkE2EGocqlxSelect-4         30000           2637187 ns/op           27718 B/op        951 allocs/op
 ```
 
-Gocqlx comes with automatic snake case support for field names and does not 
-require manual tagging. This is also fast, below is a comparison to 
-`strings.ToLower` function (`sqlx` default).
-
-```
-BenchmarkSnakeCase-4            10000000               124 ns/op              32 B/op          2 allocs/op
-BenchmarkToLower-4              100000000               57.9 ns/op             0 B/op          0 allocs/op
-```
-
-Building queries is fast and low on allocations too.
-
-```
-BenchmarkCmp-4                   3000000               464 ns/op             112 B/op          3 allocs/op
-BenchmarkDeleteBuilder-4        10000000               214 ns/op             112 B/op          2 allocs/op
-BenchmarkInsertBuilder-4        20000000               103 ns/op              64 B/op          1 allocs/op
-BenchmarkSelectBuilder-4        10000000               214 ns/op             112 B/op          2 allocs/op
-BenchmarkUpdateBuilder-4        10000000               212 ns/op             112 B/op          2 allocs/op
-```
-
-Enyoy!
+See the [benchmark here](https://github.com/scylladb/gocqlx/blob/master/benchmark_test.go).

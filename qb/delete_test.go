@@ -72,6 +72,6 @@ func TestDeleteBuilder(t *testing.T) {
 func BenchmarkDeleteBuilder(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Delete("cycling.cyclist_name").Columns("id", "user_uuid", "firstname", "stars").Where(Eq("id"))
+		Delete("cycling.cyclist_name").Columns("id", "user_uuid", "firstname", "stars").Where(Eq("id")).ToCql()
 	}
 }
