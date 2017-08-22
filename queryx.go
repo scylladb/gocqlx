@@ -186,6 +186,13 @@ func (q *Queryx) Exec() error {
 	return q.Query.Exec()
 }
 
+// ExecRelease performs exec and releases the query, a released query cannot be
+// reused.
+func (q *Queryx) ExecRelease() error {
+	defer q.Release()
+	return q.Exec()
+}
+
 // QueryFunc creates Queryx from qb.Builder.ToCql() output.
 type QueryFunc func(stmt string, names []string) Queryx
 
