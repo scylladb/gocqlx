@@ -1,6 +1,0 @@
-gocqlx Copyright 2017 ScyllDB
-
-This work contains software from:
-
-* gocql project (https://github.com/gocql/gocql), licensed under the BSD license
-* sqlx project (https://github.com/jmoiron/sqlx), licensed under the MIT license
