@@ -58,9 +58,9 @@ func isScannable(t reflect.Type) bool {
 }
 
 // fieldsByName fills a values interface with fields from the passed value based
-// on the traversals in int.  If ptrs is true, return addresses instead of values.
+// on the traversals in int. If ptrs is true, return addresses instead of values.
 // We write this instead of using FieldsByName to save allocations and map lookups
-// when iterating over many rows.  Empty traversals will get an interface pointer.
+// when iterating over many rows. Empty traversals will get an interface pointer.
 // Because of the necessity of requesting ptrs or values, it's considered a bit too
 // specialized for inclusion in reflectx itself.
 func fieldsByTraversal(v reflect.Value, traversals [][]int, values []interface{}, ptrs bool) error {

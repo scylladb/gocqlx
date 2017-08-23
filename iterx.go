@@ -50,8 +50,8 @@ func (iter *Iterx) Unsafe() *Iterx {
 	return iter
 }
 
-// Get scans first row into a destination and closes the iterator.  If the
-// destination type is a Struct, then StructScan will be used.  If the
+// Get scans first row into a destination and closes the iterator. If the
+// destination type is a Struct, then StructScan will be used. If the
 // destination is some other type, then the row must only have one column which
 // can scan into that type.
 func (iter *Iterx) Get(dest interface{}) error {
@@ -99,8 +99,8 @@ func (iter *Iterx) scanAny(dest interface{}, structOnly bool) error {
 }
 
 // Select scans all rows into a destination, which must be a slice of any type
-// and closes the iterator.  If the destination slice type is a Struct, then
-// StructScan will be used on each row.  If the destination is some other type,
+// and closes the iterator. If the destination slice type is a Struct, then
+// StructScan will be used on each row. If the destination is some other type,
 // then each row must only have one column which can scan into that type.
 func (iter *Iterx) Select(dest interface{}) error {
 	if iter.query == nil {
@@ -182,7 +182,7 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) error {
 
 // StructScan is like gocql.Scan, but scans a single row into a single Struct.
 // Use this and iterate manually when the memory load of Select() might be
-// prohibitive.  StructScan caches the reflect work of matching up column
+// prohibitive. StructScan caches the reflect work of matching up column
 // positions to fields to avoid that overhead per scan, which means it is not
 // safe to run StructScan on the same Iterx instance with different struct
 // types.
