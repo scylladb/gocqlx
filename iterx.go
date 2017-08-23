@@ -53,105 +53,114 @@ func (iter *Iterx) Unsafe() *Iterx {
 // Get scans first row into a destination and closes the iterator. If the
 // destination type is a Struct, then StructScan will be used. If the
 // destination is some other type, then the row must only have one column which
-// can scan into that type.
+// can scan into that type. If no rows were selected, ErrNotFound is returned.
 func (iter *Iterx) Get(dest interface{}) error {
 	if iter.query == nil {
 		return errors.New("using released query")
 	}
 
-	if err := iter.scanAny(dest, false); err != nil {
-		iter.err = err
-	}
-
+	iter.scanAny(dest, false)
 	iter.Close()
 	iter.ReleaseQuery()
 
 	return iter.err
 }
 
-func (iter *Iterx) scanAny(dest interface{}, structOnly bool) error {
+func (iter *Iterx) scanAny(dest interface{}, structOnly bool) bool {
 	value := reflect.ValueOf(dest)
 	if value.Kind() != reflect.Ptr {
-		return errors.New("must pass a pointer, not a value, to StructScan destination")
+		iter.err = errors.New("must pass a pointer, not a value, to StructScan destination")
+		return false
 	}
 	if value.IsNil() {
-		return errors.New("nil pointer passed to StructScan destination")
+		iter.err = errors.New("nil pointer passed to StructScan destination")
+		return false
+	}
+	if iter.Iter.NumRows() == 0 {
+		iter.err = gocql.ErrNotFound
+		return false
 	}
 
 	base := reflectx.Deref(value.Type())
 	scannable := isScannable(base)
 
 	if structOnly && scannable {
-		return structOnlyError(base)
+		iter.err = structOnlyError(base)
+		return false
 	}
 
 	if scannable && len(iter.Columns()) > 1 {
-		return fmt.Errorf("scannable dest type %s with >1 columns (%d) in result", base.Kind(), len(iter.Columns()))
+		iter.err = fmt.Errorf("scannable dest type %s with >1 columns (%d) in result", base.Kind(), len(iter.Columns()))
+		return false
 	}
 
-	if !scannable {
-		iter.StructScan(dest)
-	} else {
-		iter.Scan(dest)
+	if scannable {
+		return iter.Scan(dest)
 	}
 
-	return iter.err
+	return iter.StructScan(dest)
 }
 
 // Select scans all rows into a destination, which must be a slice of any type
 // and closes the iterator. If the destination slice type is a Struct, then
 // StructScan will be used on each row. If the destination is some other type,
 // then each row must only have one column which can scan into that type.
+// If no rows were selected, ErrNotFound is returned.
 func (iter *Iterx) Select(dest interface{}) error {
 	if iter.query == nil {
 		return errors.New("using released query")
 	}
 
-	if err := iter.scanAll(dest, false); err != nil {
-		iter.err = err
-	}
-
+	iter.scanAll(dest, false)
 	iter.Close()
 	iter.ReleaseQuery()
 
 	return iter.err
 }
 
-func (iter *Iterx) scanAll(dest interface{}, structOnly bool) error {
+func (iter *Iterx) scanAll(dest interface{}, structOnly bool) bool {
 	value := reflect.ValueOf(dest)
 
 	// json.Unmarshal returns errors for these
 	if value.Kind() != reflect.Ptr {
-		return errors.New("must pass a pointer, not a value, to StructScan destination")
+		iter.err = errors.New("must pass a pointer, not a value, to StructScan destination")
+		return false
 	}
 	if value.IsNil() {
-		return errors.New("nil pointer passed to StructScan destination")
+		iter.err = errors.New("nil pointer passed to StructScan destination")
+		return false
+	}
+	if iter.Iter.NumRows() == 0 {
+		iter.err = gocql.ErrNotFound
+		return false
 	}
 
 	slice, err := baseType(value.Type(), reflect.Slice)
 	if err != nil {
-		return err
+		iter.err = err
+		return false
 	}
-
-	// allocate memory for the page data
-	v := reflect.MakeSlice(slice, 0, iter.Iter.NumRows())
 
 	isPtr := slice.Elem().Kind() == reflect.Ptr
 	base := reflectx.Deref(slice.Elem())
 	scannable := isScannable(base)
 
 	if structOnly && scannable {
-		return structOnlyError(base)
+		iter.err = structOnlyError(base)
+		return false
 	}
 
 	// if it's a base type make sure it only has 1 column;  if not return an error
 	if scannable && len(iter.Columns()) > 1 {
-		return fmt.Errorf("non-struct dest type %s with >1 columns (%d)", base.Kind(), len(iter.Columns()))
+		iter.err = fmt.Errorf("non-struct dest type %s with >1 columns (%d)", base.Kind(), len(iter.Columns()))
+		return false
 	}
 
 	var (
-		vp reflect.Value
-		ok bool
+		alloc bool
+		v     reflect.Value
+		vp    reflect.Value
+		ok    bool
 	)
 	for {
 		// create a new struct type (which returns PtrTo) and indirect it
@@ -167,6 +176,12 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) error {
 			break
 		}
 
+		// allocate memory for the page data
+		if !alloc {
+			v = reflect.MakeSlice(slice, 0, iter.Iter.NumRows())
+			alloc = true
+		}
+
 		if isPtr {
 			v = reflect.Append(v, vp)
 		} else {
@@ -174,10 +189,12 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) error {
 		}
 	}
 
-	// update dest
-	reflect.Indirect(value).Set(v)
+	// update dest if allocated slice
+	if alloc {
+		reflect.Indirect(value).Set(v)
+	}
 
-	return iter.err
+	return true
 }
 
 // StructScan is like gocql.Scan, but scans a single row into a single Struct.
@@ -185,7 +202,7 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) error {
 // prohibitive. StructScan caches the reflect work of matching up column
 // positions to fields to avoid that overhead per scan, which means it is not
 // safe to run StructScan on the same Iterx instance with different struct
-// types.
+// types. If no rows were selected, ErrNotFound is returned.
 func (iter *Iterx) StructScan(dest interface{}) bool {
 	if iter.query == nil {
 		iter.err = errors.New("using released query")
@@ -195,6 +212,11 @@ func (iter *Iterx) StructScan(dest interface{}) bool {
 	v := reflect.ValueOf(dest)
 	if v.Kind() != reflect.Ptr {
 		iter.err = errors.New("must pass a pointer, not a value, to StructScan destination")
+		return false
+	}
+
+	if iter.Iter.NumRows() == 0 {
+		iter.err = gocql.ErrNotFound
 		return false
 	}
 
