@@ -42,6 +42,14 @@ func Iter(q *gocql.Query) *Iterx {
 	}
 }
 
+// Unsafe forces the iterator to ignore missing fields. By default when scanning
+// a struct if result row has a column that cannot be mapped to any destination
+// field an error is reported. With unsafe such columns are ignored.
+func (iter *Iterx) Unsafe() *Iterx {
+	iter.unsafe = true
+	return iter
+}
+
 // Get scans first row into a destination and closes the iterator.  If the
 // destination type is a Struct, then StructScan will be used.  If the
 // destination is some other type, then the row must only have one column which
@@ -196,9 +204,11 @@ func (iter *Iterx) StructScan(dest interface{}) bool {
 
 		iter.fields = m.TraversalsByName(v.Type(), columns)
 		// if we are not unsafe and are missing fields, return an error
-		if f, err := missingFields(iter.fields); err != nil && !iter.unsafe {
-			iter.err = fmt.Errorf("missing destination name %s in %T", columns[f], dest)
-			return false
+		if !iter.unsafe {
+			if f, err := missingFields(iter.fields); err != nil {
+				iter.err = fmt.Errorf("missing destination name %s in %T", columns[f], dest)
+				return false
+			}
 		}
 		iter.values = make([]interface{}, len(columns))
 		iter.started = true

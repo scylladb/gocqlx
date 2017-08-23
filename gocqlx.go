@@ -71,7 +71,6 @@ func fieldsByTraversal(v reflect.Value, traversals [][]int, values []interface{}
 
 	for i, traversal := range traversals {
 		if len(traversal) == 0 {
-			values[i] = new(interface{})
 			continue
 		}
 		f := reflectx.FieldByIndexes(v, traversal)
