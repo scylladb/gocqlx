@@ -30,60 +30,6 @@ func (n *FullName) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
 	return nil
 }
 
-func TestScannable(t *testing.T) {
-	session := createSession(t)
-	defer session.Close()
-	if err := createTable(session, `CREATE TABLE gocqlx_test.scannable_table (testfullname text PRIMARY KEY)`); err != nil {
-		t.Fatal("create table:", err)
-	}
-	m := FullName{"John", "Doe"}
-
-	if err := session.Query(`INSERT INTO scannable_table (testfullname) values (?)`, m).Exec(); err != nil {
-		t.Fatal("insert:", err)
-	}
-
-	t.Run("get", func(t *testing.T) {
-		var v FullName
-		if err := gocqlx.Get(&v, session.Query(`SELECT testfullname FROM scannable_table`)); err != nil {
-			t.Fatal("get failed", err)
-		}
-
-		if !reflect.DeepEqual(m, v) {
-			t.Fatal("not equals")
-		}
-	})
-
-	t.Run("select", func(t *testing.T) {
-		var v []FullName
-		if err := gocqlx.Select(&v, session.Query(`SELECT testfullname FROM scannable_table`)); err != nil {
-			t.Fatal("get failed", err)
-		}
-
-		if len(v) != 1 {
-			t.Fatal("select unexpecrted number of rows", len(v))
-		}
-
-		if !reflect.DeepEqual(m, v[0]) {
-			t.Fatal("not equals")
-		}
-	})
-
-	t.Run("select ptr", func(t *testing.T) {
-		var v []*FullName
-		if err := gocqlx.Select(&v, session.Query(`SELECT testfullname FROM scannable_table`)); err != nil {
-			t.Fatal("get failed", err)
-		}
-
-		if len(v) != 1 {
-			t.Fatal("select unexpecrted number of rows", len(v))
-		}
-
-		if !reflect.DeepEqual(&m, v[0]) {
-			t.Fatal("not equals")
-		}
-	})
-}
-
 func TestStruct(t *testing.T) {
 	session := createSession(t)
 	defer session.Close()
@@ -210,6 +156,150 @@ func TestStruct(t *testing.T) {
 
 		if !reflect.DeepEqual(&m, v[0]) {
 			t.Fatal("not equals")
+		}
+	})
+}
+
+func TestScannable(t *testing.T) {
+	session := createSession(t)
+	defer session.Close()
+	if err := createTable(session, `CREATE TABLE gocqlx_test.scannable_table (testfullname text PRIMARY KEY)`); err != nil {
+		t.Fatal("create table:", err)
+	}
+	m := FullName{"John", "Doe"}
+
+	if err := session.Query(`INSERT INTO scannable_table (testfullname) values (?)`, m).Exec(); err != nil {
+		t.Fatal("insert:", err)
+	}
+
+	t.Run("get", func(t *testing.T) {
+		var v FullName
+		if err := gocqlx.Get(&v, session.Query(`SELECT testfullname FROM scannable_table`)); err != nil {
+			t.Fatal("get failed", err)
+		}
+
+		if !reflect.DeepEqual(m, v) {
+			t.Fatal("not equals")
+		}
+	})
+
+	t.Run("select", func(t *testing.T) {
+		var v []FullName
+		if err := gocqlx.Select(&v, session.Query(`SELECT testfullname FROM scannable_table`)); err != nil {
+			t.Fatal("get failed", err)
+		}
+
+		if len(v) != 1 {
+			t.Fatal("select unexpecrted number of rows", len(v))
+		}
+
+		if !reflect.DeepEqual(m, v[0]) {
+			t.Fatal("not equals")
+		}
+	})
+
+	t.Run("select ptr", func(t *testing.T) {
+		var v []*FullName
+		if err := gocqlx.Select(&v, session.Query(`SELECT testfullname FROM scannable_table`)); err != nil {
+			t.Fatal("get failed", err)
+		}
+
+		if len(v) != 1 {
+			t.Fatal("select unexpecrted number of rows", len(v))
+		}
+
+		if !reflect.DeepEqual(&m, v[0]) {
+			t.Fatal("not equals")
+		}
+	})
+}
+
+func TestUnsafe(t *testing.T) {
+	session := createSession(t)
+	defer session.Close()
+	if err := createTable(session, `CREATE TABLE gocqlx_test.unsafe_table (testtext text PRIMARY KEY, testtextunbound text)`); err != nil {
+		t.Fatal("create table:", err)
+	}
+	if err := session.Query(`INSERT INTO unsafe_table (testtext, testtextunbound) values (?, ?)`, "test", "test").Exec(); err != nil {
+		t.Fatal("insert:", err)
+	}
+
+	type UnsafeTable struct {
+		Testtext string
+	}
+
+	t.Run("safe get", func(t *testing.T) {
+		var v UnsafeTable
+		i := gocqlx.Iter(session.Query(`SELECT * FROM unsafe_table`))
+		if err := i.Get(&v); err == nil || err.Error() != "missing destination name testtextunbound in *gocqlx_test.UnsafeTable" {
+			t.Fatal("expected ErrNotFound", "got", err)
+		}
+	})
+
+	t.Run("safe select", func(t *testing.T) {
+		var v []UnsafeTable
+		i := gocqlx.Iter(session.Query(`SELECT * FROM unsafe_table`))
+		if err := i.Select(&v); err == nil || err.Error() != "missing destination name testtextunbound in *gocqlx_test.UnsafeTable" {
+			t.Fatal("expected ErrNotFound", "got", err)
+		}
+		if cap(v) > 0 {
+			t.Fatal("side effect alloc")
+		}
+	})
+
+	t.Run("unsafe get", func(t *testing.T) {
+		var v UnsafeTable
+		i := gocqlx.Iter(session.Query(`SELECT * FROM unsafe_table`))
+		if err := i.Unsafe().Get(&v); err != nil {
+			t.Fatal(err)
+		}
+		if v.Testtext != "test" {
+			t.Fatal("get failed")
+		}
+	})
+
+	t.Run("unsafe select", func(t *testing.T) {
+		var v []UnsafeTable
+		i := gocqlx.Iter(session.Query(`SELECT * FROM unsafe_table`))
+		if err := i.Unsafe().Select(&v); err != nil {
+			t.Fatal(err)
+		}
+		if len(v) != 1 {
+			t.Fatal("select failed")
+		}
+		if v[0].Testtext != "test" {
+			t.Fatal("select failed")
+		}
+	})
+}
+
+func TestNotFound(t *testing.T) {
+	session := createSession(t)
+	defer session.Close()
+	if err := createTable(session, `CREATE TABLE gocqlx_test.not_found_table (testtext text PRIMARY KEY)`); err != nil {
+		t.Fatal("create table:", err)
+	}
+
+	type NotFoundTable struct {
+		Testtext string
+	}
+
+	t.Run("get", func(t *testing.T) {
+		var v NotFoundTable
+		i := gocqlx.Iter(session.Query(`SELECT * FROM not_found_table`))
+		if err := i.Get(&v); err != gocql.ErrNotFound {
+			t.Fatal("expected ErrNotFound", "got", err)
+		}
+	})
+
+	t.Run("select", func(t *testing.T) {
+		var v []NotFoundTable
+		i := gocqlx.Iter(session.Query(`SELECT * FROM not_found_table`))
+		if err := i.Select(&v); err != gocql.ErrNotFound {
+			t.Fatal("expected ErrNotFound", "got", err)
+		}
+		if cap(v) > 0 {
+			t.Fatal("side effect alloc")
 		}
 	})
 }
