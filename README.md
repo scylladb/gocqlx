@@ -1,7 +1,7 @@
 # gocqlx [![GoDoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](http://godoc.org/github.com/scylladb/gocqlx) [![Go Report Card](https://goreportcard.com/badge/github.com/scylladb/gocqlx)](https://goreportcard.com/report/github.com/scylladb/gocqlx) [![Build Status](https://travis-ci.org/scylladb/gocqlx.svg?branch=master)](https://travis-ci.org/scylladb/gocqlx)
 
-Package `gocqlx` is a Scylla / Cassandra productivity toolkit for `gocql`. It's 
-similar to what `sqlx` is to `database/sql`.
+Package `gocqlx` is a productivity toolkit for ScyllaDB and Apache Cassandra®. 
+It's an extension of `gocql`, similar to what `sqlx` is to `database/sql`.
 
 It contains wrappers over `gocql` types that provide convenience methods which
 are useful in the development of database driven applications. Under the
@@ -118,3 +118,18 @@ BenchmarkE2EGocqlxSelect-4         30000           2637187 ns/op           27718
 ```
 
 See the [benchmark here](https://github.com/scylladb/gocqlx/blob/master/benchmark_test.go).
+
+## Notice
+
+Copyright (C) 2017 ScyllaDB
+
+gocqlx is distributed under the Apache 2.0 license. See the [LICENSE](https://github.com/scylladb/gocqlx/blob/master/LICENSE) file for details.
+
+This work contains software from:
+
+* [gocql project](https://github.com/gocql/gocql), licensed under the BSD license
+* [sqlx project](https://github.com/jmoiron/sqlx), licensed under the MIT license
+
+Apache®, Apache Cassandra®,  are either registered trademarks or trademarks of 
+the Apache Software Foundation in the United States and/or other countries. 
+No endorsement by The Apache Software Foundation is implied by the use of these marks.
