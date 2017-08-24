@@ -36,69 +36,76 @@ p := &Person{
 
 // Insert
 {
-    stmt, names := qb.Insert("person").Columns("first_name", "last_name", "email").ToCql()
-    q := gocqlx.Query(session.Query(stmt), names)
+    stmt, names := qb.Insert("gocqlx_test.person").
+        Columns("first_name", "last_name", "email").
+        ToCql()
 
-    if err := q.BindStruct(p).Exec(); err != nil {
-        log.Fatal(err)
+    err := gocqlx.Query(session.Query(stmt), names).BindStruct(p).ExecRelease()
+    if err != nil {
+        t.Fatal(err)
     }
-}
-
-// Batch
-{
-	i := qb.Insert("person").Columns("first_name", "last_name", "email")
-
-	stmt, names := qb.Batch().
-		Add("a.", i).
-		Add("b.", i).
-		ToCql()
-	q := gocqlx.Query(session.Query(stmt), names)
-
-	b := struct {
-		A Person
-		B Person
-	}{
-		A: Person{
-			"Igy",
-			"Citizen",
-			[]string{"ian.citzen@gocqlx_test.com"},
-		},
-		B: Person{
-			"Ian",
-			"Citizen",
-			[]string{"igy.citzen@gocqlx_test.com"},
-		},
-	}
-
-	if err := q.BindStruct(&b).Exec(); err != nil {
-		t.Fatal(err)
-	}
 }
 
 // Get
 {
-	var p Person
-	if err := gocqlx.Get(&p, session.Query("SELECT * FROM gocqlx_test.person WHERE first_name=?", "Patricia")); err != nil {
-		t.Fatal("get:", err)
-	}
-	t.Log(p)  // {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]}
+    q := session.Query("SELECT * FROM gocqlx_test.person WHERE first_name=?", "Patricia")
+
+    var p Person
+    if err := gocqlx.Get(&p, q); err != nil {
+        t.Fatal("get:", err)
+    }
+    t.Log(p)
 }
 
 // Select
 {
-	stmt, names := qb.Select("gocqlx_test.person").Where(qb.In("first_name")).ToCql()
-	q := gocqlx.Query(session.Query(stmt), names)
+    stmt, names := qb.Select("gocqlx_test.person").
+        Where(qb.In("first_name")).
+        ToCql()
 
-	q.BindMap(qb.M{"first_name": []string{"Patricia", "Igy", "Ian"}})
-	if err := q.Err(); err != nil {
-		t.Fatal(err)
-	}
+    q := gocqlx.Query(session.Query(stmt), names).BindMap(qb.M{
+        "first_name": []string{"Patricia", "Igy", "Ian"},
+    })
 
-	var people []Person
-	if err := gocqlx.Select(&people, q.Query); err != nil {
-		t.Fatal("select:", err)
-	}
-	t.Log(people)  // [{Ian Citizen [igy.citzen@gocqlx_test.com]} {Igy Citizen [ian.citzen@gocqlx_test.com]} {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]}]
+    var people []Person
+    if err := gocqlx.Select(&people, q.Query); err != nil {
+        t.Fatal("select:", err)
+    }
+
+    t.Log(people)
+    // [{Ian Citizen [igy.citzen@gocqlx_test.com]} {Igy Citizen [ian.citzen@gocqlx_test.com]} {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]}]
+}
+
+// Batch
+{
+    i := qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email")
+
+    stmt, names := qb.Batch().
+        Add("a.", i).
+        Add("b.", i).
+        ToCql()
+    q := gocqlx.Query(session.Query(stmt), names)
+
+    b := struct {
+        A Person
+        B Person
+    }{
+        A: Person{
+            "Igy",
+            "Citizen",
+            []string{"ian.citzen@gocqlx_test.com"},
+        },
+        B: Person{
+            "Ian",
+            "Citizen",
+            []string{"igy.citzen@gocqlx_test.com"},
+        },
+    }
+
+    err := q.BindStruct(&b).ExecRelease()
+    if err != nil {
+        t.Fatal(err)
+    }
 }
 ```
 

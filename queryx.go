@@ -84,8 +84,8 @@ type Queryx struct {
 }
 
 // Query creates a new Queryx from gocql.Query using a default mapper.
-func Query(q *gocql.Query, names []string) Queryx {
-	return Queryx{
+func Query(q *gocql.Query, names []string) *Queryx {
+	return &Queryx{
 		Query:  q,
 		Names:  names,
 		Mapper: DefaultMapper,
@@ -191,14 +191,4 @@ func (q *Queryx) Exec() error {
 func (q *Queryx) ExecRelease() error {
 	defer q.Release()
 	return q.Exec()
-}
-
-// QueryFunc creates Queryx from qb.Builder.ToCql() output.
-type QueryFunc func(stmt string, names []string) Queryx
-
-// SessionQuery creates QueryFunc that's session aware.
-func SessionQuery(session *gocql.Session) QueryFunc {
-	return func(stmt string, names []string) Queryx {
-		return Query(session.Query(stmt), names)
-	}
 }
