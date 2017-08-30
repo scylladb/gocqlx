@@ -13,51 +13,61 @@ hood it uses `sqlx/reflectx` package so `sqlx` models will also work with `gocql
 
 ## Features
 
-* Flexible `SELECT`, `INSERT`, `UPDATE` `DELETE` and `BATCH` query building using a DSL
-* Support for named parameters (:identifier) in queries
+* Builders for `SELECT`, `INSERT`, `UPDATE` `DELETE` and `BATCH`
+* Queries with named parameters (:identifier) support
 * Binding parameters form struct or map
-* Scanning results into structs
+* Scanning results into structs and slices
+* Automatic query releasing
 * Fast!
 
-Example, see [full example here](https://github.com/scylladb/gocqlx/blob/master/example_test.go)
+## Example
 
 ```go
 type Person struct {
-	FirstName string  // no need to add `db:"first_name"` etc.
-	LastName  string
-	Email     []string
+    FirstName string  // no need to add `db:"first_name"` etc.
+    LastName  string
+    Email     []string
 }
 
-p := &Person{
-	"Patricia",
-	"Citizen",
-	[]string{"patricia.citzen@gocqlx_test.com"},
-}
-
-// Insert
+// Insert with query parameters bound from struct.
 {
+    p := &Person{
+        "Patricia",
+        "Citizen",
+        []string{"patricia.citzen@gocqlx_test.com"},
+    }
+
     stmt, names := qb.Insert("gocqlx_test.person").
         Columns("first_name", "last_name", "email").
         ToCql()
 
-    err := gocqlx.Query(session.Query(stmt), names).BindStruct(p).ExecRelease()
-    if err != nil {
+    q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
+
+    if err := q.ExecRelease(); err != nil {
         t.Fatal(err)
     }
 }
 
-// Get
+// Get first result into a struct.
 {
-    q := session.Query("SELECT * FROM gocqlx_test.person WHERE first_name=?", "Patricia")
+    stmt, names := qb.Select("gocqlx_test.person").
+        Where(qb.Eq("first_name")).
+        ToCql()
+
+    q := gocqlx.Query(session.Query(stmt), names).BindMap(qb.M{
+        "first_name": "Patricia",
+    })
 
     var p Person
-    if err := gocqlx.Get(&p, q); err != nil {
+    if err := gocqlx.Get(&p, q.Query); err != nil {
         t.Fatal("get:", err)
     }
+
     t.Log(p)
+    // {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]}
 }
 
-// Select
+// Select, load all results into a slice.
 {
     stmt, names := qb.Select("gocqlx_test.person").
         Where(qb.In("first_name")).
@@ -73,10 +83,10 @@ p := &Person{
     }
 
     t.Log(people)
-    // [{Ian Citizen [igy.citzen@gocqlx_test.com]} {Igy Citizen [ian.citzen@gocqlx_test.com]} {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]}]
+    // [{Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]} {Igy Citizen [igy.citzen@gocqlx_test.com]} {Ian Citizen [ian.citzen@gocqlx_test.com]}]
 }
 
-// Batch
+// Batch insert two rows in a single query, advanced struct binding.
 {
     i := qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email")
 
@@ -84,30 +94,32 @@ p := &Person{
         Add("a.", i).
         Add("b.", i).
         ToCql()
-    q := gocqlx.Query(session.Query(stmt), names)
 
-    b := struct {
+    batch := struct {
         A Person
         B Person
     }{
         A: Person{
             "Igy",
             "Citizen",
-            []string{"ian.citzen@gocqlx_test.com"},
+            []string{"igy.citzen@gocqlx_test.com"},
         },
         B: Person{
             "Ian",
             "Citizen",
-            []string{"igy.citzen@gocqlx_test.com"},
+            []string{"ian.citzen@gocqlx_test.com"},
         },
     }
 
-    err := q.BindStruct(&b).ExecRelease()
-    if err != nil {
+    q := gocqlx.Query(session.Query(stmt), names).BindStruct(&batch)
+
+    if err := q.ExecRelease(); err != nil {
         t.Fatal(err)
     }
 }
 ```
+
+See more examples in [example_test.go](https://github.com/scylladb/gocqlx/blob/master/example_test.go).
 
 ## Performance
 
@@ -124,7 +136,7 @@ BenchmarkE2EGocqlSelect-4          30000           2588562 ns/op           34605
 BenchmarkE2EGocqlxSelect-4         30000           2637187 ns/op           27718 B/op        951 allocs/op
 ```
 
-See the [benchmark here](https://github.com/scylladb/gocqlx/blob/master/benchmark_test.go).
+See the benchmark in [benchmark_test.go](https://github.com/scylladb/gocqlx/blob/master/benchmark_test.go).
 
 ## Notice
 
