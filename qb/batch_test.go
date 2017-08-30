@@ -25,15 +25,15 @@ func TestBatchBuilder(t *testing.T) {
 	}{
 		// Basic test for Batch
 		{
-			B: Batch().Add("a.", m),
+			B: Batch().Add(m),
 			S: "BEGIN BATCH INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) ; APPLY BATCH ",
-			N: []string{"a.id", "a.user_uuid", "a.firstname"},
+			N: []string{"id", "user_uuid", "firstname"},
 		},
 		// Add statement
 		{
 			B: Batch().
-				Add("a.", m).
-				Add("b.", m),
+				AddWithPrefix("a", m).
+				AddWithPrefix("b", m),
 			S: "BEGIN BATCH INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) ; INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) ; APPLY BATCH ",
 			N: []string{"a.id", "a.user_uuid", "a.firstname", "b.id", "b.user_uuid", "b.firstname"},
 		},
@@ -75,6 +75,6 @@ func TestBatchBuilder(t *testing.T) {
 func BenchmarkBatchBuilder(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Batch().Add("", mockBuilder{"INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) ", []string{"id", "user_uuid", "firstname"}}).ToCql()
+		Batch().Add(mockBuilder{"INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) ", []string{"id", "user_uuid", "firstname"}}).ToCql()
 	}
 }

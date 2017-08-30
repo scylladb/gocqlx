@@ -55,6 +55,30 @@ func (b *BatchBuilder) ToCql() (stmt string, names []string) {
 	return
 }
 
+// Add adds another statement to the batch.
+func (b *BatchBuilder) Add(builder Builder) *BatchBuilder {
+	stmt, names := builder.ToCql()
+
+	b.stmts = append(b.stmts, stmt)
+	b.names = append(b.names, names...)
+	return b
+}
+
+// AddWithPrefix adds another statement to the batch. Names returned by the
+// builder are prefixed with the prefix + ".".
+func (b *BatchBuilder) AddWithPrefix(prefix string, builder Builder) *BatchBuilder {
+	stmt, names := builder.ToCql()
+
+	b.stmts = append(b.stmts, stmt)
+	for _, name := range names {
+		if prefix != "" {
+			name = fmt.Sprint(prefix, ".", name)
+		}
+		b.names = append(b.names, name)
+	}
+	return b
+}
+
 // UnLogged sets a UNLOGGED BATCH clause on the query.
 func (b *BatchBuilder) UnLogged() *BatchBuilder {
 	b.unlogged = true
@@ -76,16 +100,5 @@ func (b *BatchBuilder) Timestamp() *BatchBuilder {
 // TTL sets a USING TTL clause on the query.
 func (b *BatchBuilder) TTL() *BatchBuilder {
 	b.using.ttl = true
-	return b
-}
-
-// Add adds another batch statement from a builder.
-func (b *BatchBuilder) Add(prefix string, builder Builder) *BatchBuilder {
-	stmt, names := builder.ToCql()
-
-	b.stmts = append(b.stmts, stmt)
-	for _, name := range names {
-		b.names = append(b.names, fmt.Sprint(prefix, name))
-	}
 	return b
 }
