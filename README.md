@@ -91,8 +91,8 @@ type Person struct {
     i := qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email")
 
     stmt, names := qb.Batch().
-        Add("a.", i).
-        Add("b.", i).
+        AddWithPrefix("a", i).
+        AddWithPrefix("b", i).
         ToCql()
 
     batch := struct {
