@@ -11,77 +11,106 @@ func TestCmp(t *testing.T) {
 	table := []struct {
 		C Cmp
 		S string
-		N string
+		N []string
 	}{
+		// Basic comparators
 		{
 			C: Eq("eq"),
 			S: "eq=?",
-			N: "eq",
-		},
-		{
-			C: EqNamed("eq", "name"),
-			S: "eq=?",
-			N: "name",
+			N: []string{"eq"},
 		},
 		{
 			C: Lt("lt"),
 			S: "lt<?",
-			N: "lt",
-		},
-		{
-			C: LtNamed("lt", "name"),
-			S: "lt<?",
-			N: "name",
+			N: []string{"lt"},
 		},
 		{
 			C: LtOrEq("lt"),
 			S: "lt<=?",
-			N: "lt",
-		},
-		{
-			C: LtOrEqNamed("lt", "name"),
-			S: "lt<=?",
-			N: "name",
+			N: []string{"lt"},
 		},
 		{
 			C: Gt("gt"),
 			S: "gt>?",
-			N: "gt",
-		},
-		{
-			C: GtNamed("gt", "name"),
-			S: "gt>?",
-			N: "name",
+			N: []string{"gt"},
 		},
 		{
 			C: GtOrEq("gt"),
 			S: "gt>=?",
-			N: "gt",
-		},
-		{
-			C: GtOrEqNamed("gt", "name"),
-			S: "gt>=?",
-			N: "name",
+			N: []string{"gt"},
 		},
 		{
 			C: In("in"),
 			S: "in IN ?",
-			N: "in",
-		},
-		{
-			C: InNamed("in", "name"),
-			S: "in IN ?",
-			N: "name",
+			N: []string{"in"},
 		},
 		{
 			C: Contains("cnt"),
 			S: "cnt CONTAINS ?",
-			N: "cnt",
+			N: []string{"cnt"},
+		},
+
+		// Custom bind names
+		{
+			C: EqNamed("eq", "name"),
+			S: "eq=?",
+			N: []string{"name"},
+		},
+		{
+			C: LtNamed("lt", "name"),
+			S: "lt<?",
+			N: []string{"name"},
+		},
+		{
+			C: LtOrEqNamed("lt", "name"),
+			S: "lt<=?",
+			N: []string{"name"},
+		},
+		{
+			C: GtNamed("gt", "name"),
+			S: "gt>?",
+			N: []string{"name"},
+		},
+		{
+			C: GtOrEqNamed("gt", "name"),
+			S: "gt>=?",
+			N: []string{"name"},
+		},
+		{
+			C: InNamed("in", "name"),
+			S: "in IN ?",
+			N: []string{"name"},
 		},
 		{
 			C: ContainsNamed("cnt", "name"),
 			S: "cnt CONTAINS ?",
-			N: "name",
+			N: []string{"name"},
+		},
+
+		// Functions
+		{
+			C: Eq("eq").Func("fn", "arg0", "arg1"),
+			S: "eq=fn(?,?)",
+			N: []string{"arg0", "arg1"},
+		},
+		{
+			C: Eq("eq").MaxTimeuuid("arg0"),
+			S: "eq=maxTimeuuid(?)",
+			N: []string{"arg0"},
+		},
+		{
+			C: Eq("eq").MinTimeuuid("arg0"),
+			S: "eq=minTimeuuid(?)",
+			N: []string{"arg0"},
+		},
+		{
+			C: Eq("eq").Now(),
+			S: "eq=now()",
+		},
+		{
+			C: Eq("eq").Token("arg0", "arg1"),
+			S: "eq=token(?,?)",
+			N: []string{"arg0", "arg1"},
 		},
 	}
 
