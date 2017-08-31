@@ -117,7 +117,7 @@ func TestExample(t *testing.T) {
 		}
 	}
 
-	// Get first result into a struct.
+	// Get the first result into a struct.
 	{
 		stmt, names := qb.Select("gocqlx_test.person").
 			Where(qb.Eq("first_name")).
@@ -136,7 +136,7 @@ func TestExample(t *testing.T) {
 		// {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]}
 	}
 
-	// Select, load all results into a slice.
+	// Select, load all the results into a slice.
 	{
 		stmt, names := qb.Select("gocqlx_test.person").
 			Where(qb.In("first_name")).
