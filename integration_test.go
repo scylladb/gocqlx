@@ -231,7 +231,7 @@ func TestUnsafe(t *testing.T) {
 	t.Run("safe get", func(t *testing.T) {
 		var v UnsafeTable
 		i := gocqlx.Iter(session.Query(`SELECT * FROM unsafe_table`))
-		if err := i.Get(&v); err == nil || err.Error() != "missing destination name testtextunbound in *gocqlx_test.UnsafeTable" {
+		if err := i.Get(&v); err == nil || err.Error() != "missing destination name \"testtextunbound\" in *gocqlx_test.UnsafeTable" {
 			t.Fatal("expected ErrNotFound", "got", err)
 		}
 	})
@@ -239,7 +239,7 @@ func TestUnsafe(t *testing.T) {
 	t.Run("safe select", func(t *testing.T) {
 		var v []UnsafeTable
 		i := gocqlx.Iter(session.Query(`SELECT * FROM unsafe_table`))
-		if err := i.Select(&v); err == nil || err.Error() != "missing destination name testtextunbound in *gocqlx_test.UnsafeTable" {
+		if err := i.Select(&v); err == nil || err.Error() != "missing destination name \"testtextunbound\" in *gocqlx_test.UnsafeTable" {
 			t.Fatal("expected ErrNotFound", "got", err)
 		}
 		if cap(v) > 0 {

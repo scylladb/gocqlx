@@ -138,7 +138,7 @@ func bindStructArgs(names []string, arg0 interface{}, arg1 map[string]interface{
 		} else {
 			val, ok := arg1[names[i]]
 			if !ok {
-				return arglist, fmt.Errorf("could not find name %s in %#v and %#v", names[i], arg0, arg1)
+				return arglist, fmt.Errorf("could not find name %q in %#v and %#v", names[i], arg0, arg1)
 			}
 			arglist = append(arglist, val)
 		}
@@ -166,7 +166,7 @@ func bindMapArgs(names []string, arg map[string]interface{}) ([]interface{}, err
 	for _, name := range names {
 		val, ok := arg[name]
 		if !ok {
-			return arglist, fmt.Errorf("could not find name %s in %#v", name, arg)
+			return arglist, fmt.Errorf("could not find name %q in %#v", name, arg)
 		}
 		arglist = append(arglist, val)
 	}

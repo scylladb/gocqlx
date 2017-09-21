@@ -228,7 +228,7 @@ func (iter *Iterx) StructScan(dest interface{}) bool {
 		// if we are not unsafe and are missing fields, return an error
 		if !iter.unsafe {
 			if f, err := missingFields(iter.fields); err != nil {
-				iter.err = fmt.Errorf("missing destination name %s in %T", columns[f], dest)
+				iter.err = fmt.Errorf("missing destination name %q in %T", columns[f], dest)
 				return false
 			}
 		}
