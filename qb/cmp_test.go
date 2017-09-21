@@ -93,28 +93,23 @@ func TestCmp(t *testing.T) {
 
 		// Functions
 		{
-			C: Eq("eq").Func("fn", "arg0", "arg1"),
+			C: EqFunc("eq", Fn("fn", "arg0", "arg1")),
 			S: "eq=fn(?,?)",
 			N: []string{"arg0", "arg1"},
 		},
 		{
-			C: Eq("eq").MaxTimeuuid("arg0"),
+			C: EqFunc("eq", MaxTimeuuid("arg0")),
 			S: "eq=maxTimeuuid(?)",
 			N: []string{"arg0"},
 		},
 		{
-			C: Eq("eq").MinTimeuuid("arg0"),
+			C: EqFunc("eq", MinTimeuuid("arg0")),
 			S: "eq=minTimeuuid(?)",
 			N: []string{"arg0"},
 		},
 		{
-			C: Eq("eq").Now(),
+			C: EqFunc("eq", Now()),
 			S: "eq=now()",
-		},
-		{
-			C: Eq("eq").Token("arg0", "arg1"),
-			S: "eq=token(?,?)",
-			N: []string{"arg0", "arg1"},
 		},
 	}
 
