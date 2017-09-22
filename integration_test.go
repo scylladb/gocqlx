@@ -288,11 +288,31 @@ func TestNotFound(t *testing.T) {
 		Testtext string
 	}
 
+	t.Run("get cql error", func(t *testing.T) {
+		var v NotFoundTable
+		i := gocqlx.Iter(session.Query(`SELECT * FROM not_found_table WRONG`))
+
+		err := i.Get(&v)
+		if err == nil || !strings.Contains(err.Error(), "WRONG") {
+			t.Fatal(err)
+		}
+	})
+
 	t.Run("get", func(t *testing.T) {
 		var v NotFoundTable
 		i := gocqlx.Iter(session.Query(`SELECT * FROM not_found_table`))
 		if err := i.Get(&v); err != gocql.ErrNotFound {
 			t.Fatal("expected ErrNotFound", "got", err)
+		}
+	})
+
+	t.Run("select cql error", func(t *testing.T) {
+		var v []NotFoundTable
+		i := gocqlx.Iter(session.Query(`SELECT * FROM not_found_table WRONG`))
+
+		err := i.Select(&v)
+		if err == nil || !strings.Contains(err.Error(), "WRONG") {
+			t.Fatal(err)
 		}
 	})
 
