@@ -89,6 +89,22 @@ func TestExample(t *testing.T) {
 		}
 	}
 
+	// Advanced update, adding and removing elements to collections and counters.
+	{
+		stmt, names := qb.Update("gocqlx_test.person").
+			AddNamed("email", "new_email").
+			Where(qb.Eq("first_name"), qb.Eq("last_name")).
+			ToCql()
+
+		q := gocqlx.Query(session.Query(stmt), names).BindStructMap(p, qb.M{
+			"new_email": []string{"patricia2.citzen@gocqlx_test.com", "patricia3.citzen@gocqlx_test.com"},
+		})
+
+		if err := q.ExecRelease(); err != nil {
+			t.Fatal(err)
+		}
+	}
+
 	// Batch insert two rows in a single query, advanced struct binding.
 	{
 		i := qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email")
@@ -137,7 +153,7 @@ func TestExample(t *testing.T) {
 		}
 
 		t.Log(p)
-		// {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]}
+		// {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com patricia2.citzen@gocqlx_test.com patricia3.citzen@gocqlx_test.com]}
 	}
 
 	// Select, load all the results into a slice.
@@ -156,7 +172,7 @@ func TestExample(t *testing.T) {
 		}
 
 		t.Log(people)
-		// [{Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]} {Igy Citizen [igy.citzen@gocqlx_test.com]} {Ian Citizen [ian.citzen@gocqlx_test.com]}]
+		// [{Ian Citizen [ian.citzen@gocqlx_test.com]} {Igy Citizen [igy.citzen@gocqlx_test.com]} {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com patricia2.citzen@gocqlx_test.com patricia3.citzen@gocqlx_test.com]}]
 	}
 
 	// Easy token based pagination.
@@ -168,6 +184,7 @@ func TestExample(t *testing.T) {
 		}
 
 		stmt, names := qb.Select("gocqlx_test.person").
+			Columns("first_name").
 			Where(qb.Token("first_name").Gt()).
 			Limit(10).
 			ToCql()
@@ -180,7 +197,7 @@ func TestExample(t *testing.T) {
 		}
 
 		t.Log(people)
-		// [{Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]} {Igy Citizen [igy.citzen@gocqlx_test.com]}]
+		// [{Patricia  []} {Igy  []}]
 	}
 
 	// Named query compilation.

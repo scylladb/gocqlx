@@ -53,15 +53,15 @@ func (c Cmp) writeCql(cql *bytes.Buffer) (names []string) {
 		cql.WriteString(" CONTAINS ")
 	}
 
-	if c.fn == nil {
+	if c.fn != nil {
+		names = append(names, c.fn.writeCql(cql)...)
+	} else {
 		cql.WriteByte('?')
 		if c.name == "" {
 			names = append(names, c.column)
 		} else {
 			names = append(names, c.name)
 		}
-	} else {
-		names = append(names, c.fn.writeCql(cql)...)
 	}
 
 	return
@@ -188,7 +188,7 @@ func GtOrEqNamed(column, name string) Cmp {
 	}
 }
 
-// GtFunc produces column>=someFunc(?...).
+// GtOrEqFunc produces column>=someFunc(?...).
 func GtOrEqFunc(column string, fn *Func) Cmp {
 	return Cmp{
 		op:     geq,
