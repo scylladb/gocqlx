@@ -15,6 +15,7 @@ hood it uses `sqlx/reflectx` package so `sqlx` models will also work with `gocql
 
 * Builders for `SELECT`, `INSERT`, `UPDATE` `DELETE` and `BATCH`
 * Queries with named parameters (:identifier) support
+* Functions support
 * Binding parameters form struct or map
 * Scanning results into structs and slices
 * Automatic query releasing
@@ -84,38 +85,6 @@ type Person struct {
 
     t.Log(people)
     // [{Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]} {Igy Citizen [igy.citzen@gocqlx_test.com]} {Ian Citizen [ian.citzen@gocqlx_test.com]}]
-}
-
-// Batch insert two rows in a single query, advanced struct binding.
-{
-    i := qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email")
-
-    stmt, names := qb.Batch().
-        AddWithPrefix("a", i).
-        AddWithPrefix("b", i).
-        ToCql()
-
-    batch := struct {
-        A Person
-        B Person
-    }{
-        A: Person{
-            "Igy",
-            "Citizen",
-            []string{"igy.citzen@gocqlx_test.com"},
-        },
-        B: Person{
-            "Ian",
-            "Citizen",
-            []string{"ian.citzen@gocqlx_test.com"},
-        },
-    }
-
-    q := gocqlx.Query(session.Query(stmt), names).BindStruct(&batch)
-
-    if err := q.ExecRelease(); err != nil {
-        t.Fatal(err)
-    }
 }
 ```
 

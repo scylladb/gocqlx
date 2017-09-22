@@ -28,49 +28,8 @@ const (
 type Cmp struct {
 	op     op
 	column string
-	fn     string
-	names  []string
-}
-
-// Func wraps comparator value with a custom function, fn is a function name,
-// names are function arguments' bind names. For instance function:
-//
-//    CREATE FUNCTION somefunction(somearg int, anotherarg text)
-//
-// can be used like this:
-//
-//    stmt, names := qb.Select("table").
-//        Where(qb.Eq("t").Func("somefunction", "somearg", "anotherarg")).
-//        ToCql()
-//
-//    q := gocqlx.Query(session.Query(stmt), names).BindMap(qb.M{
-//        "somearg": 1,
-//        "anotherarg": "text",
-//    })
-func (c Cmp) Func(fn string, names ...string) Cmp {
-	c.fn = fn
-	c.names = names
-	return c
-}
-
-// MinTimeuuid sets minTimeuuid(?) compare value.
-func (c Cmp) MinTimeuuid(name string) Cmp {
-	return c.Func("minTimeuuid", name)
-}
-
-// MaxTimeuuid sets maxTimeuuid(?) compare value.
-func (c Cmp) MaxTimeuuid(name string) Cmp {
-	return c.Func("maxTimeuuid", name)
-}
-
-// Now sets now() compare value.
-func (c Cmp) Now() Cmp {
-	return c.Func("now")
-}
-
-// Token sets Token(?,?...) compare value.
-func (c Cmp) Token(names ...string) Cmp {
-	return c.Func("token", names...)
+	name   string
+	fn     *Func
 }
 
 func (c Cmp) writeCql(cql *bytes.Buffer) (names []string) {
@@ -94,19 +53,15 @@ func (c Cmp) writeCql(cql *bytes.Buffer) (names []string) {
 		cql.WriteString(" CONTAINS ")
 	}
 
-	if c.fn == "" {
+	if c.fn != nil {
+		names = append(names, c.fn.writeCql(cql)...)
+	} else {
 		cql.WriteByte('?')
-		if c.names == nil {
+		if c.name == "" {
 			names = append(names, c.column)
 		} else {
-			names = append(names, c.names...)
+			names = append(names, c.name)
 		}
-	} else {
-		cql.WriteString(c.fn)
-		cql.WriteByte('(')
-		placeholders(cql, len(c.names))
-		cql.WriteByte(')')
-		names = append(names, c.names...)
 	}
 
 	return
@@ -125,7 +80,16 @@ func EqNamed(column, name string) Cmp {
 	return Cmp{
 		op:     eq,
 		column: column,
-		names:  []string{name},
+		name:   name,
+	}
+}
+
+// EqFunc produces column=someFunc(?...).
+func EqFunc(column string, fn *Func) Cmp {
+	return Cmp{
+		op:     eq,
+		column: column,
+		fn:     fn,
 	}
 }
 
@@ -142,7 +106,16 @@ func LtNamed(column, name string) Cmp {
 	return Cmp{
 		op:     lt,
 		column: column,
-		names:  []string{name},
+		name:   name,
+	}
+}
+
+// LtFunc produces column<someFunc(?...).
+func LtFunc(column string, fn *Func) Cmp {
+	return Cmp{
+		op:     lt,
+		column: column,
+		fn:     fn,
 	}
 }
 
@@ -159,7 +132,16 @@ func LtOrEqNamed(column, name string) Cmp {
 	return Cmp{
 		op:     leq,
 		column: column,
-		names:  []string{name},
+		name:   name,
+	}
+}
+
+// LtOrEqFunc produces column<=someFunc(?...).
+func LtOrEqFunc(column string, fn *Func) Cmp {
+	return Cmp{
+		op:     leq,
+		column: column,
+		fn:     fn,
 	}
 }
 
@@ -176,7 +158,16 @@ func GtNamed(column, name string) Cmp {
 	return Cmp{
 		op:     gt,
 		column: column,
-		names:  []string{name},
+		name:   name,
+	}
+}
+
+// GtFunc produces column>someFunc(?...).
+func GtFunc(column string, fn *Func) Cmp {
+	return Cmp{
+		op:     gt,
+		column: column,
+		fn:     fn,
 	}
 }
 
@@ -193,7 +184,16 @@ func GtOrEqNamed(column, name string) Cmp {
 	return Cmp{
 		op:     geq,
 		column: column,
-		names:  []string{name},
+		name:   name,
+	}
+}
+
+// GtOrEqFunc produces column>=someFunc(?...).
+func GtOrEqFunc(column string, fn *Func) Cmp {
+	return Cmp{
+		op:     geq,
+		column: column,
+		fn:     fn,
 	}
 }
 
@@ -210,7 +210,7 @@ func InNamed(column, name string) Cmp {
 	return Cmp{
 		op:     in,
 		column: column,
-		names:  []string{name},
+		name:   name,
 	}
 }
 
@@ -227,7 +227,7 @@ func ContainsNamed(column, name string) Cmp {
 	return Cmp{
 		op:     cnt,
 		column: column,
-		names:  []string{name},
+		name:   name,
 	}
 }
 
