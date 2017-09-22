@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.bench_person (
 var benchPersonCols = []string{"id", "first_name", "last_name", "email", "gender", "ip_address"}
 
 func loadFixtures() []*benchPerson {
-	f, err := os.Open("test-fixtures/people.json")
+	f, err := os.Open("testdata/people.json")
 	if err != nil {
 		panic(err)
 	}
