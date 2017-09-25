@@ -21,7 +21,7 @@ import (
 	"github.com/scylladb/gocqlx/qb"
 )
 
-var infoSchema = `CREATE TABLE IF NOT EXISTS gocqlx_migrations (
+var infoSchema = `CREATE TABLE IF NOT EXISTS gocqlx_migrate (
 	name text,
 	checksum text,
 	done tinyint,
@@ -30,7 +30,7 @@ var infoSchema = `CREATE TABLE IF NOT EXISTS gocqlx_migrations (
 	PRIMARY KEY(name)
 )`
 
-var selectInfo = "SELECT * FROM gocqlx_migrations"
+var selectInfo = "SELECT * FROM gocqlx_migrate"
 
 // Info contains information on migration applied on a database.
 type Info struct {
@@ -136,7 +136,7 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 		Checksum:  checksum(b),
 	}
 
-	stmt, names := qb.Insert("gocqlx_migrations").Columns(
+	stmt, names := qb.Insert("gocqlx_migrate").Columns(
 		"name",
 		"checksum",
 		"done",
