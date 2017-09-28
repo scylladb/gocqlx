@@ -13,12 +13,12 @@ import (
 	"github.com/jmoiron/sqlx/reflectx"
 )
 
-// Get is a convenience function for creating iterator and calling Get on it.
+// Get is a convenience function for creating iterator and calling Get.
 func Get(dest interface{}, q *gocql.Query) error {
 	return Iter(q).Get(dest)
 }
 
-// Select is a convenience function for creating iterator and calling Select on it.
+// Select is a convenience function for creating iterator and calling Select.
 func Select(dest interface{}, q *gocql.Query) error {
 	return Iter(q).Select(dest)
 }
@@ -67,7 +67,7 @@ func (iter *Iterx) Get(dest interface{}) error {
 	iter.Close()
 	iter.ReleaseQuery()
 
-	return iter.err
+	return iter.checkErrAndNotFound()
 }
 
 func (iter *Iterx) scanAny(dest interface{}, structOnly bool) bool {
@@ -80,8 +80,9 @@ func (iter *Iterx) scanAny(dest interface{}, structOnly bool) bool {
 		iter.err = errors.New("nil pointer passed to StructScan destination")
 		return false
 	}
+
+	// no results or query error
 	if iter.Iter.NumRows() == 0 {
-		// no results or query error
 		return false
 	}
 
@@ -134,8 +135,9 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) bool {
 		iter.err = errors.New("nil pointer passed to StructScan destination")
 		return false
 	}
+
+	// no results or query error
 	if iter.Iter.NumRows() == 0 {
-		// no results or query error
 		return false
 	}
 
@@ -201,12 +203,12 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) bool {
 	return true
 }
 
-// StructScan is like gocql.Scan, but scans a single row into a single Struct.
-// Use this and iterate manually when the memory load of Select() might be
-// prohibitive. StructScan caches the reflect work of matching up column
+// StructScan is like gocql.Iter.Scan, but scans a single row into a single
+// Struct. Use this and iterate manually when the memory load of Select() might
+// be prohibitive. StructScan caches the reflect work of matching up column
 // positions to fields to avoid that overhead per scan, which means it is not
 // safe to run StructScan on the same Iterx instance with different struct
-// types. If no rows were selected, ErrNotFound is returned.
+// types.
 func (iter *Iterx) StructScan(dest interface{}) bool {
 	if iter.query == nil {
 		iter.err = errors.New("using released query")
@@ -219,8 +221,8 @@ func (iter *Iterx) StructScan(dest interface{}) bool {
 		return false
 	}
 
+	// no results or query error
 	if iter.Iter.NumRows() == 0 {
-		// no results or query error
 		return false
 	}
 
@@ -261,15 +263,9 @@ func columnNames(ci []gocql.ColumnInfo) []string {
 // the query or the iteration.
 func (iter *Iterx) Close() error {
 	err := iter.Iter.Close()
-
 	if iter.err == nil {
-		if err != nil {
-			iter.err = err
-		} else if iter.Iter.NumRows() == 0 {
-			iter.err = gocql.ErrNotFound
-		}
+		iter.err = err
 	}
-
 	return iter.err
 }
 
@@ -280,4 +276,14 @@ func (iter *Iterx) ReleaseQuery() {
 		iter.query.Release()
 		iter.query = nil
 	}
+}
+
+// checkErrAndNotFound handle error and NotFound in one method.
+func (iter *Iterx) checkErrAndNotFound() error {
+	if iter.err != nil {
+		return iter.err
+	} else if iter.Iter.NumRows() == 0 {
+		return gocql.ErrNotFound
+	}
+	return nil
 }

@@ -319,8 +319,8 @@ func TestNotFound(t *testing.T) {
 	t.Run("select", func(t *testing.T) {
 		var v []NotFoundTable
 		i := gocqlx.Iter(session.Query(`SELECT * FROM not_found_table`))
-		if err := i.Select(&v); err != gocql.ErrNotFound {
-			t.Fatal("expected ErrNotFound", "got", err)
+		if err := i.Select(&v); err != nil {
+			t.Fatal(err)
 		}
 		if cap(v) > 0 {
 			t.Fatal("side effect alloc")
