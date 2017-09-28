@@ -107,13 +107,12 @@ BenchmarkE2EGocqlxSelect-4         30000           2637187 ns/op           27718
 
 See the benchmark in [benchmark_test.go](https://github.com/scylladb/gocqlx/blob/master/benchmark_test.go).
 
-## Notice
+## License
 
 Copyright (C) 2017 ScyllaDB
 
-gocqlx is distributed under the Apache 2.0 license. See the [LICENSE](https://github.com/scylladb/gocqlx/blob/master/LICENSE) file for details.
-
-This work contains software from:
+This project is distributed under the Apache 2.0 license. See the [LICENSE](https://github.com/scylladb/gocqlx/blob/master/LICENSE) file for details.
+It contains software from:
 
 * [gocql project](https://github.com/gocql/gocql), licensed under the BSD license
 * [sqlx project](https://github.com/jmoiron/sqlx), licensed under the MIT license
@@ -121,3 +120,5 @@ This work contains software from:
 Apache®, Apache Cassandra®,  are either registered trademarks or trademarks of 
 the Apache Software Foundation in the United States and/or other countries. 
 No endorsement by The Apache Software Foundation is implied by the use of these marks.
+
+GitHub star is always appreciated!
