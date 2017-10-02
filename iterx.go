@@ -110,7 +110,6 @@ func (iter *Iterx) scanAny(dest interface{}, structOnly bool) bool {
 // and closes the iterator. If the destination slice type is a Struct, then
 // StructScan will be used on each row. If the destination is some other type,
 // then each row must only have one column which can scan into that type.
-// If no rows were selected, ErrNotFound is returned.
 func (iter *Iterx) Select(dest interface{}) error {
 	if iter.query == nil {
 		return errors.New("using released query")
