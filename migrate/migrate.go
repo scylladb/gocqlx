@@ -21,7 +21,8 @@ import (
 	"github.com/scylladb/gocqlx/qb"
 )
 
-var infoSchema = `CREATE TABLE IF NOT EXISTS gocqlx_migrate (
+const (
+	infoSchema = `CREATE TABLE IF NOT EXISTS gocqlx_migrate (
 	name text,
 	checksum text,
 	done tinyint,
@@ -29,8 +30,8 @@ var infoSchema = `CREATE TABLE IF NOT EXISTS gocqlx_migrate (
 	end_time timestamp,
 	PRIMARY KEY(name)
 )`
-
-var selectInfo = "SELECT * FROM gocqlx_migrate"
+	selectInfo = "SELECT * FROM gocqlx_migrate"
+)
 
 // Info contains information on migration applied on a database.
 type Info struct {
