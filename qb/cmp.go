@@ -26,10 +26,11 @@ const (
 
 // Cmp if a filtering comparator that is used in WHERE and IF clauses.
 type Cmp struct {
-	op     op
-	column string
-	name   string
-	fn     *Func
+	op      op
+	column  string
+	name    string
+	literal string
+	fn      *Func
 }
 
 func (c Cmp) writeCql(cql *bytes.Buffer) (names []string) {
@@ -54,17 +55,18 @@ func (c Cmp) writeCql(cql *bytes.Buffer) (names []string) {
 	}
 
 	if c.fn != nil {
-		names = append(names, c.fn.writeCql(cql)...)
-	} else {
-		cql.WriteByte('?')
-		if c.name == "" {
-			names = append(names, c.column)
-		} else {
-			names = append(names, c.name)
-		}
+		return c.fn.writeCql(cql)
+	}
+	if c.literal != "" {
+		cql.WriteString(c.literal)
+		return []string{}
 	}
 
-	return
+	cql.WriteByte('?')
+	if c.name != "" {
+		return []string{c.name}
+	}
+	return []string{c.column}
 }
 
 // Eq produces column=?.
@@ -81,6 +83,15 @@ func EqNamed(column, name string) Cmp {
 		op:     eq,
 		column: column,
 		name:   name,
+	}
+}
+
+// EqLit produces column=literal, and does not add a parameter to the query.
+func EqLit(column, literal string) Cmp {
+	return Cmp{
+		op:      eq,
+		column:  column,
+		literal: literal,
 	}
 }
 
@@ -110,6 +121,15 @@ func LtNamed(column, name string) Cmp {
 	}
 }
 
+// LtLit produces column<literal and does not add a parameter to the query.
+func LtLit(column, literal string) Cmp {
+	return Cmp{
+		op:      lt,
+		column:  column,
+		literal: literal,
+	}
+}
+
 // LtFunc produces column<someFunc(?...).
 func LtFunc(column string, fn *Func) Cmp {
 	return Cmp{
@@ -133,6 +153,15 @@ func LtOrEqNamed(column, name string) Cmp {
 		op:     leq,
 		column: column,
 		name:   name,
+	}
+}
+
+// LtOrEqLit produces column<=literal and does not add a parameter to the query.
+func LtOrEqLit(column, literal string) Cmp {
+	return Cmp{
+		op:      leq,
+		column:  column,
+		literal: literal,
 	}
 }
 
@@ -162,6 +191,15 @@ func GtNamed(column, name string) Cmp {
 	}
 }
 
+// GtLit produces column>literal and does not add a parameter to the query.
+func GtLit(column, literal string) Cmp {
+	return Cmp{
+		op:      gt,
+		column:  column,
+		literal: literal,
+	}
+}
+
 // GtFunc produces column>someFunc(?...).
 func GtFunc(column string, fn *Func) Cmp {
 	return Cmp{
@@ -185,6 +223,15 @@ func GtOrEqNamed(column, name string) Cmp {
 		op:     geq,
 		column: column,
 		name:   name,
+	}
+}
+
+// GtOrEqLit produces column>=literal and does not add a parameter to the query.
+func GtOrEqLit(column, literal string) Cmp {
+	return Cmp{
+		op:      geq,
+		column:  column,
+		literal: literal,
 	}
 }
 
@@ -214,6 +261,15 @@ func InNamed(column, name string) Cmp {
 	}
 }
 
+// InLit produces column IN literal and does not add a parameter to the query.
+func InLit(column, literal string) Cmp {
+	return Cmp{
+		op:      in,
+		column:  column,
+		literal: literal,
+	}
+}
+
 // Contains produces column CONTAINS ?.
 func Contains(column string) Cmp {
 	return Cmp{
@@ -228,6 +284,15 @@ func ContainsNamed(column, name string) Cmp {
 		op:     cnt,
 		column: column,
 		name:   name,
+	}
+}
+
+// ContainsLit produces column CONTAINS literal and does not add a parameter to the query.
+func ContainsLit(column, literal string) Cmp {
+	return Cmp{
+		op:      cnt,
+		column:  column,
+		literal: literal,
 	}
 }
 
