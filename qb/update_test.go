@@ -36,6 +36,12 @@ func TestUpdateBuilder(t *testing.T) {
 			S: "UPDATE cycling.cyclist_name SET id=?,user_uuid=?,firstname=?,stars=? WHERE id=? ",
 			N: []string{"id", "user_uuid", "firstname", "stars", "expr"},
 		},
+		// Add SET literal
+		{
+			B: Update("cycling.cyclist_name").SetLit("user_uuid", "literal_uuid").Where(w).Set("stars"),
+			S: "UPDATE cycling.cyclist_name SET user_uuid=literal_uuid,stars=? WHERE id=? ",
+			N: []string{"stars", "expr"},
+		},
 		// Add SET SetFunc
 		{
 			B: Update("cycling.cyclist_name").SetFunc("user_uuid", Fn("someFunc", "param_0", "param_1")).Where(w).Set("stars"),
@@ -54,6 +60,12 @@ func TestUpdateBuilder(t *testing.T) {
 			S: "UPDATE cycling.cyclist_name SET total=total+? WHERE id=? ",
 			N: []string{"inc", "expr"},
 		},
+		// Add SET AddLit
+		{
+			B: Update("cycling.cyclist_name").AddLit("total", "1").Where(w),
+			S: "UPDATE cycling.cyclist_name SET total=total+1 WHERE id=? ",
+			N: []string{"expr"},
+		},
 		// Add SET Remove
 		{
 			B: Update("cycling.cyclist_name").Remove("total").Where(w),
@@ -65,6 +77,12 @@ func TestUpdateBuilder(t *testing.T) {
 			B: Update("cycling.cyclist_name").RemoveNamed("total", "dec").Where(w),
 			S: "UPDATE cycling.cyclist_name SET total=total-? WHERE id=? ",
 			N: []string{"dec", "expr"},
+		},
+		// Add SET RemoveLit
+		{
+			B: Update("cycling.cyclist_name").RemoveLit("total", "1").Where(w),
+			S: "UPDATE cycling.cyclist_name SET total=total-1 WHERE id=? ",
+			N: []string{"expr"},
 		},
 		// Add WHERE
 		{

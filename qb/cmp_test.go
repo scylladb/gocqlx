@@ -91,6 +91,36 @@ func TestCmp(t *testing.T) {
 			N: []string{"name"},
 		},
 
+		// Literals
+		{
+			C: EqLit("eq", "litval"),
+			S: "eq=litval",
+		},
+		{
+			C: LtLit("lt", "litval"),
+			S: "lt<litval",
+		},
+		{
+			C: LtOrEqLit("lt", "litval"),
+			S: "lt<=litval",
+		},
+		{
+			C: GtLit("gt", "litval"),
+			S: "gt>litval",
+		},
+		{
+			C: GtOrEqLit("gt", "litval"),
+			S: "gt>=litval",
+		},
+		{
+			C: InLit("in", "litval"),
+			S: "in IN litval",
+		},
+		{
+			C: ContainsLit("cnt", "litval"),
+			S: "cnt CONTAINS litval",
+		},
+
 		// Functions
 		{
 			C: EqFunc("eq", Fn("fn", "arg0", "arg1")),
