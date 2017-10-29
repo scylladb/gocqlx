@@ -11,10 +11,16 @@ import (
 	"bytes"
 )
 
+// initializer specifies an value for a column in an insert operation.
+type initializer struct {
+	column string
+	value  value
+}
+
 // InsertBuilder builds CQL INSERT statements.
 type InsertBuilder struct {
 	table   string
-	columns columns
+	columns []initializer
 	unique  bool
 	using   using
 }
@@ -37,12 +43,21 @@ func (b *InsertBuilder) ToCql() (stmt string, names []string) {
 	cql.WriteByte(' ')
 
 	cql.WriteByte('(')
-	b.columns.writeCql(&cql)
-	names = append(names, b.columns...)
+	for i, c := range b.columns {
+		cql.WriteString(c.column)
+		if i < len(b.columns)-1 {
+			cql.WriteByte(',')
+		}
+	}
 	cql.WriteString(") ")
 
 	cql.WriteString("VALUES (")
-	placeholders(&cql, len(b.columns))
+	for i, c := range b.columns {
+		names = append(names, c.value.writeCql(&cql)...)
+		if i < len(b.columns)-1 {
+			cql.WriteByte(',')
+		}
+	}
 	cql.WriteString(") ")
 
 	if b.unique {
@@ -62,7 +77,39 @@ func (b *InsertBuilder) Into(table string) *InsertBuilder {
 
 // Columns adds insert columns to the query.
 func (b *InsertBuilder) Columns(columns ...string) *InsertBuilder {
-	b.columns = append(b.columns, columns...)
+	for _, c := range columns {
+		b.columns = append(b.columns, initializer{
+			column: c,
+			value:  param(c),
+		})
+	}
+	return b
+}
+
+// NamedColumn adds an insert column with a custom parameter name.
+func (b *InsertBuilder) NamedColumn(column, name string) *InsertBuilder {
+	b.columns = append(b.columns, initializer{
+		column: column,
+		value:  param(name),
+	})
+	return b
+}
+
+// LitColumn adds an insert column with a literal value to the query.
+func (b *InsertBuilder) LitColumn(column, literal string) *InsertBuilder {
+	b.columns = append(b.columns, initializer{
+		column: column,
+		value:  lit(literal),
+	})
+	return b
+}
+
+// FuncColumn adds an insert column initialized by evaluating a CQL function.
+func (b *InsertBuilder) FuncColumn(column string, fn *Func) *InsertBuilder {
+	b.columns = append(b.columns, initializer{
+		column: column,
+		value:  fn,
+	})
 	return b
 }
 

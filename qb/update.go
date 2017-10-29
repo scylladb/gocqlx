@@ -9,31 +9,20 @@ package qb
 
 import (
 	"bytes"
-	"fmt"
 )
 
 // assignment specifies an assignment in a set operation.
 type assignment struct {
-	column string
-	name   string
-	expr   bool
-	fn     *Func
+	column      string
+	value       value
+	valuePrefix string // Tbe value prefix to use for add/remove operations.
 }
 
 func (a assignment) writeCql(cql *bytes.Buffer) (names []string) {
 	cql.WriteString(a.column)
-	switch {
-	case a.expr:
-		names = append(names, a.name)
-	case a.fn != nil:
-		cql.WriteByte('=')
-		names = append(names, a.fn.writeCql(cql)...)
-	default:
-		cql.WriteByte('=')
-		cql.WriteByte('?')
-		names = append(names, a.name)
-	}
-	return
+	cql.WriteByte('=')
+	cql.WriteString(a.valuePrefix)
+	return a.value.writeCql(cql)
 }
 
 // UpdateBuilder builds CQL UPDATE statements.
@@ -106,47 +95,89 @@ func (b *UpdateBuilder) Set(columns ...string) *UpdateBuilder {
 	for _, c := range columns {
 		b.assignments = append(b.assignments, assignment{
 			column: c,
-			name:   c,
+			value:  param(c),
 		})
 	}
 
 	return b
 }
 
+// SetNamed adds SET column=? clause to the query with a custom parameter name.
+func (b *UpdateBuilder) SetNamed(column, name string) *UpdateBuilder {
+	b.assignments = append(
+		b.assignments, assignment{column: column, value: param(name)})
+	return b
+}
+
+// SetLit adds SET column=literal clause to the query.
+func (b *UpdateBuilder) SetLit(column, literal string) *UpdateBuilder {
+	b.assignments = append(
+		b.assignments, assignment{column: column, value: lit(literal)})
+	return b
+}
+
 // SetFunc adds SET column=someFunc(?...) clause to the query.
 func (b *UpdateBuilder) SetFunc(column string, fn *Func) *UpdateBuilder {
-	b.assignments = append(b.assignments, assignment{column: column, fn: fn})
+	b.assignments = append(b.assignments, assignment{column: column, value: fn})
 	return b
 }
 
 // Add adds SET column=column+? clauses to the query.
 func (b *UpdateBuilder) Add(column string) *UpdateBuilder {
-	return b.AddNamed(column, column)
+	return b.addValue(column, param(column))
 }
 
 // AddNamed adds SET column=column+? clauses to the query with a custom
 // parameter name.
 func (b *UpdateBuilder) AddNamed(column, name string) *UpdateBuilder {
+	return b.addValue(column, param(name))
+}
+
+// AddLit adds SET column=column+literal clauses to the query.
+func (b *UpdateBuilder) AddLit(column, literal string) *UpdateBuilder {
+	return b.addValue(column, lit(literal))
+}
+
+// AddFunc adds SET column=column+someFunc(?...) clauses to the query.
+func (b *UpdateBuilder) AddFunc(column string, fn *Func) *UpdateBuilder {
+	return b.addValue(column, fn)
+}
+
+func (b *UpdateBuilder) addValue(column string, value value) *UpdateBuilder {
 	b.assignments = append(b.assignments, assignment{
-		column: fmt.Sprint(column, "=", column, "+?"),
-		name:   name,
-		expr:   true,
+		column:      column,
+		value:       value,
+		valuePrefix: column + "+",
 	})
 	return b
 }
 
 // Remove adds SET column=column-? clauses to the query.
 func (b *UpdateBuilder) Remove(column string) *UpdateBuilder {
-	return b.RemoveNamed(column, column)
+	return b.removeValue(column, param(column))
 }
 
 // RemoveNamed adds SET column=column-? clauses to the query with a custom
 // parameter name.
 func (b *UpdateBuilder) RemoveNamed(column, name string) *UpdateBuilder {
+	return b.removeValue(column, param(name))
+}
+
+// RemoveLit adds SET column=column-literal clauses to the query.
+func (b *UpdateBuilder) RemoveLit(column, literal string) *UpdateBuilder {
+	return b.removeValue(column, lit(literal))
+}
+
+// RemoveFunc adds SET column=column-someFunc(?...) clauses to the query.
+func (b *UpdateBuilder) RemoveFunc(column string, fn *Func) *UpdateBuilder {
+	return b.removeValue(column, fn)
+}
+
+func (b *UpdateBuilder) removeValue(column string, value value) *UpdateBuilder {
 	b.assignments = append(b.assignments, assignment{
-		column: fmt.Sprint(column, "=", column, "-?"),
-		name:   name,
-		expr:   true,
+		column:      column,
+		value:       value,
+		valuePrefix: column + "-",
 	})
 	return b
 }
