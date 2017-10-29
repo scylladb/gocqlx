@@ -14,26 +14,30 @@ import (
 
 // assignment specifies an assignment in a set operation.
 type assignment struct {
-	column string
-	name   string
-	expr   bool
-	fn     *Func
+	column  string
+	name    string
+	literal string
+	expr    bool
+	fn      *Func
 }
 
 func (a assignment) writeCql(cql *bytes.Buffer) (names []string) {
 	cql.WriteString(a.column)
 	switch {
 	case a.expr:
-		names = append(names, a.name)
+		return []string{a.name}
+	case a.literal != "":
+		cql.WriteByte('=')
+		cql.WriteString(a.literal)
+		return []string{}
 	case a.fn != nil:
 		cql.WriteByte('=')
-		names = append(names, a.fn.writeCql(cql)...)
+		return a.fn.writeCql(cql)
 	default:
 		cql.WriteByte('=')
 		cql.WriteByte('?')
-		names = append(names, a.name)
+		return []string{a.name}
 	}
-	return
 }
 
 // UpdateBuilder builds CQL UPDATE statements.
@@ -110,6 +114,13 @@ func (b *UpdateBuilder) Set(columns ...string) *UpdateBuilder {
 		})
 	}
 
+	return b
+}
+
+// SetLit adds SET column=literal clause to the query.
+func (b *UpdateBuilder) SetLit(column, literal string) *UpdateBuilder {
+	b.assignments = append(
+		b.assignments, assignment{column: column, literal: literal})
 	return b
 }
 

@@ -36,6 +36,12 @@ func TestUpdateBuilder(t *testing.T) {
 			S: "UPDATE cycling.cyclist_name SET id=?,user_uuid=?,firstname=?,stars=? WHERE id=? ",
 			N: []string{"id", "user_uuid", "firstname", "stars", "expr"},
 		},
+		// Add SET literal
+		{
+			B: Update("cycling.cyclist_name").SetLit("user_uuid", "literal_uuid").Where(w).Set("stars"),
+			S: "UPDATE cycling.cyclist_name SET user_uuid=literal_uuid,stars=? WHERE id=? ",
+			N: []string{"stars", "expr"},
+		},
 		// Add SET SetFunc
 		{
 			B: Update("cycling.cyclist_name").SetFunc("user_uuid", Fn("someFunc", "param_0", "param_1")).Where(w).Set("stars"),
