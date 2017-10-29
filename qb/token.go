@@ -75,6 +75,6 @@ func (t TokenBuilder) cmp(op op, names []string) Cmp {
 	return Cmp{
 		op:     op,
 		column: fmt.Sprint("token(", strings.Join(t, ","), ")"),
-		fn:     Fn("token", s...),
+		value:  Fn("token", s...),
 	}
 }

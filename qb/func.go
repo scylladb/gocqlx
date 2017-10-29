@@ -18,6 +18,15 @@ type Func struct {
 	ParamNames []string
 }
 
+func (f *Func) clone() value {
+	paramNames := make([]string, len(f.ParamNames))
+	copy(f.ParamNames, paramNames)
+	return &Func{
+		Name:       f.Name,
+		ParamNames: paramNames,
+	}
+}
+
 func (f *Func) writeCql(cql *bytes.Buffer) (names []string) {
 	cql.WriteString(f.Name)
 	cql.WriteByte('(')

@@ -35,6 +35,18 @@ func TestInsertBuilder(t *testing.T) {
 			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname,stars) VALUES (?,?,?,?) ",
 			N: []string{"id", "user_uuid", "firstname", "stars"},
 		},
+		// Add a named column
+		{
+			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").NamedColumn("stars", "stars_name"),
+			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname,stars) VALUES (?,?,?,?) ",
+			N: []string{"id", "user_uuid", "firstname", "stars_name"},
+		},
+		// Add a literal column
+		{
+			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").LitColumn("stars", "stars_lit"),
+			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname,stars) VALUES (?,?,?,stars_lit) ",
+			N: []string{"id", "user_uuid", "firstname"},
+		},
 		// Add TTL
 		{
 			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").TTL(),

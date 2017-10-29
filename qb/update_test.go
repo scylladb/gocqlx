@@ -60,6 +60,12 @@ func TestUpdateBuilder(t *testing.T) {
 			S: "UPDATE cycling.cyclist_name SET total=total+? WHERE id=? ",
 			N: []string{"inc", "expr"},
 		},
+		// Add SET AddLit
+		{
+			B: Update("cycling.cyclist_name").AddLit("total", "1").Where(w),
+			S: "UPDATE cycling.cyclist_name SET total=total+1 WHERE id=? ",
+			N: []string{"expr"},
+		},
 		// Add SET Remove
 		{
 			B: Update("cycling.cyclist_name").Remove("total").Where(w),
@@ -71,6 +77,12 @@ func TestUpdateBuilder(t *testing.T) {
 			B: Update("cycling.cyclist_name").RemoveNamed("total", "dec").Where(w),
 			S: "UPDATE cycling.cyclist_name SET total=total-? WHERE id=? ",
 			N: []string{"dec", "expr"},
+		},
+		// Add SET RemoveLit
+		{
+			B: Update("cycling.cyclist_name").RemoveLit("total", "1").Where(w),
+			S: "UPDATE cycling.cyclist_name SET total=total-1 WHERE id=? ",
+			N: []string{"expr"},
 		},
 		// Add WHERE
 		{
