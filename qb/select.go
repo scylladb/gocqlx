@@ -115,10 +115,9 @@ func (b *SelectBuilder) Columns(columns ...string) *SelectBuilder {
 	return b
 }
 
-// ColumnAs adds a result column with a custom name to the query.
-func (b *SelectBuilder) ColumnAs(column, name string) *SelectBuilder {
-	b.columns = append(b.columns, column+" AS "+name)
-	return b
+// As is a helper for adding a column AS name result column to the query.
+func As(column, name string) string {
+	return column + " AS " + name
 }
 
 // Distinct sets DISTINCT clause on the query.
