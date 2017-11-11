@@ -26,8 +26,7 @@ func Select(dest interface{}, q *gocql.Query) error {
 // Iterx is a wrapper around gocql.Iter which adds struct scanning capabilities.
 type Iterx struct {
 	*gocql.Iter
-	query *gocql.Query
-	err   error
+	err error
 
 	unsafe bool
 	Mapper *reflectx.Mapper
@@ -41,7 +40,6 @@ type Iterx struct {
 func Iter(q *gocql.Query) *Iterx {
 	return &Iterx{
 		Iter:   q.Iter(),
-		query:  q,
 		Mapper: DefaultMapper,
 	}
 }
@@ -59,13 +57,8 @@ func (iter *Iterx) Unsafe() *Iterx {
 // destination is some other type, then the row must only have one column which
 // can scan into that type. If no rows were selected, ErrNotFound is returned.
 func (iter *Iterx) Get(dest interface{}) error {
-	if iter.query == nil {
-		return errors.New("using released query")
-	}
-
 	iter.scanAny(dest, false)
 	iter.Close()
-	iter.ReleaseQuery()
 
 	return iter.checkErrAndNotFound()
 }
@@ -111,13 +104,8 @@ func (iter *Iterx) scanAny(dest interface{}, structOnly bool) bool {
 // StructScan will be used on each row. If the destination is some other type,
 // then each row must only have one column which can scan into that type.
 func (iter *Iterx) Select(dest interface{}) error {
-	if iter.query == nil {
-		return errors.New("using released query")
-	}
-
 	iter.scanAll(dest, false)
 	iter.Close()
-	iter.ReleaseQuery()
 
 	return iter.err
 }
@@ -209,11 +197,6 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) bool {
 // safe to run StructScan on the same Iterx instance with different struct
 // types.
 func (iter *Iterx) StructScan(dest interface{}) bool {
-	if iter.query == nil {
-		iter.err = errors.New("using released query")
-		return false
-	}
-
 	v := reflect.ValueOf(dest)
 	if v.Kind() != reflect.Ptr {
 		iter.err = errors.New("must pass a pointer, not a value, to StructScan destination")
@@ -266,15 +249,6 @@ func (iter *Iterx) Close() error {
 		iter.err = err
 	}
 	return iter.err
-}
-
-// ReleaseQuery releases underling query back into a pool of queries. Note that
-// the iterator needs to be closed first.
-func (iter *Iterx) ReleaseQuery() {
-	if iter.query != nil {
-		iter.query.Release()
-		iter.query = nil
-	}
 }
 
 // checkErrAndNotFound handle error and NotFound in one method.

@@ -146,6 +146,7 @@ func TestExample(t *testing.T) {
 		q := gocqlx.Query(session.Query(stmt), names).BindMap(qb.M{
 			"first_name": "Patricia",
 		})
+		defer q.Release()
 
 		var p Person
 		if err := gocqlx.Get(&p, q.Query); err != nil {
@@ -165,6 +166,7 @@ func TestExample(t *testing.T) {
 		q := gocqlx.Query(session.Query(stmt), names).BindMap(qb.M{
 			"first_name": []string{"Patricia", "Igy", "Ian"},
 		})
+		defer q.Release()
 
 		var people []Person
 		if err := gocqlx.Select(&people, q.Query); err != nil {
@@ -190,6 +192,7 @@ func TestExample(t *testing.T) {
 			ToCql()
 
 		q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
+		defer q.Release()
 
 		var people []Person
 		if err := gocqlx.Select(&people, q.Query); err != nil {
