@@ -59,20 +59,28 @@ func (b *BatchBuilder) ToCql() (stmt string, names []string) {
 	return
 }
 
-// Add adds another statement to the batch.
+// Add builds the builder and adds the statement to the batch.
 func (b *BatchBuilder) Add(builder Builder) *BatchBuilder {
-	stmt, names := builder.ToCql()
+	return b.AddStmt(builder.ToCql())
+}
 
+// AddStmt adds statement to the batch.
+func (b *BatchBuilder) AddStmt(stmt string, names []string) *BatchBuilder {
 	b.stmts = append(b.stmts, stmt)
 	b.names = append(b.names, names...)
 	return b
 }
 
-// AddWithPrefix adds another statement to the batch. Names returned by the
-// builder are prefixed with the prefix + ".".
+// AddWithPrefix builds the builder and adds the statement to the batch. Names
+// are prefixed with the prefix + ".".
 func (b *BatchBuilder) AddWithPrefix(prefix string, builder Builder) *BatchBuilder {
 	stmt, names := builder.ToCql()
+	return b.AddStmtWithPrefix(prefix, stmt, names)
+}
 
+// AddStmtWithPrefix adds statement to the batch. Names are prefixed with
+// the prefix + ".".
+func (b *BatchBuilder) AddStmtWithPrefix(prefix string, stmt string, names []string) *BatchBuilder {
 	b.stmts = append(b.stmts, stmt)
 	for _, name := range names {
 		if prefix != "" {
