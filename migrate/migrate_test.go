@@ -67,9 +67,9 @@ func TestDatabaseAhead(t *testing.T) {
 	SetMigratorTable(m)
 	m.ListFunc = func(ctx context.Context) ([]*Info, error) {
 		var existingMigrations = []*Info{
-			&Info{},
-			&Info{},
-			&Info{},
+			{},
+			{},
+			{},
 		}
 		return existingMigrations, nil
 	}
