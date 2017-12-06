@@ -122,6 +122,7 @@ func applyMigration(ctx context.Context, mt MigratorTable, path string, done int
 	}
 
 	i := 1
+	stmtcount := 0
 	r := bytes.NewBuffer(b)
 	for {
 		stmt, err := r.ReadString(';')
@@ -131,6 +132,7 @@ func applyMigration(ctx context.Context, mt MigratorTable, path string, done int
 		if err != nil {
 			return err
 		}
+		stmtcount++
 		if i <= done {
 			i++
 			continue
@@ -143,6 +145,8 @@ func applyMigration(ctx context.Context, mt MigratorTable, path string, done int
 
 		i++
 	}
-
+	if stmtcount == 0 {
+		return ErrNoCqlStmt
+	}
 	return nil
 }
