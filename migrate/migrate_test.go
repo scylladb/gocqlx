@@ -6,6 +6,9 @@ import (
 	"testing"
 )
 
+// errInvalidCQLStatement is returned when trying to execute a non valid cql statement
+var errInvalidCQLStatement = errors.New("invalid CQL statement")
+
 type mockMigratorTable struct {
 	ListFunc    func(ctx context.Context) ([]*Info, error)
 	ExecuteFunc func(ctx context.Context, stmt string, info Info) error
@@ -76,34 +79,34 @@ func TestDatabaseAhead(t *testing.T) {
 	}
 }
 
-func TestInvalidCqlStatement(t *testing.T) {
+func TestInvalidCQLStatement(t *testing.T) {
 	m := &mockMigratorTable{T: t}
 	SetMigratorTable(m)
 	m.ListFunc = func(ctx context.Context) ([]*Info, error) {
 		return nil, nil
 	}
 	m.ExecuteFunc = func(ctx context.Context, stmt string, info Info) error {
-		return ErrInvalidCqlStmt
+		return errInvalidCQLStatement
 	}
 	err := Migrate(context.Background(), nil, "testdata/invalid")
-	if err.Error() != "failed to apply migration \"testdata/invalid/not_valid_cql.cql\": invalid cql statment" {
+	if err.Error() != "failed to apply migration \"testdata/invalid/not_valid_cql.cql\": invalid CQL statement" {
 		t.Fatalf("Error should not be %v", err)
 	}
 }
 
-func TestNonCqlStatement(t *testing.T) {
+func TestNonCQLStatement(t *testing.T) {
 	m := &mockMigratorTable{T: t}
 	SetMigratorTable(m)
 	m.ListFunc = func(ctx context.Context) ([]*Info, error) {
 		return nil, nil
 	}
 	err := Migrate(context.Background(), nil, "testdata/noncql")
-	if err.Error() != "failed to apply migration \"testdata/noncql/not_cql.cql\": no cql statment found" {
+	if err.Error() != "failed to apply migration \"testdata/noncql/not_cql.cql\": no CQL statement found" {
 		t.Fatalf("Error should not be %v", err)
 	}
 }
 
-func TestValidCqlStatement(t *testing.T) {
+func TestValidCQLStatement(t *testing.T) {
 	m := &mockMigratorTable{T: t}
 	SetMigratorTable(m)
 	m.ListFunc = func(ctx context.Context) ([]*Info, error) {
@@ -117,4 +120,3 @@ func TestValidCqlStatement(t *testing.T) {
 		t.Fatalf("Error should not be %v", err)
 	}
 }
-

@@ -146,7 +146,7 @@ func applyMigration(ctx context.Context, mt MigratorTable, path string, done int
 		i++
 	}
 	if stmtcount == 0 {
-		return ErrNoCqlStmt
+		return ErrNoCQLStatement
 	}
 	return nil
 }

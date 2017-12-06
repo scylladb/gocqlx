@@ -41,11 +41,8 @@ type cassandraSessionMigrator struct {
 // ErrNoSessionProvided is returned when trying to create a Cassandra migrator without a session.
 var ErrNoSessionProvided = errors.New("no session provided to the Cassandra migrator")
 
-// ErrInvalidCqlStmt is returned when trying to execute a non valid cql statment
-var ErrInvalidCqlStmt = errors.New("invalid cql statment")
-
-// ErrNoCqlStmt is returned when trying to execute a non cql statment i.e. "This is not cql"
-var ErrNoCqlStmt = errors.New("no cql statment found")
+// ErrNoCQLStatement is returned when trying to execute a non cql statement i.e. "This is not cql"
+var ErrNoCQLStatement = errors.New("no CQL statement found")
 
 // NewCassandraSessionMigrator creates a migrator that persits into and reads from a Cassandra database.
 func NewCassandraSessionMigrator(session *gocql.Session) (MigratorTable, error) {
@@ -107,7 +104,7 @@ func (csm *cassandraSessionMigrator) Execute(ctx context.Context, stmt string, i
 	// update info
 	info.EndTime = time.Now()
 	if err := csm.iq.BindStruct(info).Exec(); err != nil {
-		return ErrInvalidCqlStmt
+		return err
 	}
 	return nil
 }
