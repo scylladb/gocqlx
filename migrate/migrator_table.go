@@ -103,8 +103,5 @@ func (csm *cassandraSessionMigrator) Execute(ctx context.Context, stmt string, i
 
 	// update info
 	info.EndTime = time.Now()
-	if err := csm.iq.BindStruct(info).Exec(); err != nil {
-		return err
-	}
-	return nil
+	return csm.iq.BindStruct(info).Exec()
 }
