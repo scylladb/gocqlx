@@ -19,6 +19,8 @@ import (
 	"github.com/gocql/gocql"
 )
 
+// ErrNoMigrationsFound is returned if the directory provided doesn't contain any migrations.
+var ErrNoMigrationsFound = errors.New("no migrations were found")
 
 var migratorTable MigratorTable
 
@@ -56,6 +58,9 @@ func Migrate(ctx context.Context, session *gocql.Session, dir string) error {
 	fm, err := filepath.Glob(filepath.Join(dir, "*.cql"))
 	if err != nil {
 		return fmt.Errorf("failed to list migrations in %q: %s", dir, err)
+	}
+	if len(fm) == 0 {
+		return ErrNoMigrationsFound
 	}
 	sort.Strings(fm)
 
