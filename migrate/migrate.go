@@ -17,58 +17,37 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
-	"github.com/scylladb/gocqlx"
-	"github.com/scylladb/gocqlx/qb"
 )
 
-const (
-	infoSchema = `CREATE TABLE IF NOT EXISTS gocqlx_migrate (
-	name text,
-	checksum text,
-	done tinyint,
-	start_time timestamp,
-	end_time timestamp,
-	PRIMARY KEY(name)
-)`
-	selectInfo = "SELECT * FROM gocqlx_migrate"
-)
 
-// Info contains information on migration applied on a database.
-type Info struct {
-	Name      string
-	Checksum  string
-	Done      int
-	StartTime time.Time
-	EndTime   time.Time
+var migratorTable MigratorTable
+
+func SetMigratorTable(mt MigratorTable) {
+	migratorTable = mt
 }
 
 // List provides a listing of applied migrations.
-func List(ctx context.Context, session *gocql.Session) ([]*Info, error) {
-	if err := ensureInfoTable(ctx, session); err != nil {
-		return nil, err
+func List(ctx context.Context, session *gocql.Session) (v []*Info, err error) {
+	if migratorTable == nil {
+		mt, err := NewCassandraSessionMigrator(session)
+		if err != nil {
+			return nil, err
+		}
+		return mt.List(ctx)
 	}
-
-	var v []*Info
-	err := gocqlx.Select(&v, session.Query(selectInfo).WithContext(ctx))
-	if err == gocql.ErrNotFound {
-		return nil, nil
-	}
-
-	sort.Slice(v, func(i, j int) bool {
-		return v[i].Name < v[j].Name
-	})
-
-	return v, err
-}
-
-func ensureInfoTable(ctx context.Context, session *gocql.Session) error {
-	return gocqlx.Query(session.Query(infoSchema).WithContext(ctx), nil).ExecRelease()
+	return migratorTable.List(ctx)
 }
 
 // Migrate reads the cql files from a directory and applies required migrations.
 func Migrate(ctx context.Context, session *gocql.Session, dir string) error {
 	// get database migrations
-	dbm, err := List(ctx, session)
+	if migratorTable == nil {
+		var err error
+		if migratorTable, err = NewCassandraSessionMigrator(session); err != nil {
+			return err
+		}
+	}
+	dbm, err := migratorTable.List(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list migrations: %s", err)
 	}
@@ -105,13 +84,13 @@ func Migrate(ctx context.Context, session *gocql.Session, dir string) error {
 	// apply migrations
 	if len(dbm) > 0 {
 		last := len(dbm) - 1
-		if err := applyMigration(ctx, session, fm[last], dbm[last].Done); err != nil {
+		if err := applyMigration(ctx, migratorTable, fm[last], dbm[last].Done); err != nil {
 			return fmt.Errorf("failed to apply migration %q: %s", fm[last], err)
 		}
 	}
 
 	for i := len(dbm); i < len(fm); i++ {
-		if err := applyMigration(ctx, session, fm[i], 0); err != nil {
+		if err := applyMigration(ctx, migratorTable, fm[i], 0); err != nil {
 			return fmt.Errorf("failed to apply migration %q: %s", fm[i], err)
 		}
 	}
@@ -119,7 +98,7 @@ func Migrate(ctx context.Context, session *gocql.Session, dir string) error {
 	return nil
 }
 
-func applyMigration(ctx context.Context, session *gocql.Session, path string, done int) error {
+func applyMigration(ctx context.Context, mt MigratorTable, path string, done int) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -137,17 +116,6 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 		Checksum:  checksum(b),
 	}
 
-	stmt, names := qb.Insert("gocqlx_migrate").Columns(
-		"name",
-		"checksum",
-		"done",
-		"start_time",
-		"end_time",
-	).ToCql()
-
-	iq := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
-	defer iq.Release()
-
 	i := 1
 	r := bytes.NewBuffer(b)
 	for {
@@ -163,17 +131,9 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 			continue
 		}
 
-		// execute
-		q := gocqlx.Query(session.Query(stmt).RetryPolicy(nil).WithContext(ctx), nil)
-		if err := q.ExecRelease(); err != nil {
-			return fmt.Errorf("statement %d failed: %s", i, err)
-		}
-
-		// update info
 		info.Done = i
-		info.EndTime = time.Now()
-		if err := iq.BindStruct(info).Exec(); err != nil {
-			return fmt.Errorf("migration statement %d failed: %s", i, err)
+		if err = mt.Execute(ctx, stmt, info); err != nil {
+			return err
 		}
 
 		i++
