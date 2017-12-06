@@ -38,7 +38,7 @@ func TestNoSessionSet(t *testing.T) {
 	}
 }
 
-func TestNoMigrationsYet(t *testing.T) { //Why do we make it fail without migrations yet?
+func TestListFailureAbortsEarly(t *testing.T) {
 	m := &mockMigratorTable{T: t}
 	SetMigratorTable(m)
 	m.ListFunc = func(ctx context.Context) ([]*Info, error) {
