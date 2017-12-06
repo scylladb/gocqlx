@@ -24,6 +24,7 @@ var ErrNoMigrationsFound = errors.New("no migrations were found")
 
 var migratorTable MigratorTable
 
+// SetMigratorTable sets the default migrator table instance to use when calling List or Migrate.
 func SetMigratorTable(mt MigratorTable) {
 	migratorTable = mt
 }
