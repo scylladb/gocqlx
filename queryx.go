@@ -134,21 +134,22 @@ func bindStructArgs(names []string, arg0 interface{}, arg1 map[string]interface{
 		v = v.Elem()
 	}
 
-	fields := m.TraversalsByName(v.Type(), names)
-	for i, t := range fields {
+	err := m.TraversalsByNameFunc(v.Type(), names, func(i int, t []int) error {
 		if len(t) != 0 {
 			val := reflectx.FieldByIndexesReadOnly(v, t)
 			arglist = append(arglist, val.Interface())
 		} else {
 			val, ok := arg1[names[i]]
 			if !ok {
-				return arglist, fmt.Errorf("could not find name %q in %#v and %#v", names[i], arg0, arg1)
+				return fmt.Errorf("could not find name %q in %#v and %#v", names[i], arg0, arg1)
 			}
 			arglist = append(arglist, val)
 		}
-	}
 
-	return arglist, nil
+		return nil
+	})
+
+	return arglist, err
 }
 
 // BindMap binds query named parameters using map.
