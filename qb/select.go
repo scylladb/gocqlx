@@ -115,6 +115,11 @@ func (b *SelectBuilder) Columns(columns ...string) *SelectBuilder {
 	return b
 }
 
+// As is a helper for adding a column AS name result column to the query.
+func As(column, name string) string {
+	return column + " AS " + name
+}
+
 // Distinct sets DISTINCT clause on the query.
 func (b *SelectBuilder) Distinct(columns ...string) *SelectBuilder {
 	b.distinct = append(b.distinct, columns...)
