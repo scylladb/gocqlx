@@ -23,6 +23,10 @@ import (
 
 // ErrNoMigrationsFound is returned if the directory provided doesn't contain any migrations.
 var ErrNoMigrationsFound = errors.New("no migrations were found")
+
+// ErrNoCQLStmt is returned when trying to execute a non cql statement i.e. "This is not cql"
+var ErrNoCQLStmt = errors.New("no cql statement found")
+
 const (
 	infoSchema = `CREATE TABLE IF NOT EXISTS gocqlx_migrate (
 	name text,
@@ -83,7 +87,6 @@ func Migrate(ctx context.Context, session *gocql.Session, dir string) error {
 	if len(fm) == 0 {
 		return ErrNoMigrationsFound
 	}
-
 	sort.Strings(fm)
 
 	// verify migrations
@@ -155,6 +158,7 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 	defer iq.Release()
 
 	i := 1
+	stmtCount := 0
 	r := bytes.NewBuffer(b)
 	for {
 		stmt, err := r.ReadString(';')
@@ -164,6 +168,8 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 		if err != nil {
 			return err
 		}
+		stmtCount++
+
 		if i <= done {
 			i++
 			continue
@@ -183,6 +189,9 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 		}
 
 		i++
+	}
+	if stmtCount == 0 {
+		return ErrNoCQLStmt
 	}
 
 	return nil
