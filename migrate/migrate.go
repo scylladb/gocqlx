@@ -21,6 +21,8 @@ import (
 	"github.com/scylladb/gocqlx/qb"
 )
 
+// ErrNoMigrationsFound is returned if the directory provided doesn't contain any migrations.
+var ErrNoMigrationsFound = errors.New("no migrations were found")
 const (
 	infoSchema = `CREATE TABLE IF NOT EXISTS gocqlx_migrate (
 	name text,
@@ -78,6 +80,10 @@ func Migrate(ctx context.Context, session *gocql.Session, dir string) error {
 	if err != nil {
 		return fmt.Errorf("failed to list migrations in %q: %s", dir, err)
 	}
+	if len(fm) == 0 {
+		return ErrNoMigrationsFound
+	}
+
 	sort.Strings(fm)
 
 	// verify migrations
