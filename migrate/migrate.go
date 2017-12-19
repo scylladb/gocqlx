@@ -21,12 +21,6 @@ import (
 	"github.com/scylladb/gocqlx/qb"
 )
 
-// ErrNoMigrationsFound is returned if the directory provided doesn't contain any migrations.
-var ErrNoMigrationsFound = errors.New("no migrations were found")
-
-// ErrNoCQLStmt is returned when trying to execute a non cql statement i.e. "This is not cql"
-var ErrNoCQLStmt = errors.New("no cql statement found")
-
 const (
 	infoSchema = `CREATE TABLE IF NOT EXISTS gocqlx_migrate (
 	name text,
@@ -85,7 +79,7 @@ func Migrate(ctx context.Context, session *gocql.Session, dir string) error {
 		return fmt.Errorf("failed to list migrations in %q: %s", dir, err)
 	}
 	if len(fm) == 0 {
-		return ErrNoMigrationsFound
+		return fmt.Errorf("no migration files found in %q", dir)
 	}
 	sort.Strings(fm)
 
@@ -191,7 +185,7 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 		i++
 	}
 	if stmtCount == 0 {
-		return ErrNoCQLStmt
+		return fmt.Errorf("no migration statements found in %q", info.Name)
 	}
 
 	return nil
