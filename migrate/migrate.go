@@ -25,7 +25,7 @@ const (
 	infoSchema = `CREATE TABLE IF NOT EXISTS gocqlx_migrate (
 	name text,
 	checksum text,
-	done tinyint,
+	done int,
 	start_time timestamp,
 	end_time timestamp,
 	PRIMARY KEY(name)
