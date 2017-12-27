@@ -45,11 +45,10 @@ func (b *InsertBuilder) ToCql() (stmt string, names []string) {
 	placeholders(&cql, len(b.columns))
 	cql.WriteString(") ")
 
-	names = append(names, b.using.writeCql(&cql)...)
-
 	if b.unique {
 		cql.WriteString("IF NOT EXISTS ")
 	}
+	names = append(names, b.using.writeCql(&cql)...)
 
 	stmt = cql.String()
 	return
