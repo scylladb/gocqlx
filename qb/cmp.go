@@ -28,8 +28,7 @@ const (
 type Cmp struct {
 	op     op
 	column string
-	name   string
-	fn     *Func
+	value  value
 }
 
 func (c Cmp) writeCql(cql *bytes.Buffer) (names []string) {
@@ -52,19 +51,7 @@ func (c Cmp) writeCql(cql *bytes.Buffer) (names []string) {
 	case cnt:
 		cql.WriteString(" CONTAINS ")
 	}
-
-	if c.fn != nil {
-		names = append(names, c.fn.writeCql(cql)...)
-	} else {
-		cql.WriteByte('?')
-		if c.name == "" {
-			names = append(names, c.column)
-		} else {
-			names = append(names, c.name)
-		}
-	}
-
-	return
+	return c.value.writeCql(cql)
 }
 
 // Eq produces column=?.
@@ -72,6 +59,7 @@ func Eq(column string) Cmp {
 	return Cmp{
 		op:     eq,
 		column: column,
+		value:  param(column),
 	}
 }
 
@@ -80,7 +68,16 @@ func EqNamed(column, name string) Cmp {
 	return Cmp{
 		op:     eq,
 		column: column,
-		name:   name,
+		value:  param(name),
+	}
+}
+
+// EqLit produces column=literal, and does not add a parameter to the query.
+func EqLit(column, literal string) Cmp {
+	return Cmp{
+		op:     eq,
+		column: column,
+		value:  lit(literal),
 	}
 }
 
@@ -89,7 +86,7 @@ func EqFunc(column string, fn *Func) Cmp {
 	return Cmp{
 		op:     eq,
 		column: column,
-		fn:     fn,
+		value:  fn,
 	}
 }
 
@@ -98,6 +95,7 @@ func Lt(column string) Cmp {
 	return Cmp{
 		op:     lt,
 		column: column,
+		value:  param(column),
 	}
 }
 
@@ -106,7 +104,16 @@ func LtNamed(column, name string) Cmp {
 	return Cmp{
 		op:     lt,
 		column: column,
-		name:   name,
+		value:  param(name),
+	}
+}
+
+// LtLit produces column<literal and does not add a parameter to the query.
+func LtLit(column, literal string) Cmp {
+	return Cmp{
+		op:     lt,
+		column: column,
+		value:  lit(literal),
 	}
 }
 
@@ -115,7 +122,7 @@ func LtFunc(column string, fn *Func) Cmp {
 	return Cmp{
 		op:     lt,
 		column: column,
-		fn:     fn,
+		value:  fn,
 	}
 }
 
@@ -124,6 +131,7 @@ func LtOrEq(column string) Cmp {
 	return Cmp{
 		op:     leq,
 		column: column,
+		value:  param(column),
 	}
 }
 
@@ -132,7 +140,16 @@ func LtOrEqNamed(column, name string) Cmp {
 	return Cmp{
 		op:     leq,
 		column: column,
-		name:   name,
+		value:  param(name),
+	}
+}
+
+// LtOrEqLit produces column<=literal and does not add a parameter to the query.
+func LtOrEqLit(column, literal string) Cmp {
+	return Cmp{
+		op:     leq,
+		column: column,
+		value:  lit(literal),
 	}
 }
 
@@ -141,7 +158,7 @@ func LtOrEqFunc(column string, fn *Func) Cmp {
 	return Cmp{
 		op:     leq,
 		column: column,
-		fn:     fn,
+		value:  fn,
 	}
 }
 
@@ -150,6 +167,7 @@ func Gt(column string) Cmp {
 	return Cmp{
 		op:     gt,
 		column: column,
+		value:  param(column),
 	}
 }
 
@@ -158,7 +176,16 @@ func GtNamed(column, name string) Cmp {
 	return Cmp{
 		op:     gt,
 		column: column,
-		name:   name,
+		value:  param(name),
+	}
+}
+
+// GtLit produces column>literal and does not add a parameter to the query.
+func GtLit(column, literal string) Cmp {
+	return Cmp{
+		op:     gt,
+		column: column,
+		value:  lit(literal),
 	}
 }
 
@@ -167,7 +194,7 @@ func GtFunc(column string, fn *Func) Cmp {
 	return Cmp{
 		op:     gt,
 		column: column,
-		fn:     fn,
+		value:  fn,
 	}
 }
 
@@ -176,6 +203,7 @@ func GtOrEq(column string) Cmp {
 	return Cmp{
 		op:     geq,
 		column: column,
+		value:  param(column),
 	}
 }
 
@@ -184,7 +212,16 @@ func GtOrEqNamed(column, name string) Cmp {
 	return Cmp{
 		op:     geq,
 		column: column,
-		name:   name,
+		value:  param(name),
+	}
+}
+
+// GtOrEqLit produces column>=literal and does not add a parameter to the query.
+func GtOrEqLit(column, literal string) Cmp {
+	return Cmp{
+		op:     geq,
+		column: column,
+		value:  lit(literal),
 	}
 }
 
@@ -193,7 +230,7 @@ func GtOrEqFunc(column string, fn *Func) Cmp {
 	return Cmp{
 		op:     geq,
 		column: column,
-		fn:     fn,
+		value:  fn,
 	}
 }
 
@@ -202,6 +239,7 @@ func In(column string) Cmp {
 	return Cmp{
 		op:     in,
 		column: column,
+		value:  param(column),
 	}
 }
 
@@ -210,7 +248,16 @@ func InNamed(column, name string) Cmp {
 	return Cmp{
 		op:     in,
 		column: column,
-		name:   name,
+		value:  param(name),
+	}
+}
+
+// InLit produces column IN literal and does not add a parameter to the query.
+func InLit(column, literal string) Cmp {
+	return Cmp{
+		op:     in,
+		column: column,
+		value:  lit(literal),
 	}
 }
 
@@ -219,6 +266,7 @@ func Contains(column string) Cmp {
 	return Cmp{
 		op:     cnt,
 		column: column,
+		value:  param(column),
 	}
 }
 
@@ -227,7 +275,16 @@ func ContainsNamed(column, name string) Cmp {
 	return Cmp{
 		op:     cnt,
 		column: column,
-		name:   name,
+		value:  param(name),
+	}
+}
+
+// ContainsLit produces column CONTAINS literal and does not add a parameter to the query.
+func ContainsLit(column, literal string) Cmp {
+	return Cmp{
+		op:     cnt,
+		column: column,
+		value:  lit(literal),
 	}
 }
 

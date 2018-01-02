@@ -91,6 +91,43 @@ func TestCmp(t *testing.T) {
 			N: []string{"name"},
 		},
 
+		// Comparisons against literals.
+		{
+			C: EqLit("eq", "literal_value"),
+			S: "eq=literal_value",
+			N: []string{},
+		},
+		{
+			C: LtLit("lt", "literal_value"),
+			S: "lt<literal_value",
+			N: []string{},
+		},
+		{
+			C: LtOrEqLit("lt", "literal_value"),
+			S: "lt<=literal_value",
+			N: []string{},
+		},
+		{
+			C: GtLit("gt", "literal_value"),
+			S: "gt>literal_value",
+			N: []string{},
+		},
+		{
+			C: GtOrEqLit("gt", "literal_value"),
+			S: "gt>=literal_value",
+			N: []string{},
+		},
+		{
+			C: InLit("in", "literal_value"),
+			S: "in IN literal_value",
+			N: []string{},
+		},
+		{
+			C: ContainsLit("cnt", "literal_value"),
+			S: "cnt CONTAINS literal_value",
+			N: []string{},
+		},
+
 		// Functions
 		{
 			C: EqFunc("eq", Fn("fn", "arg0", "arg1")),
