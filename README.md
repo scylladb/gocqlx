@@ -13,13 +13,17 @@ hood it uses `sqlx/reflectx` package so `sqlx` models will also work with `gocql
 
 ## Features
 
-* Builders for `SELECT`, `INSERT`, `UPDATE` `DELETE` and `BATCH` (supporting collections, counters and functions)
-* Queries with named parameters (:identifier) support
-* Binding parameters form struct or map
-* Scanning results into structs and slices
-* Automatic query releasing
-* Schema migrations
+* Binding query parameters form struct or map
+* Scanning results directly into struct or slice
 * Fast!
+
+In addition to that:
+
+Package `qb` provides query builders for `SELECT`, `INSERT`, `UPDATE` `DELETE`
+and `BATCH` statements supporting full spec including literals, functions, 
+collections and counters.
+
+Package `migrate` provides a simple database migration system.
 
 ## Example
 
