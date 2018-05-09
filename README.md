@@ -94,6 +94,28 @@ type Person struct {
 
 See more examples in [example_test.go](https://github.com/scylladb/gocqlx/blob/master/example_test.go).
 
+## Data-Type Mappings
+
+| cassandra               | go structs          |
+|-------------------------|---------------------|
+| `timeuuid`              | `gocql.UUID`        |
+| `timestamp`             | `time.Time`         |
+| `varchar`               | `string`            |
+| `bigint`                | `int64`             |
+| `blob`                  | `[]byte`            |
+| `boolean`               | `bool`              |
+| `float`                 | `float32`           |
+| `double`                | `float64`           |
+| `int`                   | `int`               |
+| `decimal`               | `*inf.Dec`          |
+| `list<text>`            | `[]string`          |
+| `set<int>`              | `[]int`             |
+| `map<varchar, varchar>` | `map[string]string` |
+| `varint`                | `*big.Int`          |
+| `inet`                  | `inet`              |
+
+Note package `inf` is from `gopkg.in/inf.v0` and `big` is `math/big`.
+
 ## Performance
 
 Gocqlx is fast, this is a benchmark result comparing `gocqlx` to raw `gocql` 
