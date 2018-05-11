@@ -163,3 +163,15 @@ func (b *SelectBuilder) AllowFiltering() *SelectBuilder {
 	b.allowFiltering = true
 	return b
 }
+
+// Func sets aggregation function for select clause on the query.
+func (b *SelectBuilder) Func(name, literal string) *SelectBuilder {
+	b.Columns(name + "(" + literal + ")")
+	return b
+}
+
+// Count sets COUNT clause on the query.
+func (b *SelectBuilder) Count() *SelectBuilder {
+	b.Func("COUNT", "*")
+	return b
+}

@@ -78,6 +78,22 @@ func TestSelectBuilder(t *testing.T) {
 			S: "SELECT * FROM cycling.cyclist_name WHERE id=? ALLOW FILTERING ",
 			N: []string{"expr"},
 		},
+		// Add aggregation function
+		{
+			B: Select("cycling.cyclist_name").Func("MIN", "stars").GroupBy("id"),
+			S: "SELECT id,MIN(stars) FROM cycling.cyclist_name GROUP BY id ",
+		},
+		// Add COUNT
+		{
+			B: Select("cycling.cyclist_name").Count().Where(Gt("stars")),
+			S: "SELECT COUNT(*) FROM cycling.cyclist_name WHERE stars>? ",
+			N: []string{"stars"},
+		},
+		// Add COUNT with GROUP BY
+		{
+			B: Select("cycling.cyclist_name").Count().GroupBy("id"),
+			S: "SELECT id,COUNT(*) FROM cycling.cyclist_name GROUP BY id ",
+		},
 	}
 
 	for _, test := range table {
