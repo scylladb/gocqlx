@@ -49,12 +49,3 @@ func MaxTimeuuid(name string) *Func {
 func Now() *Func {
 	return Fn("now")
 }
-
-// Count produces COUNT(field_name) or COUNT(*).
-func Count(paramNames ...string) *Func {
-	name := "COUNT"
-	if len(paramNames) > 0 {
-		return Fn(name, paramNames...)
-	}
-	return Fn(name, "*")
-}

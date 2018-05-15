@@ -165,12 +165,42 @@ func (b *SelectBuilder) AllowFiltering() *SelectBuilder {
 }
 
 // Func sets aggregation function for select clause on the query.
-func (b *SelectBuilder) Func(fn *Func) *SelectBuilder {
-	var param string
-	if len(fn.ParamNames) > 0 {
-		param = fn.ParamNames[0]
+func (b *SelectBuilder) Func(name, column string) *SelectBuilder {
+	b.Columns(name + "(" + column + ")")
+	return b
+}
+
+// Count produces 'count(column)' or 'count(*)'.
+func (b *SelectBuilder) Count(column ...string) *SelectBuilder {
+	p := "*"
+	if len(column) > 0 {
+		p = column[0]
 	}
 
-	b.Columns(fn.Name + "(" + param + ")")
+	b.Func("count", p)
+	return b
+}
+
+// Min produces 'min(column)' aggregation function
+func (b *SelectBuilder) Min(column string) *SelectBuilder {
+	b.Func("min", column)
+	return b
+}
+
+// Max produces 'max(column)' aggregation function
+func (b *SelectBuilder) Max(column string) *SelectBuilder {
+	b.Func("max", column)
+	return b
+}
+
+// Avg produces 'avg(column)' aggregation function
+func (b *SelectBuilder) Avg(column string) *SelectBuilder {
+	b.Func("avg", column)
+	return b
+}
+
+// Sum produces 'sum(column)' aggregation function
+func (b *SelectBuilder) Sum(column string) *SelectBuilder {
+	b.Func("sum", column)
 	return b
 }

@@ -80,19 +80,24 @@ func TestSelectBuilder(t *testing.T) {
 		},
 		// Add aggregation function
 		{
-			B: Select("cycling.cyclist_name").Func(Fn("MIN", "stars")).GroupBy("id"),
-			S: "SELECT id,MIN(stars) FROM cycling.cyclist_name GROUP BY id ",
+			B: Select("cycling.cyclist_name").Func("UDF", "stars").GroupBy("id"),
+			S: "SELECT id,UDF(stars) FROM cycling.cyclist_name GROUP BY id ",
 		},
 		// Add COUNT
 		{
-			B: Select("cycling.cyclist_name").Func(Count()).Where(Gt("stars")),
-			S: "SELECT COUNT(*) FROM cycling.cyclist_name WHERE stars>? ",
+			B: Select("cycling.cyclist_name").Count().Where(Gt("stars")),
+			S: "SELECT count(*) FROM cycling.cyclist_name WHERE stars>? ",
 			N: []string{"stars"},
 		},
 		// Add COUNT with GROUP BY
 		{
-			B: Select("cycling.cyclist_name").Func(Count("stars")).GroupBy("id"),
-			S: "SELECT id,COUNT(stars) FROM cycling.cyclist_name GROUP BY id ",
+			B: Select("cycling.cyclist_name").Count("stars").GroupBy("id"),
+			S: "SELECT id,count(stars) FROM cycling.cyclist_name GROUP BY id ",
+		},
+		// Add Min
+		{
+			B: Select("cycling.cyclist_name").Min("stars"),
+			S: "SELECT min(stars) FROM cycling.cyclist_name ",
 		},
 	}
 
