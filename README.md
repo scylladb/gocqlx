@@ -1,11 +1,6 @@
 # GoCQLX [![GoDoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](http://godoc.org/github.com/scylladb/gocqlx) [![Go Report Card](https://goreportcard.com/badge/github.com/scylladb/gocqlx)](https://goreportcard.com/report/github.com/scylladb/gocqlx) [![Build Status](https://travis-ci.org/scylladb/gocqlx.svg?branch=master)](https://travis-ci.org/scylladb/gocqlx)
 
-Package `gocqlx` is a productivity toolkit for ScyllaDB and Apache Cassandra®. 
-It's an extension of `gocql`, similar to what `sqlx` is to `database/sql`.
-
-It contains wrappers over `gocql` types that provide convenience methods which
-are useful in the development of database driven applications. Under the
-hood it uses `sqlx/reflectx` package so `sqlx` models will also work with `gocqlx`.
+Package `gocqlx` is an idiomatic extension to `gocql` that provides usability features. With gocqlx you can bind the query parameters from maps and structs, use named query parameters (:identifier) and scan the query results into structs and slices. It comes with a fluent and flexible CQL query builder that supports full CQL spec, including BATCH statements and custom functions.
 
 ## Installation
 
