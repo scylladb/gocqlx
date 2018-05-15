@@ -163,3 +163,44 @@ func (b *SelectBuilder) AllowFiltering() *SelectBuilder {
 	b.allowFiltering = true
 	return b
 }
+
+// Count produces 'count(column)'.
+func (b *SelectBuilder) Count(column string) *SelectBuilder {
+	b.fn("count", column)
+	return b
+}
+
+// CountAll produces 'count(*)'.
+func (b *SelectBuilder) CountAll() *SelectBuilder {
+	b.Count("*")
+	return b
+}
+
+// Min produces 'min(column)' aggregation function.
+func (b *SelectBuilder) Min(column string) *SelectBuilder {
+	b.fn("min", column)
+	return b
+}
+
+// Max produces 'max(column)' aggregation function.
+func (b *SelectBuilder) Max(column string) *SelectBuilder {
+	b.fn("max", column)
+	return b
+}
+
+// Avg produces 'avg(column)' aggregation function.
+func (b *SelectBuilder) Avg(column string) *SelectBuilder {
+	b.fn("avg", column)
+	return b
+}
+
+// Sum produces 'sum(column)' aggregation function.
+func (b *SelectBuilder) Sum(column string) *SelectBuilder {
+	b.fn("sum", column)
+	return b
+}
+
+func (b *SelectBuilder) fn(name, column string) *SelectBuilder {
+	b.Columns(name + "(" + column + ")")
+	return b
+}
