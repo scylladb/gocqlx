@@ -164,43 +164,43 @@ func (b *SelectBuilder) AllowFiltering() *SelectBuilder {
 	return b
 }
 
-// Func sets aggregation function for select clause on the query.
-func (b *SelectBuilder) Func(name, column string) *SelectBuilder {
-	b.Columns(name + "(" + column + ")")
+// Count produces 'count(column)'.
+func (b *SelectBuilder) Count(column string) *SelectBuilder {
+	b.fn("count", column)
 	return b
 }
 
-// Count produces 'count(column)' or 'count(*)'.
-func (b *SelectBuilder) Count(column ...string) *SelectBuilder {
-	p := "*"
-	if len(column) > 0 {
-		p = column[0]
-	}
-
-	b.Func("count", p)
+// CountAll produces 'count(*)'.
+func (b *SelectBuilder) CountAll() *SelectBuilder {
+	b.Count("*")
 	return b
 }
 
-// Min produces 'min(column)' aggregation function
+// Min produces 'min(column)' aggregation function.
 func (b *SelectBuilder) Min(column string) *SelectBuilder {
-	b.Func("min", column)
+	b.fn("min", column)
 	return b
 }
 
-// Max produces 'max(column)' aggregation function
+// Max produces 'max(column)' aggregation function.
 func (b *SelectBuilder) Max(column string) *SelectBuilder {
-	b.Func("max", column)
+	b.fn("max", column)
 	return b
 }
 
-// Avg produces 'avg(column)' aggregation function
+// Avg produces 'avg(column)' aggregation function.
 func (b *SelectBuilder) Avg(column string) *SelectBuilder {
-	b.Func("avg", column)
+	b.fn("avg", column)
 	return b
 }
 
-// Sum produces 'sum(column)' aggregation function
+// Sum produces 'sum(column)' aggregation function.
 func (b *SelectBuilder) Sum(column string) *SelectBuilder {
-	b.Func("sum", column)
+	b.fn("sum", column)
+	return b
+}
+
+func (b *SelectBuilder) fn(name, column string) *SelectBuilder {
+	b.Columns(name + "(" + column + ")")
 	return b
 }

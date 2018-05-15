@@ -78,14 +78,9 @@ func TestSelectBuilder(t *testing.T) {
 			S: "SELECT * FROM cycling.cyclist_name WHERE id=? ALLOW FILTERING ",
 			N: []string{"expr"},
 		},
-		// Add aggregation function
+		// Add COUNT all
 		{
-			B: Select("cycling.cyclist_name").Func("UDF", "stars").GroupBy("id"),
-			S: "SELECT id,UDF(stars) FROM cycling.cyclist_name GROUP BY id ",
-		},
-		// Add COUNT
-		{
-			B: Select("cycling.cyclist_name").Count().Where(Gt("stars")),
+			B: Select("cycling.cyclist_name").CountAll().Where(Gt("stars")),
 			S: "SELECT count(*) FROM cycling.cyclist_name WHERE stars>? ",
 			N: []string{"stars"},
 		},
