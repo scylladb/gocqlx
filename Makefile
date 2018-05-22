@@ -1,4 +1,4 @@
-all: check test integration-test
+all: check test bench
 
 .PHONY: check
 check: .check-fmt .check-vet .check-lint .check-ineffassign .check-mega .check-misspell
@@ -29,11 +29,11 @@ check: .check-fmt .check-vet .check-lint .check-ineffassign .check-mega .check-m
 
 .PHONY: test
 test:
-	@go test -cover -race ./...
+	@go test -cover -race -tags all ./...
 
-.PHONY: integration-test
-integration-test:
-	@go test -cover -tags integration .
+.PHONY: bench
+bench:
+	@go test -tags all -run=XXX -bench=. -benchmem ./...
 
 .PHONY: get-deps
 get-deps:
