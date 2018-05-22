@@ -155,18 +155,3 @@ func TestCmp(t *testing.T) {
 		}
 	}
 }
-
-func BenchmarkCmp(b *testing.B) {
-	buf := bytes.Buffer{}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		buf.Reset()
-		c := cmps{
-			Eq("id"),
-			Lt("user_uuid"),
-			LtOrEq("firstname"),
-			Gt("stars"),
-		}
-		c.writeCql(&buf)
-	}
-}
