@@ -5,7 +5,7 @@ check: .check-fmt .check-vet .check-lint .check-ineffassign .check-mega .check-m
 
 .PHONY: .check-fmt
 .check-fmt:
-	@gofmt -s -l . | ifne false
+	@go fmt ./... | tee /dev/stderr | ifne false
 
 .PHONY: .check-vet
 .check-vet:
