@@ -23,6 +23,7 @@ before_install:
 
 install:
   - make get-deps
+  - make get-tools
 
 script:
   - make

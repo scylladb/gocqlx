@@ -12,11 +12,6 @@ import (
 // BATCH reference:
 // https://cassandra.apache.org/doc/latest/cql/dml.html#batch
 
-// builder is interface implemented by other builders.
-type builder interface {
-	ToCql() (stmt string, names []string)
-}
-
 // BatchBuilder builds CQL BATCH statements.
 type BatchBuilder struct {
 	unlogged bool

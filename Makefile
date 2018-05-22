@@ -1,7 +1,7 @@
 all: check test integration-test
 
 .PHONY: check
-check: .check-fmt .check-vet .check-lint .check-misspell .check-ineffassign
+check: .check-fmt .check-vet .check-lint .check-ineffassign .check-mega .check-misspell
 
 .PHONY: .check-fmt
 .check-fmt:
@@ -15,13 +15,17 @@ check: .check-fmt .check-vet .check-lint .check-misspell .check-ineffassign
 .check-lint:
 	@golint -set_exit_status ./...
 
-.PHONY: .check-misspell
-.check-misspell:
-	@misspell ./...
-
 .PHONY: .check-ineffassign
 .check-ineffassign:
 	@ineffassign .
+
+.PHONY: .check-mega
+.check-mega:
+	@megacheck ./...
+
+.PHONY: .check-misspell
+.check-misspell:
+	@misspell ./...
 
 .PHONY: test
 test:
@@ -35,6 +39,19 @@ integration-test:
 get-deps:
 	go get -t ./...
 
-	go get -u github.com/golang/lint/golint
-	go get -u github.com/client9/misspell/cmd/misspell
-	go get -u github.com/gordonklaus/ineffassign
+ifndef GOBIN
+export GOBIN := $(GOPATH)/bin
+endif
+
+.PHONY: get-tools
+get-tools: GOPATH := $(shell mktemp -d)
+get-tools:
+	@echo "==> Installing tools at $(GOBIN)..."
+	@mkdir -p $(GOBIN)
+
+	@go get -u github.com/golang/lint/golint
+	@go get -u github.com/client9/misspell/cmd/misspell
+	@go get -u github.com/gordonklaus/ineffassign
+	@go get -u honnef.co/go/tools/cmd/megacheck
+
+	@rm -Rf $(GOPATH)
