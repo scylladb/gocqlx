@@ -2,14 +2,11 @@
 // Use of this source code is governed by a ALv2-style
 // license that can be found in the LICENSE file.
 
-// +build !integration
-
 package gocqlx
 
 import (
 	"testing"
 
-	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -61,14 +58,6 @@ func TestCompileQuery(t *testing.T) {
 		if diff := cmp.Diff(names, test.V); diff != "" {
 			t.Error("names mismatch", diff)
 		}
-	}
-}
-
-func BenchmarkCompileNamedQuery(b *testing.B) {
-	q := []byte("INSERT INTO cycling.cyclist_name (id, user_uuid, firstname, stars) VALUES (:id, :user_uuid, :firstname, :stars)")
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		CompileNamedQuery(q)
 	}
 }
 
@@ -132,21 +121,6 @@ func TestBindStruct(t *testing.T) {
 	})
 }
 
-func BenchmarkBindStruct(b *testing.B) {
-	q := Query(&gocql.Query{}, []string{"name", "age", "first", "last"})
-	type t struct {
-		Name  string
-		Age   int
-		First string
-		Last  string
-	}
-	am := t{"Jason Moiron", 30, "Jason", "Moiron"}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		q.BindStruct(am)
-	}
-}
-
 func TestBindMap(t *testing.T) {
 	v := map[string]interface{}{
 		"name":  "name",
@@ -174,21 +148,4 @@ func TestBindMap(t *testing.T) {
 			t.Fatal("unexpected error")
 		}
 	})
-}
-
-func BenchmarkBindMap(b *testing.B) {
-	q := Queryx{
-		Query: &gocql.Query{},
-		Names: []string{"name", "age", "first", "last"},
-	}
-	am := map[string]interface{}{
-		"name":  "Jason Moiron",
-		"age":   30,
-		"first": "Jason",
-		"last":  "Moiron",
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		q.BindMap(am)
-	}
 }

@@ -2,12 +2,9 @@
 // Use of this source code is governed by a ALv2-style
 // license that can be found in the LICENSE file.
 
-// +build !integration
-
 package gocqlx
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -70,17 +67,5 @@ func TestSnakeCase(t *testing.T) {
 		if actual := snakeCase(test.N); actual != test.V {
 			t.Error("V", test.V, "got", actual, test)
 		}
-	}
-}
-
-func BenchmarkSnakeCase(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		snakeCase(snakeTable[b.N%len(snakeTable)].N)
-	}
-}
-
-func BenchmarkToLower(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		strings.ToLower(snakeTable[b.N%len(snakeTable)].N)
 	}
 }
