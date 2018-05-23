@@ -151,8 +151,13 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 	iq := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
 	defer iq.Release()
 
-	i := 1
-	stmtCount := 0
+	if Callback != nil {
+		if err := Callback(ctx, session, BeforeMigration, info.Name); err != nil {
+			return fmt.Errorf("before migration callback failed: %s", err)
+		}
+	}
+
+	i := 0
 	r := bytes.NewBuffer(b)
 	for {
 		stmt, err := r.ReadString(';')
@@ -162,10 +167,9 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 		if err != nil {
 			return err
 		}
-		stmtCount++
+		i++
 
 		if i <= done {
-			i++
 			continue
 		}
 
@@ -181,11 +185,15 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 		if err := iq.BindStruct(info).Exec(); err != nil {
 			return fmt.Errorf("migration statement %d failed: %s", i, err)
 		}
-
-		i++
 	}
-	if stmtCount == 0 {
+	if i == 0 {
 		return fmt.Errorf("no migration statements found in %q", info.Name)
+	}
+
+	if Callback != nil {
+		if err := Callback(ctx, session, AfterMigration, info.Name); err != nil {
+			return fmt.Errorf("after migration callback failed: %s", err)
+		}
 	}
 
 	return nil
