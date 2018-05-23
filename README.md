@@ -29,9 +29,9 @@ type Person struct {
     Email     []string
 }
 
-// Insert with query parameters bound from struct.
+// Bind query parameters from a struct.
 {
-    p := &Person{
+    p := Person{
         "Patricia",
         "Citizen",
         []string{"patricia.citzen@gocqlx_test.com"},
@@ -41,49 +41,42 @@ type Person struct {
         Columns("first_name", "last_name", "email").
         ToCql()
 
-    q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
-
-    if err := q.ExecRelease(); err != nil {
+    err := gocqlx.Query(session.Query(stmt), names).BindStruct(&p).ExecRelease()
+    if err != nil {
         t.Fatal(err)
     }
 }
 
-// Get the first result into a struct.
+// Load the first result into a struct.
 {
     stmt, names := qb.Select("gocqlx_test.person").
         Where(qb.Eq("first_name")).
         ToCql()
 
+    var p Person
+
     q := gocqlx.Query(session.Query(stmt), names).BindMap(qb.M{
         "first_name": "Patricia",
     })
-
-    var p Person
-    if err := gocqlx.Get(&p, q.Query); err != nil {
-        t.Fatal("get:", err)
+    if err := q.GetRelease(&p); err != nil {
+        t.Fatal(err)
     }
-
-    t.Log(p)
-    // {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]}
 }
 
-// Select, load all the results into a slice.
+// Load all the results into a slice.
 {
     stmt, names := qb.Select("gocqlx_test.person").
         Where(qb.In("first_name")).
         ToCql()
 
+    var people []Person
+
     q := gocqlx.Query(session.Query(stmt), names).BindMap(qb.M{
         "first_name": []string{"Patricia", "Igy", "Ian"},
     })
-
-    var people []Person
-    if err := gocqlx.Select(&people, q.Query); err != nil {
-        t.Fatal("select:", err)
+    if err := q.SelectRelease(&people); err != nil {
+        t.Fatal(err)
     }
-
-    t.Log(people)
-    // [{Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com]} {Igy Citizen [igy.citzen@gocqlx_test.com]} {Ian Citizen [ian.citzen@gocqlx_test.com]}]
 }
 ```
 

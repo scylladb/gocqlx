@@ -14,11 +14,15 @@ import (
 )
 
 // Get is a convenience function for creating iterator and calling Get.
+//
+// DEPRECATED use Queryx.Get or Queryx.GetRelease.
 func Get(dest interface{}, q *gocql.Query) error {
 	return Iter(q).Get(dest)
 }
 
 // Select is a convenience function for creating iterator and calling Select.
+//
+// DEPRECATED use Queryx.Select or Queryx.SelectRelease.
 func Select(dest interface{}, q *gocql.Query) error {
 	return Iter(q).Select(dest)
 }
@@ -53,9 +57,11 @@ func (iter *Iterx) Unsafe() *Iterx {
 }
 
 // Get scans first row into a destination and closes the iterator. If the
-// destination type is a Struct, then StructScan will be used. If the
-// destination is some other type, then the row must only have one column which
-// can scan into that type. If no rows were selected, ErrNotFound is returned.
+// destination type is a struct pointer, then StructScan will be used.
+// If the destination is some other type, then the row must only have one column
+// which can scan into that type.
+//
+// If no rows were selected, ErrNotFound is returned.
 func (iter *Iterx) Get(dest interface{}) error {
 	iter.scanAny(dest, false)
 	iter.Close()
@@ -99,10 +105,13 @@ func (iter *Iterx) scanAny(dest interface{}, structOnly bool) bool {
 	return iter.StructScan(dest)
 }
 
-// Select scans all rows into a destination, which must be a slice of any type
-// and closes the iterator. If the destination slice type is a Struct, then
-// StructScan will be used on each row. If the destination is some other type,
-// then each row must only have one column which can scan into that type.
+// Select scans all rows into a destination, which must be a pointer to slice
+// of any type and closes the iterator. If the destination slice type is
+// a struct, then StructScan will be used on each row. If the destination is
+// some other type, then each row must only have one column which can scan into
+// that type.
+//
+// If no rows were selected, ErrNotFound is NOT returned.
 func (iter *Iterx) Select(dest interface{}) error {
 	iter.scanAll(dest, false)
 	iter.Close()
@@ -191,7 +200,7 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) bool {
 }
 
 // StructScan is like gocql.Iter.Scan, but scans a single row into a single
-// Struct. Use this and iterate manually when the memory load of Select() might
+// struct. Use this and iterate manually when the memory load of Select() might
 // be prohibitive. StructScan caches the reflect work of matching up column
 // positions to fields to avoid that overhead per scan, which means it is not
 // safe to run StructScan on the same Iterx instance with different struct
