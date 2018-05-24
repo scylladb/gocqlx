@@ -15,7 +15,7 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx"
-
+	. "github.com/scylladb/gocqlx/gocqlxtest"
 	"gopkg.in/inf.v0"
 )
 
@@ -35,9 +35,9 @@ func (n *FullName) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
 }
 
 func TestStruct(t *testing.T) {
-	session := createSession(t)
+	session := CreateSession(t)
 	defer session.Close()
-	if err := createTable(session, `CREATE TABLE gocqlx_test.struct_table (
+	if err := ExecStmt(session, `CREATE TABLE gocqlx_test.struct_table (
 			testuuid       timeuuid PRIMARY KEY,
 			testtimestamp  timestamp,
 			testvarchar    varchar,
@@ -165,9 +165,9 @@ func TestStruct(t *testing.T) {
 }
 
 func TestScannable(t *testing.T) {
-	session := createSession(t)
+	session := CreateSession(t)
 	defer session.Close()
-	if err := createTable(session, `CREATE TABLE gocqlx_test.scannable_table (testfullname text PRIMARY KEY)`); err != nil {
+	if err := ExecStmt(session, `CREATE TABLE gocqlx_test.scannable_table (testfullname text PRIMARY KEY)`); err != nil {
 		t.Fatal("create table:", err)
 	}
 	m := FullName{"John", "Doe"}
@@ -219,9 +219,9 @@ func TestScannable(t *testing.T) {
 }
 
 func TestUnsafe(t *testing.T) {
-	session := createSession(t)
+	session := CreateSession(t)
 	defer session.Close()
-	if err := createTable(session, `CREATE TABLE gocqlx_test.unsafe_table (testtext text PRIMARY KEY, testtextunbound text)`); err != nil {
+	if err := ExecStmt(session, `CREATE TABLE gocqlx_test.unsafe_table (testtext text PRIMARY KEY, testtextunbound text)`); err != nil {
 		t.Fatal("create table:", err)
 	}
 	if err := session.Query(`INSERT INTO unsafe_table (testtext, testtextunbound) values (?, ?)`, "test", "test").Exec(); err != nil {
@@ -278,9 +278,9 @@ func TestUnsafe(t *testing.T) {
 }
 
 func TestNotFound(t *testing.T) {
-	session := createSession(t)
+	session := CreateSession(t)
 	defer session.Close()
-	if err := createTable(session, `CREATE TABLE gocqlx_test.not_found_table (testtext text PRIMARY KEY)`); err != nil {
+	if err := ExecStmt(session, `CREATE TABLE gocqlx_test.not_found_table (testtext text PRIMARY KEY)`); err != nil {
 		t.Fatal("create table:", err)
 	}
 

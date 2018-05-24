@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/scylladb/gocqlx"
+	. "github.com/scylladb/gocqlx/gocqlxtest"
 	"github.com/scylladb/gocqlx/qb"
 )
 
@@ -31,10 +32,10 @@ type Person struct {
 }
 
 func TestExample(t *testing.T) {
-	session := createSession(t)
+	session := CreateSession(t)
 	defer session.Close()
 
-	if err := createTable(session, personSchema); err != nil {
+	if err := ExecStmt(session, personSchema); err != nil {
 		t.Fatal("create table:", err)
 	}
 
