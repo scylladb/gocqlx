@@ -4,7 +4,7 @@ go:
 
 env:
   global:
-    - SCYLLA_OPTS="--developer-mode 1 --enable-in-memory-data-store 1 --log-to-stdout 1 --default-log-level info"
+    - SCYLLA_OPTS="--developer-mode 1 --log-to-stdout 1 --default-log-level info"
   matrix:
     - DB="scylla"
     - DB="cassandra"
