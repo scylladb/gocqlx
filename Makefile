@@ -29,7 +29,9 @@ check: .check-fmt .check-vet .check-lint .check-ineffassign .check-mega .check-m
 
 .PHONY: test
 test:
-	@go test -cover -race -tags all ./...
+	@go test -cover -race -tags all .
+	@go test -cover -race -tags all ./migrate
+	@go test -cover -race -tags all ./qb
 
 .PHONY: bench
 bench:
