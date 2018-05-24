@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -93,9 +94,6 @@ func Migrate(ctx context.Context, session *gocql.Session, dir string) error {
 			fmt.Println(dbm[i].Name, filepath.Base(fm[i]), i)
 			return errors.New("inconsistent migrations")
 		}
-	}
-
-	for i := 0; i < len(dbm); i++ {
 		c, err := fileChecksum(fm[i])
 		if err != nil {
 			return fmt.Errorf("failed to calculate checksum for %q: %s", fm[i], err)
@@ -151,18 +149,17 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 	iq := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
 	defer iq.Release()
 
-	if Callback != nil {
-		if err := Callback(ctx, session, BeforeMigration, info.Name); err != nil {
-			return fmt.Errorf("before migration callback failed: %s", err)
-		}
-	}
-
 	i := 0
 	r := bytes.NewBuffer(b)
 	for {
 		stmt, err := r.ReadString(';')
 		if err == io.EOF {
-			break
+			if strings.TrimSpace(stmt) != "" {
+				// handle missing semicolon after last statement
+				err = nil
+			} else {
+				break
+			}
 		}
 		if err != nil {
 			return err
@@ -171,6 +168,12 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 
 		if i <= done {
 			continue
+		}
+
+		if Callback != nil && i == 1 {
+			if err := Callback(ctx, session, BeforeMigration, info.Name); err != nil {
+				return fmt.Errorf("before migration callback failed: %s", err)
+			}
 		}
 
 		// execute
@@ -190,7 +193,7 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 		return fmt.Errorf("no migration statements found in %q", info.Name)
 	}
 
-	if Callback != nil {
+	if Callback != nil && i > done {
 		if err := Callback(ctx, session, AfterMigration, info.Name); err != nil {
 			return fmt.Errorf("after migration callback failed: %s", err)
 		}
