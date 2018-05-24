@@ -116,7 +116,7 @@ func (iter *Iterx) Select(dest interface{}) error {
 	iter.scanAll(dest, false)
 	iter.Close()
 
-	return iter.err
+	return iter.checkErrAndNotFound()
 }
 
 func (iter *Iterx) scanAll(dest interface{}, structOnly bool) bool {
