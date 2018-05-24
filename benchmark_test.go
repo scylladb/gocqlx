@@ -13,6 +13,7 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx"
+	. "github.com/scylladb/gocqlx/gocqlxtest"
 	"github.com/scylladb/gocqlx/qb"
 )
 
@@ -64,10 +65,10 @@ func loadFixtures() []*benchPerson {
 // BenchmarkE2EGocqlInsert performs standard insert.
 func BenchmarkE2EGocqlInsert(b *testing.B) {
 	people := loadFixtures()
-	session := createSession(b)
+	session := CreateSession(b)
 	defer session.Close()
 
-	if err := createTable(session, benchPersonSchema); err != nil {
+	if err := ExecStmt(session, benchPersonSchema); err != nil {
 		b.Fatal(err)
 	}
 
@@ -92,10 +93,10 @@ func BenchmarkE2EGocqlInsert(b *testing.B) {
 // BenchmarkE2EGocqlInsert performs insert with struct binding.
 func BenchmarkE2EGocqlxInsert(b *testing.B) {
 	people := loadFixtures()
-	session := createSession(b)
+	session := CreateSession(b)
 	defer session.Close()
 
-	if err := createTable(session, benchPersonSchema); err != nil {
+	if err := ExecStmt(session, benchPersonSchema); err != nil {
 		b.Fatal(err)
 	}
 
@@ -120,7 +121,7 @@ func BenchmarkE2EGocqlxInsert(b *testing.B) {
 // BenchmarkE2EGocqlGet performs standard scan.
 func BenchmarkE2EGocqlGet(b *testing.B) {
 	people := loadFixtures()
-	session := createSession(b)
+	session := CreateSession(b)
 	defer session.Close()
 
 	initTable(b, session, people)
@@ -145,7 +146,7 @@ func BenchmarkE2EGocqlGet(b *testing.B) {
 // BenchmarkE2EGocqlxGet performs get.
 func BenchmarkE2EGocqlxGet(b *testing.B) {
 	people := loadFixtures()
-	session := createSession(b)
+	session := CreateSession(b)
 	defer session.Close()
 
 	initTable(b, session, people)
@@ -170,7 +171,7 @@ func BenchmarkE2EGocqlxGet(b *testing.B) {
 // BenchmarkE2EGocqlSelect performs standard loop scan.
 func BenchmarkE2EGocqlSelect(b *testing.B) {
 	people := loadFixtures()
-	session := createSession(b)
+	session := CreateSession(b)
 	defer session.Close()
 
 	initTable(b, session, people)
@@ -200,7 +201,7 @@ func BenchmarkE2EGocqlSelect(b *testing.B) {
 // BenchmarkE2EGocqlSelect performs select.
 func BenchmarkE2EGocqlxSelect(b *testing.B) {
 	people := loadFixtures()
-	session := createSession(b)
+	session := CreateSession(b)
 	defer session.Close()
 
 	initTable(b, session, people)
@@ -220,7 +221,7 @@ func BenchmarkE2EGocqlxSelect(b *testing.B) {
 }
 
 func initTable(b *testing.B, session *gocql.Session, people []*benchPerson) {
-	if err := createTable(session, benchPersonSchema); err != nil {
+	if err := ExecStmt(session, benchPersonSchema); err != nil {
 		b.Fatal(err)
 	}
 

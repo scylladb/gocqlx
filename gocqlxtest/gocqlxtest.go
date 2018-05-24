@@ -2,9 +2,7 @@
 // Use of this source code is governed by a ALv2-style
 // license that can be found in the LICENSE file.
 
-// +build all integration
-
-package gocqlx_test
+package gocqlxtest
 
 import (
 	"flag"
@@ -38,13 +36,10 @@ func init() {
 
 var initOnce sync.Once
 
-func createTable(s *gocql.Session, table string) error {
-	if err := s.Query(table).RetryPolicy(nil).Exec(); err != nil {
-		log.Printf("error creating table table=%q err=%v\n", table, err)
-		return err
-	}
-
-	return nil
+// CreateSession creates a new gocql session from flags.
+func CreateSession(tb testing.TB) *gocql.Session {
+	cluster := createCluster()
+	return createSessionFromCluster(cluster, tb)
 }
 
 func createCluster() *gocql.ClusterConfig {
@@ -69,32 +64,6 @@ func createCluster() *gocql.ClusterConfig {
 	return cluster
 }
 
-func createKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace string) {
-	c := *cluster
-	c.Keyspace = "system"
-	c.Timeout = 30 * time.Second
-	session, err := c.CreateSession()
-	if err != nil {
-		panic(err)
-	}
-	defer session.Close()
-
-	err = createTable(session, `DROP KEYSPACE IF EXISTS `+keyspace)
-	if err != nil {
-		panic(fmt.Sprintf("unable to drop keyspace: %v", err))
-	}
-
-	err = createTable(session, fmt.Sprintf(`CREATE KEYSPACE %s
-	WITH replication = {
-		'class' : 'SimpleStrategy',
-		'replication_factor' : %d
-	}`, keyspace, *flagRF))
-
-	if err != nil {
-		panic(fmt.Sprintf("unable to create keyspace: %v", err))
-	}
-}
-
 func createSessionFromCluster(cluster *gocql.ClusterConfig, tb testing.TB) *gocql.Session {
 	// Drop and re-create the keyspace once. Different tests should use their own
 	// individual tables, but can assume that the table does not exist before.
@@ -105,13 +74,41 @@ func createSessionFromCluster(cluster *gocql.ClusterConfig, tb testing.TB) *gocq
 	cluster.Keyspace = "gocqlx_test"
 	session, err := cluster.CreateSession()
 	if err != nil {
-		tb.Fatal("createSession:", err)
+		tb.Fatal("CreateSession:", err)
 	}
 
 	return session
 }
 
-func createSession(tb testing.TB) *gocql.Session {
-	cluster := createCluster()
-	return createSessionFromCluster(cluster, tb)
+func createKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace string) {
+	c := *cluster
+	c.Keyspace = "system"
+	c.Timeout = 30 * time.Second
+	session, err := c.CreateSession()
+	if err != nil {
+		panic(err)
+	}
+	defer session.Close()
+
+	err = ExecStmt(session, `DROP KEYSPACE IF EXISTS `+keyspace)
+	if err != nil {
+		panic(fmt.Sprintf("unable to drop keyspace: %v", err))
+	}
+
+	err = ExecStmt(session, fmt.Sprintf(`CREATE KEYSPACE %s
+	WITH replication = {
+		'class' : 'SimpleStrategy',
+		'replication_factor' : %d
+	}`, keyspace, *flagRF))
+
+	if err != nil {
+		panic(fmt.Sprintf("unable to create keyspace: %v", err))
+	}
+}
+
+// ExecStmt executes a statement string.
+func ExecStmt(s *gocql.Session, stmt string) error {
+	q := s.Query(stmt).RetryPolicy(nil)
+	defer q.Release()
+	return q.Exec()
 }
