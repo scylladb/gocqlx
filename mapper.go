@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"unicode"
 
-	"github.com/jmoiron/sqlx/reflectx"
+	"github.com/scylladb/gocqlx/reflectx"
 )
 
 // DefaultMapper uses `db` tag and automatically converts struct field names to

@@ -10,7 +10,7 @@ import (
 	"reflect"
 
 	"github.com/gocql/gocql"
-	"github.com/jmoiron/sqlx/reflectx"
+	"github.com/scylladb/gocqlx/reflectx"
 )
 
 // Get is a convenience function for creating iterator and calling Get.
