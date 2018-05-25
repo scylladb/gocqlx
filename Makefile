@@ -27,11 +27,14 @@ check: .check-fmt .check-vet .check-lint .check-ineffassign .check-mega .check-m
 .check-misspell:
 	@misspell ./...
 
+GOTEST := go test -cover -race -tags all
+
 .PHONY: test
 test:
-	@go test -cover -race -tags all .
-	@go test -cover -race -tags all ./migrate
-	@go test -cover -race -tags all ./qb
+	@$(GOTEST) .
+	@$(GOTEST) ./migrate
+	@$(GOTEST) ./qb
+	@$(GOTEST) ./reflectx
 
 .PHONY: bench
 bench:
