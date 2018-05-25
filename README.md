@@ -1,6 +1,6 @@
 # GoCQLX [![GoDoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](http://godoc.org/github.com/scylladb/gocqlx) [![Go Report Card](https://goreportcard.com/badge/github.com/scylladb/gocqlx)](https://goreportcard.com/report/github.com/scylladb/gocqlx) [![Build Status](https://travis-ci.org/scylladb/gocqlx.svg?branch=master)](https://travis-ci.org/scylladb/gocqlx)
 
-Package `gocqlx` is an idiomatic extension to `gocql` that provides usability features. With gocqlx you can bind the query parameters from maps and structs, use named query parameters (:identifier) and scan the query results into structs and slices. It comes with a fluent and flexible CQL query builder that supports full CQL spec, including BATCH statements and custom functions.
+Package `gocqlx` is an idiomatic extension to `gocql` that provides usability features. With gocqlx you can bind the query parameters from maps and structs, use named query parameters (:identifier) and scan the query results into structs and slices. It comes with a fluent and flexible CQL query builder and a database migrations module.
 
 ## Installation
 
@@ -10,21 +10,17 @@ Package `gocqlx` is an idiomatic extension to `gocql` that provides usability fe
 
 * Binding query parameters form struct or map
 * Scanning results directly into struct or slice
+* CQL query builder ([see more](https://github.com/scylladb/gocqlx/blob/master/qb))
+* Database migrations ([see more](https://github.com/scylladb/gocqlx/blob/master/migrate))
 * Fast!
-
-In addition to that:
-
-Package `qb` provides query builders for `SELECT`, `INSERT`, `UPDATE` `DELETE`
-and `BATCH` statements supporting full spec including literals, functions, 
-collections and counters.
-
-Package `migrate` provides a simple database migration system.
 
 ## Example
 
 ```go
+// Field names are converted to camel case by default, no need to add
+// `db:"first_name"`, if you want to disable a filed add `db:"-"` tag.
 type Person struct {
-    FirstName string  // no need to add `db:"first_name"` etc.
+    FirstName string
     LastName  string
     Email     []string
 }
@@ -78,6 +74,25 @@ type Person struct {
         t.Fatal(err)
     }
 }
+
+// Use named query parameters.
+{
+    p := &Person{
+        "Jane",
+        "Citizen",
+        []string{"jane.citzen@gocqlx_test.com"},
+    }
+
+    stmt, names, err := gocqlx.CompileNamedQuery([]byte("INSERT INTO gocqlx_test.person (first_name, last_name, email) VALUES (:first_name, :last_name, :email)"))
+    if err != nil {
+        t.Fatal(err)
+    }
+
+    err = gocqlx.Query(session.Query(stmt), names).BindStruct(p).ExecRelease()
+    if err != nil {
+        t.Fatal(err)
+    }
+}
 ```
 
 See more examples in [example_test.go](https://github.com/scylladb/gocqlx/blob/master/example_test.go).
@@ -85,8 +100,7 @@ See more examples in [example_test.go](https://github.com/scylladb/gocqlx/blob/m
 ## Performance
 
 Gocqlx is fast, this is a benchmark result comparing `gocqlx` to raw `gocql` 
-on a local machine. For query binding (insert) `gocqlx` is faster then `gocql` 
-thanks to smart caching, otherwise the performance is comparable.
+on a local machine, Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz.
 
 ```
 BenchmarkE2EGocqlInsert-4         500000            258434 ns/op            2627 B/op         59 allocs/op
@@ -109,7 +123,7 @@ It contains software from:
 * [gocql project](https://github.com/gocql/gocql), licensed under the BSD license
 * [sqlx project](https://github.com/jmoiron/sqlx), licensed under the MIT license
 
-Apache®, Apache Cassandra®,  are either registered trademarks or trademarks of 
+Apache®, Apache Cassandra® are either registered trademarks or trademarks of 
 the Apache Software Foundation in the United States and/or other countries. 
 No endorsement by The Apache Software Foundation is implied by the use of these marks.
 

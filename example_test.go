@@ -195,7 +195,7 @@ func TestExample(t *testing.T) {
 		// [{Patricia  []} {Igy  []}]
 	}
 
-	// Named query compilation.
+	// Use named query parameters.
 	{
 		p := &Person{
 			"Jane",
