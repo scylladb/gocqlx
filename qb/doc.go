@@ -3,6 +3,5 @@
 // license that can be found in the LICENSE file.
 
 // Package qb provides CQL query builders. The builders create CQL statement
-// and a list of named parameters that can later be bound using
-// github.com/scylladb/gocqlx.
+// and a list of named parameters that can later be bound using gocqlx.
 package qb
