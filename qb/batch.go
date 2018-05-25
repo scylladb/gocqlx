@@ -7,6 +7,7 @@ package qb
 import (
 	"bytes"
 	"fmt"
+	"time"
 )
 
 // BATCH reference:
@@ -98,14 +99,27 @@ func (b *BatchBuilder) Counter() *BatchBuilder {
 	return b
 }
 
-// Timestamp sets a USING TIMESTAMP clause on the query.
-func (b *BatchBuilder) Timestamp() *BatchBuilder {
-	b.using.timestamp = true
+// TTL adds USING TTL clause to the query.
+func (b *BatchBuilder) TTL(d time.Duration) *BatchBuilder {
+	b.using.TTL(d)
 	return b
 }
 
-// TTL sets a USING TTL clause on the query.
-func (b *BatchBuilder) TTL() *BatchBuilder {
-	b.using.ttl = true
+// TTLNamed adds USING TTL clause to the query with a custom parameter name.
+func (b *BatchBuilder) TTLNamed(name string) *BatchBuilder {
+	b.using.TTLNamed(name)
+	return b
+}
+
+// Timestamp adds USING TIMESTAMP clause to the query.
+func (b *BatchBuilder) Timestamp(t time.Time) *BatchBuilder {
+	b.using.Timestamp(t)
+	return b
+}
+
+// TimestampNamed adds a USING TIMESTAMP clause to the query with a custom
+// parameter name.
+func (b *BatchBuilder) TimestampNamed(name string) *BatchBuilder {
+	b.using.TimestampNamed(name)
 	return b
 }

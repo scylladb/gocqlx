@@ -9,6 +9,7 @@ package qb
 
 import (
 	"bytes"
+	"time"
 )
 
 // initializer specifies an value for a column in an insert operation.
@@ -119,14 +120,27 @@ func (b *InsertBuilder) Unique() *InsertBuilder {
 	return b
 }
 
-// Timestamp sets a USING TIMESTAMP clause on the query.
-func (b *InsertBuilder) Timestamp() *InsertBuilder {
-	b.using.timestamp = true
+// TTL adds USING TTL clause to the query.
+func (b *InsertBuilder) TTL(d time.Duration) *InsertBuilder {
+	b.using.TTL(d)
 	return b
 }
 
-// TTL sets a USING TTL clause on the query.
-func (b *InsertBuilder) TTL() *InsertBuilder {
-	b.using.ttl = true
+// TTLNamed adds USING TTL clause to the query with a custom parameter name.
+func (b *InsertBuilder) TTLNamed(name string) *InsertBuilder {
+	b.using.TTLNamed(name)
+	return b
+}
+
+// Timestamp adds USING TIMESTAMP clause to the query.
+func (b *InsertBuilder) Timestamp(t time.Time) *InsertBuilder {
+	b.using.Timestamp(t)
+	return b
+}
+
+// TimestampNamed adds a USING TIMESTAMP clause to the query with a custom
+// parameter name.
+func (b *InsertBuilder) TimestampNamed(name string) *InsertBuilder {
+	b.using.TimestampNamed(name)
 	return b
 }

@@ -6,7 +6,6 @@ package qb
 
 import (
 	"bytes"
-	"time"
 )
 
 // placeholders returns a string with count ? placeholders joined with commas.
@@ -22,12 +21,13 @@ func placeholders(cql *bytes.Buffer, count int) {
 	cql.WriteByte('?')
 }
 
-// TTL converts duration to format expected in USING TTL clause.
-func TTL(d time.Duration) int64 {
-	return int64(d.Seconds())
-}
+type columns []string
 
-// Timestamp converts time to format expected in USING TIMESTAMP clause.
-func Timestamp(t time.Time) int64 {
-	return t.UnixNano() / 1000
+func (cols columns) writeCql(cql *bytes.Buffer) {
+	for i, c := range cols {
+		cql.WriteString(c)
+		if i < len(cols)-1 {
+			cql.WriteByte(',')
+		}
+	}
 }

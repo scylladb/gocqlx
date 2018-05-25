@@ -61,13 +61,12 @@ func TestExample(t *testing.T) {
 	{
 		stmt, names := qb.Insert("gocqlx_test.person").
 			Columns("first_name", "last_name", "email").
-			TTL().
+			TTL(86400 * time.Second).
+			Timestamp(time.Now()).
 			ToCql()
 
-		q := gocqlx.Query(session.Query(stmt), names).BindStructMap(p, qb.M{
-			"_ttl": qb.TTL(86400 * time.Second),
-		})
-		if err := q.ExecRelease(); err != nil {
+		err := gocqlx.Query(session.Query(stmt), names).BindStruct(p).ExecRelease()
+		if err != nil {
 			t.Fatal(err)
 		}
 	}
