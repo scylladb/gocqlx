@@ -297,3 +297,25 @@ func (cs cmps) writeCql(cql *bytes.Buffer) (names []string) {
 	cql.WriteByte(' ')
 	return
 }
+
+type where cmps
+
+func (w where) writeCql(cql *bytes.Buffer) (names []string) {
+	if len(w) == 0 {
+		return
+	}
+
+	cql.WriteString("WHERE ")
+	return cmps(w).writeCql(cql)
+}
+
+type _if cmps
+
+func (w _if) writeCql(cql *bytes.Buffer) (names []string) {
+	if len(w) == 0 {
+		return
+	}
+
+	cql.WriteString("IF ")
+	return cmps(w).writeCql(cql)
+}

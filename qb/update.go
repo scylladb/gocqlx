@@ -9,6 +9,7 @@ package qb
 
 import (
 	"bytes"
+	"time"
 )
 
 // assignment specifies an assignment in a set operation.
@@ -78,15 +79,28 @@ func (b *UpdateBuilder) Table(table string) *UpdateBuilder {
 	return b
 }
 
-// Timestamp sets a USING TIMESTAMP clause on the query.
-func (b *UpdateBuilder) Timestamp() *UpdateBuilder {
-	b.using.timestamp = true
+// TTL adds USING TTL clause to the query.
+func (b *UpdateBuilder) TTL(d time.Duration) *UpdateBuilder {
+	b.using.TTL(d)
 	return b
 }
 
-// TTL sets a USING TTL clause on the query.
-func (b *UpdateBuilder) TTL() *UpdateBuilder {
-	b.using.ttl = true
+// TTLNamed adds USING TTL clause to the query with a custom parameter name.
+func (b *UpdateBuilder) TTLNamed(name string) *UpdateBuilder {
+	b.using.TTLNamed(name)
+	return b
+}
+
+// Timestamp adds USING TIMESTAMP clause to the query.
+func (b *UpdateBuilder) Timestamp(t time.Time) *UpdateBuilder {
+	b.using.Timestamp(t)
+	return b
+}
+
+// TimestampNamed adds a USING TIMESTAMP clause to the query with a custom
+// parameter name.
+func (b *UpdateBuilder) TimestampNamed(name string) *UpdateBuilder {
+	b.using.TimestampNamed(name)
 	return b
 }
 

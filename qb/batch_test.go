@@ -6,6 +6,7 @@ package qb
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -53,15 +54,23 @@ func TestBatchBuilder(t *testing.T) {
 		},
 		// Add TTL
 		{
-			B: Batch().TTL(),
+			B: Batch().TTL(time.Second),
+			S: "BEGIN BATCH USING TTL 1 APPLY BATCH ",
+		},
+		{
+			B: Batch().TTLNamed("ttl"),
 			S: "BEGIN BATCH USING TTL ? APPLY BATCH ",
-			N: []string{"_ttl"},
+			N: []string{"ttl"},
 		},
 		// Add TIMESTAMP
 		{
-			B: Batch().Timestamp(),
+			B: Batch().Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
+			S: "BEGIN BATCH USING TIMESTAMP 1115251200000000 APPLY BATCH ",
+		},
+		{
+			B: Batch().TimestampNamed("ts"),
 			S: "BEGIN BATCH USING TIMESTAMP ? APPLY BATCH ",
-			N: []string{"_ts"},
+			N: []string{"ts"},
 		},
 	}
 
