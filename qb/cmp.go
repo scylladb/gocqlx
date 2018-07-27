@@ -19,6 +19,7 @@ const (
 	geq
 	in
 	cnt
+	cntKey
 )
 
 // Cmp if a filtering comparator that is used in WHERE and IF clauses.
@@ -47,6 +48,8 @@ func (c Cmp) writeCql(cql *bytes.Buffer) (names []string) {
 		cql.WriteString(" IN ")
 	case cnt:
 		cql.WriteString(" CONTAINS ")
+	case cntKey:
+		cql.WriteString(" CONTAINS KEY ")
 	}
 	return c.value.writeCql(cql)
 }
@@ -267,10 +270,28 @@ func Contains(column string) Cmp {
 	}
 }
 
+// ContainsKey produces column CONTAINS KEY ?.
+func ContainsKey(column string) Cmp {
+	return Cmp{
+		op:     cntKey,
+		column: column,
+		value:  param(column),
+	}
+}
+
 // ContainsNamed produces column CONTAINS ? with a custom parameter name.
 func ContainsNamed(column, name string) Cmp {
 	return Cmp{
 		op:     cnt,
+		column: column,
+		value:  param(name),
+	}
+}
+
+// ContainsKeyNamed produces column CONTAINS KEY ? with a custom parameter name.
+func ContainsKeyNamed(column, name string) Cmp {
+	return Cmp{
+		op:     cntKey,
 		column: column,
 		value:  param(name),
 	}
