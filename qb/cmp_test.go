@@ -53,6 +53,11 @@ func TestCmp(t *testing.T) {
 			S: "cnt CONTAINS ?",
 			N: []string{"cnt"},
 		},
+		{
+			C: ContainsKey("cntKey"),
+			S: "cntKey CONTAINS KEY ?",
+			N: []string{"cntKey"},
+		},
 
 		// Custom bind names
 		{
@@ -88,6 +93,11 @@ func TestCmp(t *testing.T) {
 		{
 			C: ContainsNamed("cnt", "name"),
 			S: "cnt CONTAINS ?",
+			N: []string{"name"},
+		},
+		{
+			C: ContainsKeyNamed("cntKey", "name"),
+			S: "cntKey CONTAINS KEY ?",
 			N: []string{"name"},
 		},
 
