@@ -86,13 +86,13 @@ func createKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace string
 	c.Timeout = 30 * time.Second
 	session, err := c.CreateSession()
 	if err != nil {
-		panic(err)
+		tb.Fatal(err)
 	}
 	defer session.Close()
 
 	err = ExecStmt(session, `DROP KEYSPACE IF EXISTS `+keyspace)
 	if err != nil {
-		panic(fmt.Sprintf("unable to drop keyspace: %v", err))
+		tb.Fatalf("unable to drop keyspace: %v", err)
 	}
 
 	err = ExecStmt(session, fmt.Sprintf(`CREATE KEYSPACE %s
@@ -102,7 +102,7 @@ func createKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace string
 	}`, keyspace, *flagRF))
 
 	if err != nil {
-		panic(fmt.Sprintf("unable to create keyspace: %v", err))
+		tb.Fatalf("unable to create keyspace: %v", err)
 	}
 }
 
