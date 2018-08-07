@@ -1,3 +1,4 @@
+sudo: true
 language: go
 go:
   - 1.10.x
@@ -8,8 +9,6 @@ env:
   matrix:
     - DB="scylla"
     - DB="cassandra"
-
-sudo: true
 
 dist: trusty
 addons:
@@ -22,7 +21,6 @@ before_install:
 
 install:
   - make get-deps
-  - make get-tools
 
 script:
   - make
