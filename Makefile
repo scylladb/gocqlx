@@ -1,44 +1,28 @@
-all: check test bench
+all: check test
 
 ifndef GOBIN
 export GOBIN := $(GOPATH)/bin
 endif
 
+define dl
+	@curl -sSq -L $(2) -o $(GOBIN)/$(1) && chmod u+x $(GOBIN)/$(1)
+endef
+
+define dl_tgz
+	@curl -sSq -L $(2) | tar zxf - --strip 1 -C $(GOBIN) --wildcards '*/$(1)'
+endef
+
 .PHONY: fmt
-fmt: ## Format source code
+fmt:
 	@go fmt ./...
 
 .PHONY: check
-check: ## Perform static code analysis
-check: .check-misspell .check-lint
-
-.PHONY: .check-fmt
-.check-fmt:
-	@go fmt ./... | tee /dev/stderr | ifne false
-
-.PHONY: .check-misspell
-.check-misspell:
-	@$(GOBIN)/misspell ./...
-
-.PHONY: .check-lint
-.check-lint:
-	@$(GOBIN)/golangci-lint run -s --disable-all -E govet -E errcheck -E staticcheck \
-	-E gas -E typecheck -E unused -E structcheck -E varcheck -E ineffassign -E deadcode \
-	-E gofmt -E golint -E gosimple -E unconvert -E dupl -E depguard -E gocyclo \
-	--tests=false \
-	--exclude-use-default=false \
-	--exclude='composite literal uses unkeyed fields' \
-	--exclude='Error return value of `.+\.Close` is not checked' \
-	--exclude='G104' \
-	--exclude='G304' \
-	--exclude='G401' \
-	--exclude='G501' \
-	./...
+check:
+	@$(GOBIN)/golangci-lint run ./...
 
 GOTEST := go test -cover -race -tags all
 
 .PHONY: test
-test: ## Run unit and integration tests
 test:
 	@$(GOTEST) .
 	@$(GOTEST) ./migrate
@@ -54,12 +38,7 @@ get-deps:
 	go get -t ./...
 
 .PHONY: get-tools
-get-tools: GOPATH := $(shell mktemp -d)
 get-tools:
 	@echo "==> Installing tools at $(GOBIN)..."
-	@mkdir -p $(GOBIN)
+	@$(call dl_tgz,golangci-lint,https://github.com/golangci/golangci-lint/releases/download/v1.9.3/golangci-lint-1.9.3-linux-amd64.tar.gz)
 
-	@go get -u github.com/client9/misspell/cmd/misspell
-	@go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
-
-	@rm -Rf $(GOPATH)

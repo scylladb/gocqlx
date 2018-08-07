@@ -1,3 +1,4 @@
+sudo: true
 language: go
 go:
   - 1.10.x
@@ -9,8 +10,6 @@ env:
     - DB="scylla"
     - DB="cassandra"
 
-sudo: true
-
 dist: trusty
 addons:
   apt:
@@ -21,8 +20,7 @@ before_install:
   - ./.travis_start_db.sh
 
 install:
-  - make get-deps
-  - make get-tools
+  - make get-deps get-tools
 
 script:
   - make

@@ -1,0 +1,22 @@
+run:
+  deadline: 5m
+  tests: false
+  silent: true
+
+linters-settings:
+  lll:
+    line-length: 180
+
+linters:
+  enable-all: true
+  disable:
+  - gas
+  - interfacer
+  - maligned
+  - nakedret
+
+issues:
+  exclude-use-default: false
+  exclude:
+  - composite literal uses unkeyed fields
+  - Error return value of `.+\.Close` is not checked

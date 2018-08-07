@@ -244,7 +244,7 @@ type kinder interface {
 
 // mustBe checks a value against a kind, panicing with a reflect.ValueError
 // if the kind isn't that which is required.
-func mustBe(v kinder, expected reflect.Kind) {
+func mustBe(v kinder, expected reflect.Kind) { // nolint: unparam
 	if k := v.Kind(); k != expected {
 		panic(&reflect.ValueError{Method: methodName(), Kind: k})
 	}

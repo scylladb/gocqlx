@@ -20,3 +20,5 @@ cassandra)
     ;;
 
 esac
+
+until nc -vz 127.0.0.1 9042; do sleep 1; done
