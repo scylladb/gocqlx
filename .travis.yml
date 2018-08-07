@@ -20,7 +20,7 @@ before_install:
   - ./.travis_start_db.sh
 
 install:
-  - make get-deps
+  - make get-deps get-tools
 
 script:
   - make
