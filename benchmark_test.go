@@ -78,13 +78,8 @@ func BenchmarkE2EGocqlInsert(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		// prepare
 		p := people[i%len(people)]
 		if err := q.Bind(p.ID, p.FirstName, p.LastName, p.Email, p.Gender, p.IPAddress).Exec(); err != nil {
-			b.Fatal(err)
-		}
-		// insert
-		if err := q.Exec(); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -105,7 +100,6 @@ func BenchmarkE2EGocqlxInsert(b *testing.B) {
 	defer q.Release()
 
 	b.ResetTimer()
-
 	for i := 0; i < b.N; i++ {
 		p := people[i%len(people)]
 		if err := q.BindStruct(p).Exec(); err != nil {
@@ -157,10 +151,11 @@ func BenchmarkE2EGocqlxGet(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// prepare
-		q := session.Query(stmt)
-		q.Bind(people[i%len(people)].ID)
-		// get
-		gocqlx.Get(&p, q)
+		q := session.Query(stmt).Bind(people[i%len(people)].ID)
+		// get and release
+		if err := gocqlx.Query(q, nil).GetRelease(&p); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
@@ -213,8 +208,8 @@ func BenchmarkE2EGocqlxSelect(b *testing.B) {
 		// prepare
 		q := session.Query(stmt)
 		var v []*benchPerson
-		// select
-		if err := gocqlx.Select(&v, q); err != nil {
+		// select and release
+		if err := gocqlx.Query(q, nil).SelectRelease(&v); err != nil {
 			b.Fatal(err)
 		}
 	}
