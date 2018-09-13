@@ -96,7 +96,7 @@ type Person struct {
 
 /// DB Table Creation
 {
-    cql := qb.CreateTable("gocqlx_test.person", &Person{})
+    cql := qb.CreateTable("gocqlx_test.person").Columns(&Person{}).ToCql()
 	err := session.Query(cql).Exec()
     if err != nil {
         t.Fatal(err)
