@@ -1,17 +1,37 @@
 package qb
 
 import (
-	"github.com/ymazdy/gocqlx/reflectx"
+	"../reflectx"
 	"reflect"
 	"regexp"
 	"strings"
 	"fmt"
 )
 
+
+type CreateTableBuilder struct {
+	table   string
+	columns interface{}
+}
+
+// CreateTable returns a new CreateTableBuilder with the given table name.
+func CreateTable(table string) *CreateTableBuilder {
+	return &CreateTableBuilder{
+		table: table,
+	}
+}
+
+func (b *CreateTableBuilder) Columns(columns interface{}) {
+	b.columns = columns
+}
+
+
+
 // CreateTable builds a CQL query string
-func CreateTable(name string, inter interface{}) string {
-	cql := fmt.Sprintf("CREATE TABLE %s(", name)
-	obj := reflect.ValueOf(inter)
+func (b *CreateTableBuilder) ToCql() string {
+	table, columns := b.table, b.columns
+	cql := fmt.Sprintf("CREATE TABLE %s(", table)
+	obj := reflect.ValueOf(columns)
 	result := reflectx.Deref(obj.Type())
 	count := result.NumField()
 	var primaries []string
