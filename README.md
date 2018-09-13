@@ -93,6 +93,15 @@ type Person struct {
         t.Fatal(err)
     }
 }
+
+/// DB Table Creation
+{
+    cql := qb.CreateTable("gocqlx_test.person", &Person{})
+	err := session.Query(cql).Exec()
+    if err != nil {
+        t.Fatal(err)
+    }
+}
 ```
 
 See more examples in [example_test.go](https://github.com/scylladb/gocqlx/blob/master/example_test.go).
