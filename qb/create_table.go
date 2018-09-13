@@ -8,6 +8,7 @@ import (
 	"fmt"
 )
 
+// CreateTable builds a CQL query string
 func CreateTable(name string, inter interface{}) string {
 	cql := fmt.Sprintf("CREATE TABLE %s(", name)
 	obj := reflect.ValueOf(inter)
