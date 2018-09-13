@@ -1,20 +1,36 @@
 package qb
 
+import (
+	"github.com/ymazdy/gocqlx/reflectx"
+	"reflect"
+	"regexp"
+	"strings"
+	"fmt"
+)
 
-
-func (s *gocql.Session) CreateTable(name string, inter interface{}) {
-	cql := fmt.Sprintf("create table %s", name)
+func CreateTable(name string, inter interface{}) string {
+	cql := fmt.Sprintf("CREATE TABLE %s(", name)
 	obj := reflect.ValueOf(inter)
 	result := reflectx.Deref(obj.Type())
 	count := result.NumField()
+	var primaries []string
 	for i := 0; i < count; i++ {
 		field := result.Field(i)
-		cql += fmt.Sprintf("\n%s %s", toSnakeCase(field.Name), databaseType(field.Type))
-		if i == 0 {cql += " PRIMARYKEY"}
-		if i < count - 1 {cql += ","}
+		cql += fmt.Sprintf("\n%s %s,", toSnakeCase(field.Name), databaseType(field.Type))
+		if i == 0 {primaries = append(primaries, toSnakeCase(field.Name))}
 	}
-	cql += ";"
-	s.Query(cql).Exec()
+	cql += "\nPRIMARY KEY ("
+	if len(primaries) > 1 {
+		for i := 0; i < len(primaries); i++ {
+			cql += primaries[i]
+			if i < len(primaries) - 1 {cql += ","}
+		}
+		cql += ")"
+	} else {
+		cql += primaries[0] + ")"
+	}
+	cql += "\n);"
+	return cql
 }
 
 
