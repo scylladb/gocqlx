@@ -238,3 +238,10 @@ func (q *Queryx) SelectRelease(dest interface{}) error {
 	defer q.Release()
 	return q.Select(dest)
 }
+
+// Iter returns Iterx instance for the query. It should be used when data is too
+// big to be loaded with Select in order to do row by row iteration.
+// See Iterx StructScan function.
+func (q *Queryx) Iter() *Iterx {
+	return Iter(q.Query)
+}
