@@ -15,8 +15,9 @@ import (
 	"github.com/scylladb/gocqlx/reflectx"
 )
 
-// CompileNamedQuery compiles a named query into an unbound query using the
-// '?' bindvar and a list of names.
+// CompileNamedQuery translates query with named parameters in a form
+// ':<identifier>' to query with '?' placeholders and a list of parameter names.
+// If you need to use ':' in a query, i.e. with maps or UDTs use '::' instead.
 func CompileNamedQuery(qs []byte) (stmt string, names []string, err error) {
 	// guess number of names
 	n := bytes.Count(qs, []byte(":"))
