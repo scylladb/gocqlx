@@ -40,5 +40,4 @@ get-deps:
 .PHONY: get-tools
 get-tools:
 	@echo "==> Installing tools at $(GOBIN)..."
-	@$(call dl_tgz,golangci-lint,https://github.com/golangci/golangci-lint/releases/download/v1.9.3/golangci-lint-1.9.3-linux-amd64.tar.gz)
-
+	@$(call dl_tgz,golangci-lint,https://github.com/golangci/golangci-lint/releases/download/v1.10.2/golangci-lint-1.10.2-linux-amd64.tar.gz)
