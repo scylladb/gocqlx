@@ -10,6 +10,7 @@ package qb
 import (
 	"bytes"
 	"fmt"
+	"strings"
 )
 
 // Order specifies sorting order.
@@ -53,9 +54,7 @@ func (b *SelectBuilder) ToCql() (stmt string, names []string) {
 		cql.WriteString("DISTINCT ")
 		b.distinct.writeCql(&cql)
 	case len(b.groupBy) > 0:
-		b.groupBy.writeCql(&cql)
-		cql.WriteByte(',')
-		b.columns.writeCql(&cql)
+		cql.WriteString(strings.Join(append(b.groupBy, b.columns...), ","))
 	case len(b.columns) == 0:
 		cql.WriteByte('*')
 	default:
