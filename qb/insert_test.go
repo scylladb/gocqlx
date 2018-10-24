@@ -76,6 +76,17 @@ func TestInsertBuilder(t *testing.T) {
 			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) IF NOT EXISTS ",
 			N: []string{"id", "user_uuid", "firstname"},
 		},
+		// Add FuncColumn
+		{
+			B: Insert("cycling.cyclist_name").FuncColumn("id", Now()),
+			S: "INSERT INTO cycling.cyclist_name (id) VALUES (now()) ",
+			N: nil,
+		},
+		{
+			B: Insert("cycling.cyclist_name").FuncColumn("id", Now()).Columns("user_uuid"),
+			S: "INSERT INTO cycling.cyclist_name (id,user_uuid) VALUES (now(),?) ",
+			N: []string{"user_uuid"},
+		},
 	}
 
 	for _, test := range table {

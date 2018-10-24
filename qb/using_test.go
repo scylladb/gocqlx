@@ -57,11 +57,37 @@ func TestUsing(t *testing.T) {
 			B: new(using).TTL(time.Second).Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
 			S: "USING TTL 1 AND TIMESTAMP 1115251200000000 ",
 		},
+		// TTL TimestampNamed
+		{
+			B: new(using).TTL(time.Second).TimestampNamed("ts"),
+			S: "USING TTL 1 AND TIMESTAMP ? ",
+			N: []string{"ts"},
+		},
 		// TTLNamed TimestampNamed
 		{
 			B: new(using).TTLNamed("ttl").TimestampNamed("ts"),
 			S: "USING TTL ? AND TIMESTAMP ? ",
 			N: []string{"ttl", "ts"},
+		},
+		// TTLNamed Timestamp
+		{
+			B: new(using).TTLNamed("ttl").Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
+			S: "USING TTL ? AND TIMESTAMP 1115251200000000 ",
+			N: []string{"ttl"},
+		},
+		// TTL with no duration
+		{
+			B: new(using).TTL(0 * time.Second),
+			S: "USING TTL 0 ",
+		},
+		{
+			B: new(using).TTL(-1 * time.Second),
+			S: "USING TTL 0 ",
+		},
+		{
+			// TODO patch this maybe in the future
+			B: new(using).TTL(-2 * time.Second),
+			S: "USING TTL -2 ",
 		},
 		// TTL TTLNamed
 		{

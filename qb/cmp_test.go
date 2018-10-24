@@ -151,6 +151,24 @@ func TestCmp(t *testing.T) {
 			C: EqFunc("eq", Now()),
 			S: "eq=now()",
 		},
+		{
+			C: LtFunc("eq", Now()),
+			S: "eq<now()",
+		},
+		{
+			C: LtOrEqFunc("eq", MaxTimeuuid("arg0")),
+			S: "eq<=maxTimeuuid(?)",
+			N: []string{"arg0"},
+		},
+		{
+			C: GtFunc("eq", Now()),
+			S: "eq>now()",
+		},
+		{
+			C: GtOrEqFunc("eq", MaxTimeuuid("arg0")),
+			S: "eq>=maxTimeuuid(?)",
+			N: []string{"arg0"},
+		},
 	}
 
 	buf := bytes.Buffer{}

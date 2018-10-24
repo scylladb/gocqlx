@@ -125,6 +125,24 @@ func TestUpdateBuilder(t *testing.T) {
 			S: "UPDATE cycling.cyclist_name SET id=?,user_uuid=?,firstname=? WHERE id=? IF EXISTS ",
 			N: []string{"id", "user_uuid", "firstname", "expr"},
 		},
+		// Add SET column
+		{
+			B: Update("cycling.cyclist_name").SetNamed("firstname", "name"),
+			S: "UPDATE cycling.cyclist_name SET firstname=? ",
+			N: []string{"name"},
+		},
+		// Add AddFunc
+		{
+			B: Update("cycling.cyclist_name").AddFunc("timestamp", Now()),
+			S: "UPDATE cycling.cyclist_name SET timestamp=timestamp+now() ",
+			N: nil,
+		},
+		// Add RemoveFunc
+		{
+			B: Update("cycling.cyclist_name").RemoveFunc("timestamp", Now()),
+			S: "UPDATE cycling.cyclist_name SET timestamp=timestamp-now() ",
+			N: nil,
+		},
 	}
 
 	for _, test := range table {

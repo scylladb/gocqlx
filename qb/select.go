@@ -22,6 +22,13 @@ const (
 	DESC = false
 )
 
+func (o Order) String() string {
+	if o {
+		return "ASC"
+	}
+	return "DESC"
+}
+
 // SelectBuilder builds CQL SELECT statements.
 type SelectBuilder struct {
 	table             string
@@ -29,8 +36,7 @@ type SelectBuilder struct {
 	distinct          columns
 	where             where
 	groupBy           columns
-	orderBy           string
-	order             Order
+	orderBy           columns
 	limit             uint
 	limitPerPartition uint
 	allowFiltering    bool
@@ -54,8 +60,10 @@ func (b *SelectBuilder) ToCql() (stmt string, names []string) {
 		b.distinct.writeCql(&cql)
 	case len(b.groupBy) > 0:
 		b.groupBy.writeCql(&cql)
-		cql.WriteByte(',')
-		b.columns.writeCql(&cql)
+		if len(b.columns) != 0 {
+			cql.WriteByte(',')
+			b.columns.writeCql(&cql)
+		}
 	case len(b.columns) == 0:
 		cql.WriteByte('*')
 	default:
@@ -73,14 +81,10 @@ func (b *SelectBuilder) ToCql() (stmt string, names []string) {
 		cql.WriteByte(' ')
 	}
 
-	if b.orderBy != "" {
+	if len(b.orderBy) > 0 {
 		cql.WriteString("ORDER BY ")
-		cql.WriteString(b.orderBy)
-		if b.order {
-			cql.WriteString(" ASC ")
-		} else {
-			cql.WriteString(" DESC ")
-		}
+		b.orderBy.writeCql(&cql)
+		cql.WriteByte(' ')
 	}
 
 	if b.limit != 0 {
@@ -142,7 +146,7 @@ func (b *SelectBuilder) GroupBy(columns ...string) *SelectBuilder {
 
 // OrderBy sets ORDER BY clause on the query.
 func (b *SelectBuilder) OrderBy(column string, o Order) *SelectBuilder {
-	b.orderBy, b.order = column, o
+	b.orderBy = append(b.orderBy, column+" "+o.String())
 	return b
 }
 
