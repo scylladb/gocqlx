@@ -10,47 +10,36 @@ Package `gocqlx` is an idiomatic extension to `gocql` that provides usability fe
 
 * Binding query parameters form struct or map
 * Scanning results directly into struct or slice
-* CQL query builder ([see more](https://github.com/scylladb/gocqlx/blob/master/qb))
-* Database migrations ([see more](https://github.com/scylladb/gocqlx/blob/master/migrate))
+* CQL query builder ([package qb](https://github.com/scylladb/gocqlx/blob/master/qb))
+* Super simple CRUD operations based on table model ([package table](https://github.com/scylladb/gocqlx/blob/master/table))
+* Database migrations ([package migrate](https://github.com/scylladb/gocqlx/blob/master/migrate))
 * Fast!
 
 ## Example
 
 ```go
-// Field names are converted to camel case by default, no need to add
-// `db:"first_name"`, if you want to disable a filed add `db:"-"` tag.
+// Person represents a row in person table.
+// Field names are converted to camel case by default, no need to add special tags.
+// If you want to disable a field add `db:"-"` tag, it will not be persisted.
 type Person struct {
     FirstName string
     LastName  string
     Email     []string
 }
 
-// Bind query parameters from a struct.
+// Insert, bind data from struct.
 {
-    p := Person{
-        "Patricia",
-        "Citizen",
-        []string{"patricia.citzen@gocqlx_test.com"},
-    }
+    stmt, names := qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email").ToCql()
+    q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
 
-    stmt, names := qb.Insert("gocqlx_test.person").
-        Columns("first_name", "last_name", "email").
-        ToCql()
-
-    err := gocqlx.Query(session.Query(stmt), names).BindStruct(&p).ExecRelease()
-    if err != nil {
+    if err := q.ExecRelease(); err != nil {
         t.Fatal(err)
     }
 }
-
-// Load the first result into a struct.
+// Get first result into a struct.
 {
-    stmt, names := qb.Select("gocqlx_test.person").
-        Where(qb.Eq("first_name")).
-        ToCql()
-
     var p Person
-
+    stmt, names := qb.Select("gocqlx_test.person").Where(qb.Eq("first_name")).ToCql()
     q := gocqlx.Query(session.Query(stmt), names).BindMap(qb.M{
         "first_name": "Patricia",
     })
@@ -58,15 +47,10 @@ type Person struct {
         t.Fatal(err)
     }
 }
-
 // Load all the results into a slice.
 {
-    stmt, names := qb.Select("gocqlx_test.person").
-        Where(qb.In("first_name")).
-        ToCql()
-
     var people []Person
-
+    stmt, names := qb.Select("gocqlx_test.person").Where(qb.In("first_name")).ToCql()
     q := gocqlx.Query(session.Query(stmt), names).BindMap(qb.M{
         "first_name": []string{"Patricia", "Igy", "Ian"},
     })
@@ -75,27 +59,33 @@ type Person struct {
     }
 }
 
-// Use named query parameters.
+// metadata specifies table name and columns it must be in sync with schema.
+var personMetadata = table.Metadata{
+    Name:    "person",
+    Columns: []string{"first_name", "last_name", "email"},
+    PartKey: []string{"first_name"},
+    SortKey: []string{"last_name"},
+}
+
+// personTable allows for simple CRUD operations based on personMetadata.
+var personTable = table.New(personMetadata)
+
+// Get by primary key.
 {
-    p := &Person{
-        "Jane",
+    p := Person{
+        "Patricia",
         "Citizen",
-        []string{"jane.citzen@gocqlx_test.com"},
+        nil, // no email
     }
-
-    stmt, names, err := gocqlx.CompileNamedQuery([]byte("INSERT INTO gocqlx_test.person (first_name, last_name, email) VALUES (:first_name, :last_name, :email)"))
-    if err != nil {
-        t.Fatal(err)
-    }
-
-    err = gocqlx.Query(session.Query(stmt), names).BindStruct(p).ExecRelease()
-    if err != nil {
+    stmt, names := personTable.Get() // you can filter columns too
+    q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
+    if err := q.GetRelease(&p); err != nil {
         t.Fatal(err)
     }
 }
 ```
 
-See more examples in [example_test.go](https://github.com/scylladb/gocqlx/blob/master/example_test.go).
+See more examples in [example_test.go](https://github.com/scylladb/gocqlx/blob/master/example_test.go) and [table/example_test.go](https://github.com/scylladb/gocqlx/blob/master/table/example_test.go).
 
 ## Performance
 

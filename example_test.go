@@ -15,7 +15,11 @@ import (
 	"github.com/scylladb/gocqlx/qb"
 )
 
-var personSchema = `
+func TestExample(t *testing.T) {
+	session := CreateSession(t)
+	defer session.Close()
+
+	const personSchema = `
 CREATE TABLE IF NOT EXISTS gocqlx_test.person (
     first_name text,
     last_name text,
@@ -23,20 +27,17 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
     PRIMARY KEY(first_name, last_name)
 )`
 
-// Field names are converted to camel case by default, no need to add
-// `db:"first_name"`, if you want to disable a filed add `db:"-"` tag.
-type Person struct {
-	FirstName string
-	LastName  string
-	Email     []string
-}
-
-func TestExample(t *testing.T) {
-	session := CreateSession(t)
-	defer session.Close()
-
 	if err := ExecStmt(session, personSchema); err != nil {
 		t.Fatal("create table:", err)
+	}
+
+	// Person represents a row in person table.
+	// Field names are converted to camel case by default, no need to add special tags.
+	// If you want to disable a field add `db:"-"` tag, it will not be persisted.
+	type Person struct {
+		FirstName string
+		LastName  string
+		Email     []string
 	}
 
 	p := Person{
@@ -45,19 +46,17 @@ func TestExample(t *testing.T) {
 		[]string{"patricia.citzen@gocqlx_test.com"},
 	}
 
-	// Bind query parameters from struct.
+	// Insert, bind data from struct.
 	{
-		stmt, names := qb.Insert("gocqlx_test.person").
-			Columns("first_name", "last_name", "email").
-			ToCql()
+		stmt, names := qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email").ToCql()
+		q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
 
-		err := gocqlx.Query(session.Query(stmt), names).BindStruct(&p).ExecRelease()
-		if err != nil {
+		if err := q.ExecRelease(); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	// Bind query parameters from struct and map.
+	// Insert with TTL and timestamp, bind data from struct and map.
 	{
 		stmt, names := qb.Insert("gocqlx_test.person").
 			Columns("first_name", "last_name", "email").
@@ -71,7 +70,7 @@ func TestExample(t *testing.T) {
 		}
 	}
 
-	// Update with query parameters from struct.
+	// Update email, bind data from struct.
 	{
 		p.Email = append(p.Email, "patricia1.citzen@gocqlx_test.com")
 
@@ -79,23 +78,23 @@ func TestExample(t *testing.T) {
 			Set("email").
 			Where(qb.Eq("first_name"), qb.Eq("last_name")).
 			ToCql()
+		q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
 
-		err := gocqlx.Query(session.Query(stmt), names).BindStruct(p).ExecRelease()
-		if err != nil {
+		if err := q.ExecRelease(); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	// Adding and removing elements to collections and counters.
+	// Add email to a list.
 	{
 		stmt, names := qb.Update("gocqlx_test.person").
 			AddNamed("email", "new_email").
 			Where(qb.Eq("first_name"), qb.Eq("last_name")).
 			ToCql()
-
 		q := gocqlx.Query(session.Query(stmt), names).BindStructMap(p, qb.M{
 			"new_email": []string{"patricia2.citzen@gocqlx_test.com", "patricia3.citzen@gocqlx_test.com"},
 		})
+
 		if err := q.ExecRelease(); err != nil {
 			t.Fatal(err)
 		}
@@ -125,52 +124,48 @@ func TestExample(t *testing.T) {
 				[]string{"ian.citzen@gocqlx_test.com"},
 			},
 		}
+		q := gocqlx.Query(session.Query(stmt), names).BindStruct(&batch)
 
-		err := gocqlx.Query(session.Query(stmt), names).BindStruct(&batch).ExecRelease()
-		if err != nil {
+		if err := q.ExecRelease(); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	// Load the first result into a struct.
+	// Get first result into a struct.
 	{
-		stmt, names := qb.Select("gocqlx_test.person").
-			Where(qb.Eq("first_name")).
-			ToCql()
-
 		var p Person
 
+		stmt, names := qb.Select("gocqlx_test.person").Where(qb.Eq("first_name")).ToCql()
 		q := gocqlx.Query(session.Query(stmt), names).BindMap(qb.M{
 			"first_name": "Patricia",
 		})
+
 		if err := q.GetRelease(&p); err != nil {
 			t.Fatal(err)
 		}
 
 		t.Log(p)
-		// {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com patricia2.citzen@gocqlx_test.com patricia3.citzen@gocqlx_test.com]}
+		// stdout: {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com patricia2.citzen@gocqlx_test.com patricia3.citzen@gocqlx_test.com]}
 	}
 
 	// Load all the results into a slice.
 	{
-		stmt, names := qb.Select("gocqlx_test.person").
-			Where(qb.In("first_name")).
-			ToCql()
-
 		var people []Person
 
+		stmt, names := qb.Select("gocqlx_test.person").Where(qb.In("first_name")).ToCql()
 		q := gocqlx.Query(session.Query(stmt), names).BindMap(qb.M{
 			"first_name": []string{"Patricia", "Igy", "Ian"},
 		})
+
 		if err := q.SelectRelease(&people); err != nil {
 			t.Fatal(err)
 		}
 
 		t.Log(people)
-		// [{Ian Citizen [ian.citzen@gocqlx_test.com]} {Igy Citizen [igy.citzen@gocqlx_test.com]} {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com patricia2.citzen@gocqlx_test.com patricia3.citzen@gocqlx_test.com]}]
+		// stdout: [{Ian Citizen [ian.citzen@gocqlx_test.com]} {Igy Citizen [igy.citzen@gocqlx_test.com]} {Patricia Citizen [patricia.citzen@gocqlx_test.com patricia1.citzen@gocqlx_test.com patricia2.citzen@gocqlx_test.com patricia3.citzen@gocqlx_test.com]}]
 	}
 
-	// Token based pagination.
+	// Support for token based pagination.
 	{
 		p := &Person{
 			"Ian",
@@ -183,11 +178,10 @@ func TestExample(t *testing.T) {
 			Where(qb.Token("first_name").Gt()).
 			Limit(10).
 			ToCql()
+		q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
 
 		var people []Person
-
-		err := gocqlx.Query(session.Query(stmt), names).BindStruct(p).SelectRelease(&people)
-		if err != nil {
+		if err := q.SelectRelease(&people); err != nil {
 			t.Fatal(err)
 		}
 
@@ -195,21 +189,21 @@ func TestExample(t *testing.T) {
 		// [{Patricia  []} {Igy  []}]
 	}
 
-	// Use named query parameters.
+	// Support for named parameters in query string.
 	{
+		const query = "INSERT INTO gocqlx_test.person (first_name, last_name, email) VALUES (:first_name, :last_name, :email)"
+		stmt, names, err := gocqlx.CompileNamedQuery([]byte(query))
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		p := &Person{
 			"Jane",
 			"Citizen",
 			[]string{"jane.citzen@gocqlx_test.com"},
 		}
-
-		stmt, names, err := gocqlx.CompileNamedQuery([]byte("INSERT INTO gocqlx_test.person (first_name, last_name, email) VALUES (:first_name, :last_name, :email)"))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		err = gocqlx.Query(session.Query(stmt), names).BindStruct(p).ExecRelease()
-		if err != nil {
+		q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
+		if err := q.ExecRelease(); err != nil {
 			t.Fatal(err)
 		}
 	}
