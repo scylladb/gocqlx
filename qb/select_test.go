@@ -54,6 +54,11 @@ func TestSelectBuilder(t *testing.T) {
 			B: Select("cycling.cyclist_name").Columns("MAX(stars) as max_stars").GroupBy("id"),
 			S: "SELECT id,MAX(stars) as max_stars FROM cycling.cyclist_name GROUP BY id ",
 		},
+		// Add GROUP BY
+		{
+			B: Select("cycling.cyclist_name").GroupBy("id"),
+			S: "SELECT id FROM cycling.cyclist_name GROUP BY id ",
+		},
 		// Add ORDER BY
 		{
 			B: Select("cycling.cyclist_name").Where(w).OrderBy("firstname", ASC),
