@@ -6,7 +6,6 @@ package qb
 
 import (
 	"bytes"
-	"strings"
 )
 
 // placeholders returns a string with count ? placeholders joined with commas.
@@ -25,5 +24,10 @@ func placeholders(cql *bytes.Buffer, count int) {
 type columns []string
 
 func (cols columns) writeCql(cql *bytes.Buffer) {
-	cql.WriteString(strings.Join(cols, ","))
+	for i, c := range cols {
+		cql.WriteString(c)
+		if i < len(cols)-1 {
+			cql.WriteByte(',')
+		}
+	}
 }
