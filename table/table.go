@@ -57,6 +57,11 @@ func New(m Metadata) *Table {
 	return t
 }
 
+// Metadata returns copy of table metadata.
+func (t *Table) Metadata() Metadata {
+	return t.metadata
+}
+
 // Name returns table name.
 func (t *Table) Name() string {
 	return t.metadata.Name
