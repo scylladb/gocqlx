@@ -59,10 +59,21 @@ func TestSelectBuilder(t *testing.T) {
 			B: Select("cycling.cyclist_name").GroupBy("id"),
 			S: "SELECT id FROM cycling.cyclist_name GROUP BY id ",
 		},
+		// Add GROUP BY two columns
+		{
+			B: Select("cycling.cyclist_name").GroupBy("id", "user_uuid"),
+			S: "SELECT id,user_uuid FROM cycling.cyclist_name GROUP BY id,user_uuid ",
+		},
 		// Add ORDER BY
 		{
 			B: Select("cycling.cyclist_name").Where(w).OrderBy("firstname", ASC),
 			S: "SELECT * FROM cycling.cyclist_name WHERE id=? ORDER BY firstname ASC ",
+			N: []string{"expr"},
+		},
+		// Add ORDER BY two columns
+		{
+			B: Select("cycling.cyclist_name").Where(w).OrderBy("firstname", ASC).OrderBy("lastname", DESC),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? ORDER BY firstname ASC,lastname DESC ",
 			N: []string{"expr"},
 		},
 		// Add LIMIT
