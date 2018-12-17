@@ -33,6 +33,12 @@ func TestSelectBuilder(t *testing.T) {
 			B: Select("cycling.cyclist_name").Columns("id", "user_uuid", As("firstname", "name")),
 			S: "SELECT id,user_uuid,firstname AS name FROM cycling.cyclist_name ",
 		},
+		// Add a SELECT AS column 2
+		{
+			B: Select("cycling.cyclist_name").
+				Columns(As("firstname", "name"), "id", As("user_uuid", "user")),
+			S: "SELECT firstname AS name,id,user_uuid AS user FROM cycling.cyclist_name ",
+		},
 		// Basic test for select distinct
 		{
 			B: Select("cycling.cyclist_name").Distinct("id"),
@@ -68,6 +74,12 @@ func TestSelectBuilder(t *testing.T) {
 		{
 			B: Select("cycling.cyclist_name").Where(w).OrderBy("firstname", ASC),
 			S: "SELECT * FROM cycling.cyclist_name WHERE id=? ORDER BY firstname ASC ",
+			N: []string{"expr"},
+		},
+		// Add ORDER BY
+		{
+			B: Select("cycling.cyclist_name").Where(w).OrderBy("firstname", DESC),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? ORDER BY firstname DESC ",
 			N: []string{"expr"},
 		},
 		// Add ORDER BY two columns
@@ -109,6 +121,21 @@ func TestSelectBuilder(t *testing.T) {
 		{
 			B: Select("cycling.cyclist_name").Min("stars"),
 			S: "SELECT min(stars) FROM cycling.cyclist_name ",
+		},
+		// Add Sum
+		{
+			B: Select("cycling.cyclist_name").Sum("*")	,
+			S: "SELECT sum(*) FROM cycling.cyclist_name ",
+		},
+		// Add Avg
+		{
+			B: Select("cycling.cyclist_name").Avg("stars"),
+			S: "SELECT avg(stars) FROM cycling.cyclist_name ",
+		},
+		// Add Max
+		{
+			B: Select("cycling.cyclist_name").Max("stars"),
+			S: "SELECT max(stars) FROM cycling.cyclist_name ",
 		},
 	}
 
