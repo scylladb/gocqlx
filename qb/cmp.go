@@ -20,6 +20,7 @@ const (
 	in
 	cnt
 	cntKey
+	like
 )
 
 // Cmp if a filtering comparator that is used in WHERE and IF clauses.
@@ -50,6 +51,8 @@ func (c Cmp) writeCql(cql *bytes.Buffer) (names []string) {
 		cql.WriteString(" CONTAINS ")
 	case cntKey:
 		cql.WriteString(" CONTAINS KEY ")
+	case like:
+		cql.WriteString(" LIKE ")
 	}
 	return c.value.writeCql(cql)
 }
@@ -303,6 +306,15 @@ func ContainsLit(column, literal string) Cmp {
 		op:     cnt,
 		column: column,
 		value:  lit(literal),
+	}
+}
+
+// Like produces column LIKE ?.
+func Like(column string) Cmp {
+	return Cmp{
+		op:     like,
+		column: column,
+		value:  param(column),
 	}
 }
 

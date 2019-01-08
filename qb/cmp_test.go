@@ -58,6 +58,11 @@ func TestCmp(t *testing.T) {
 			S: "cntKey CONTAINS KEY ?",
 			N: []string{"cntKey"},
 		},
+		{
+			C: Like("like"),
+			S: "like LIKE ?",
+			N: []string{"like"},
+		},
 
 		// Custom bind names
 		{
