@@ -124,7 +124,7 @@ func TestSelectBuilder(t *testing.T) {
 		},
 		// Add Sum
 		{
-			B: Select("cycling.cyclist_name").Sum("*")	,
+			B: Select("cycling.cyclist_name").Sum("*"),
 			S: "SELECT sum(*) FROM cycling.cyclist_name ",
 		},
 		// Add Avg
