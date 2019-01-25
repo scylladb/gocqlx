@@ -12,7 +12,7 @@ import (
 	"strconv"
 
 	"github.com/gocql/gocql"
-	"github.com/scylladb/gocqlx/reflectx"
+	"github.com/scylladb/go-reflectx"
 )
 
 // CompileNamedQuery translates query with named parameters in a form

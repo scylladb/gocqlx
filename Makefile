@@ -27,7 +27,7 @@ test:
 	@$(GOTEST) .
 	@$(GOTEST) ./migrate
 	@$(GOTEST) ./qb
-	@$(GOTEST) ./reflectx
+	@$(GOTEST) ./table
 
 .PHONY: bench
 bench:
