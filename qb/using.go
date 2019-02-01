@@ -17,7 +17,7 @@ func TTL(d time.Duration) int64 {
 
 // Timestamp converts time to format expected in USING TIMESTAMP clause.
 func Timestamp(t time.Time) int64 {
-	return t.UnixNano() / 1000
+	return t.UnixNano() / time.Millisecond.Nanoseconds()
 }
 
 type using struct {
