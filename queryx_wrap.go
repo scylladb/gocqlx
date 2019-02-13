@@ -86,7 +86,7 @@ func (q *Queryx) RoutingKey(routingKey []byte) *Queryx {
 // query, queries will be canceled and return once the context is
 // canceled.
 func (q *Queryx) WithContext(ctx context.Context) *Queryx {
-	q.Query.WithContext(ctx)
+	q.Query = q.Query.WithContext(ctx)
 	return q
 }
 
