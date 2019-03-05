@@ -209,7 +209,9 @@ func (q *Queryx) Get(dest interface{}) error {
 	if q.err != nil {
 		return q.err
 	}
-	return Iter(q.Query).Get(dest)
+	iter := Iter(q.Query)
+	iter.Mapper = q.Mapper
+	return iter.Get(dest)
 }
 
 // GetRelease calls Get and releases the query, a released query cannot be
