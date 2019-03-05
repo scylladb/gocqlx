@@ -48,6 +48,14 @@ func Iter(q *gocql.Query) *Iterx {
 	}
 }
 
+// IterWithMapper creates a new Iterx from gocql.Query using specified mapper.
+func IterWithMapper(q *gocql.Query, mapper *reflectx.Mapper) *Iterx {
+	return &Iterx{
+		Iter:   q.Iter(),
+		Mapper: mapper,
+	}
+}
+
 // Unsafe forces the iterator to ignore missing fields. By default when scanning
 // a struct if result row has a column that cannot be mapped to any destination
 // field an error is reported. With unsafe such columns are ignored.
