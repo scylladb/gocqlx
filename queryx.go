@@ -192,11 +192,28 @@ func (q *Queryx) Exec() error {
 	return q.Query.Exec()
 }
 
+// ExecCAS executes the query without returning any rows. Also returns
+// whether the query was applied.
+func (q *Queryx) ExecCAS() (bool, error) {
+	if q.err != nil {
+		return false, q.err
+	}
+	dest := map[string]interface{}{}
+	return q.Query.MapScanCAS(dest)
+}
+
 // ExecRelease calls Exec and releases the query, a released query cannot be
 // reused.
 func (q *Queryx) ExecRelease() error {
 	defer q.Release()
 	return q.Exec()
+}
+
+// ExecCASRelease calls ExecCAS and releases the query, a released query cannot be
+// reused.
+func (q *Queryx) ExecCASRelease() (bool, error) {
+	defer q.Release()
+	return q.ExecCAS()
 }
 
 // Get scans first row into a destination. If the destination type is a struct
