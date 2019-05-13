@@ -76,6 +76,17 @@ func TestInsertBuilder(t *testing.T) {
 			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) USING TIMESTAMP ? ",
 			N: []string{"id", "user_uuid", "firstname", "ts"},
 		},
+		// Add TupleColumn
+		{
+			B: Insert("cycling.cyclist_name").TupleColumn("id", 2),
+			S: "INSERT INTO cycling.cyclist_name (id) VALUES ((?,?)) ",
+			N: []string{"id"},
+		},
+		{
+			B: Insert("cycling.cyclist_name").TupleColumn("id", 2).Columns("user_uuid"),
+			S: "INSERT INTO cycling.cyclist_name (id,user_uuid) VALUES ((?,?),?) ",
+			N: []string{"id", "user_uuid"},
+		},
 		// Add IF NOT EXISTS
 		{
 			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Unique(),

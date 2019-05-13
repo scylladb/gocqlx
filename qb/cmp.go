@@ -66,6 +66,18 @@ func Eq(column string) Cmp {
 	}
 }
 
+// EqTuple produces column=(?,?,...) with count number of placeholders.
+func EqTuple(column string, count int) Cmp {
+	return Cmp{
+		op:     eq,
+		column: column,
+		value: tupleParam{
+			param: param(column),
+			count: count,
+		},
+	}
+}
+
 // EqNamed produces column=? with a custom parameter name.
 func EqNamed(column, name string) Cmp {
 	return Cmp{
@@ -99,6 +111,18 @@ func Lt(column string) Cmp {
 		op:     lt,
 		column: column,
 		value:  param(column),
+	}
+}
+
+// LtTuple produces column<(?,?,...) with count placeholders.
+func LtTuple(column string, count int) Cmp {
+	return Cmp{
+		op:     lt,
+		column: column,
+		value: tupleParam{
+			param: param(column),
+			count: count,
+		},
 	}
 }
 
@@ -138,6 +162,18 @@ func LtOrEq(column string) Cmp {
 	}
 }
 
+// LtOrEqTuple produces column<=(?,?,...) with count placeholders.
+func LtOrEqTuple(column string, count int) Cmp {
+	return Cmp{
+		op:     leq,
+		column: column,
+		value: tupleParam{
+			param: param(column),
+			count: count,
+		},
+	}
+}
+
 // LtOrEqNamed produces column<=? with a custom parameter name.
 func LtOrEqNamed(column, name string) Cmp {
 	return Cmp{
@@ -171,6 +207,18 @@ func Gt(column string) Cmp {
 		op:     gt,
 		column: column,
 		value:  param(column),
+	}
+}
+
+// GtTuple produces column>(?,?,...) with count placeholders.
+func GtTuple(column string, count int) Cmp {
+	return Cmp{
+		op:     gt,
+		column: column,
+		value: tupleParam{
+			param: param(column),
+			count: count,
+		},
 	}
 }
 
@@ -210,6 +258,18 @@ func GtOrEq(column string) Cmp {
 	}
 }
 
+// GtOrEqTuple produces column>=(?,?,...) with count placeholders.
+func GtOrEqTuple(column string, count int) Cmp {
+	return Cmp{
+		op:     geq,
+		column: column,
+		value: tupleParam{
+			param: param(column),
+			count: count,
+		},
+	}
+}
+
 // GtOrEqNamed produces column>=? with a custom parameter name.
 func GtOrEqNamed(column, name string) Cmp {
 	return Cmp{
@@ -246,6 +306,18 @@ func In(column string) Cmp {
 	}
 }
 
+// InTuple produces column IN ?.
+func InTuple(column string, count int) Cmp {
+	return Cmp{
+		op:     in,
+		column: column,
+		value: tupleParam{
+			param: param(column),
+			count: count,
+		},
+	}
+}
+
 // InNamed produces column IN ? with a custom parameter name.
 func InNamed(column, name string) Cmp {
 	return Cmp{
@@ -273,12 +345,36 @@ func Contains(column string) Cmp {
 	}
 }
 
+// ContainsTuple produces column CONTAINS (?,?,...) with count placeholders.
+func ContainsTuple(column string, count int) Cmp {
+	return Cmp{
+		op:     cnt,
+		column: column,
+		value: tupleParam{
+			param: param(column),
+			count: count,
+		},
+	}
+}
+
 // ContainsKey produces column CONTAINS KEY ?.
 func ContainsKey(column string) Cmp {
 	return Cmp{
 		op:     cntKey,
 		column: column,
 		value:  param(column),
+	}
+}
+
+// ContainsKeyTuple produces column CONTAINS KEY (?,?,...) with count placehplders.
+func ContainsKeyTuple(column string, count int) Cmp {
+	return Cmp{
+		op:     cntKey,
+		column: column,
+		value: tupleParam{
+			param: param(column),
+			count: count,
+		},
 	}
 }
 
@@ -315,6 +411,18 @@ func Like(column string) Cmp {
 		op:     like,
 		column: column,
 		value:  param(column),
+	}
+}
+
+// LikeTuple produces column LIKE (?,?,...) with count placeholders.
+func LikeTuple(column string, count int) Cmp {
+	return Cmp{
+		op:     like,
+		column: column,
+		value: tupleParam{
+			param: param(column),
+			count: count,
+		},
 	}
 }
 

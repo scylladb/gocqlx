@@ -65,6 +65,18 @@ func TestSelectBuilder(t *testing.T) {
 			S: "SELECT * FROM cycling.cyclist_name WHERE id=? AND firstname>? ",
 			N: []string{"expr", "firstname"},
 		},
+		// Add WHERE with tuple
+		{
+			B: Select("cycling.cyclist_name").Where(EqTuple("id", 2), Gt("firstname")),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=(?,?) AND firstname>? ",
+			N: []string{"id", "firstname"},
+		},
+		// Add WHERE with only tuples
+		{
+			B: Select("cycling.cyclist_name").Where(EqTuple("id", 2), GtTuple("firstname", 2)),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=(?,?) AND firstname>(?,?) ",
+			N: []string{"id", "firstname"},
+		},
 		// Add GROUP BY
 		{
 			B: Select("cycling.cyclist_name").Columns("MAX(stars) as max_stars").GroupBy("id"),

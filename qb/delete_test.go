@@ -43,6 +43,24 @@ func TestDeleteBuilder(t *testing.T) {
 			S: "DELETE FROM cycling.cyclist_name WHERE id=? AND firstname>? ",
 			N: []string{"expr", "firstname"},
 		},
+		// Add a tuple column
+		{
+			B: Delete("cycling.cyclist_name").Where(EqTuple("id", 2)).Columns("stars"),
+			S: "DELETE stars FROM cycling.cyclist_name WHERE id=(?,?) ",
+			N: []string{"id"},
+		},
+		// Add WHERE for tuple column
+		{
+			B: Delete("cycling.cyclist_name").Where(w, GtTuple("firstname", 2)),
+			S: "DELETE FROM cycling.cyclist_name WHERE id=? AND firstname>(?,?) ",
+			N: []string{"expr", "firstname"},
+		},
+		// Add WHERE for all tuple columns
+		{
+			B: Delete("cycling.cyclist_name").Where(EqTuple("id", 2), GtTuple("firstname", 2)),
+			S: "DELETE FROM cycling.cyclist_name WHERE id=(?,?) AND firstname>(?,?) ",
+			N: []string{"id", "firstname"},
+		},
 		// Add IF
 		{
 			B: Delete("cycling.cyclist_name").Where(w).If(Gt("firstname")),
