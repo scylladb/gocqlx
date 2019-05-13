@@ -33,6 +33,16 @@ func TestSelectBuilder(t *testing.T) {
 			B: Select("cycling.cyclist_name").Columns("id", "user_uuid", As("firstname", "name")),
 			S: "SELECT id,user_uuid,firstname AS name FROM cycling.cyclist_name ",
 		},
+		// Basic test for select columns as JSON
+		{
+			B: Select("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Json(),
+			S: "SELECT JSON id,user_uuid,firstname FROM cycling.cyclist_name ",
+		},
+		// Add a SELECT AS column as JSON
+		{
+			B: Select("cycling.cyclist_name").Columns("id", "user_uuid", As("firstname", "name")).Json(),
+			S: "SELECT JSON id,user_uuid,firstname AS name FROM cycling.cyclist_name ",
+		},
 		// Add a SELECT AS column 2
 		{
 			B: Select("cycling.cyclist_name").

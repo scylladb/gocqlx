@@ -24,6 +24,12 @@ func TestInsertBuilder(t *testing.T) {
 			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) ",
 			N: []string{"id", "user_uuid", "firstname"},
 		},
+		// Basic test for insert JSON
+		{
+			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Json(),
+			S: "INSERT INTO cycling.cyclist_name JSON ?",
+			N: nil,
+		},
 		// Change table name
 		{
 			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Into("Foobar"),

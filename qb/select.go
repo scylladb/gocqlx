@@ -40,6 +40,7 @@ type SelectBuilder struct {
 	limit             uint
 	limitPerPartition uint
 	allowFiltering    bool
+	json              bool
 }
 
 // Select returns a new SelectBuilder with the given table name.
@@ -54,6 +55,11 @@ func (b *SelectBuilder) ToCql() (stmt string, names []string) {
 	cql := bytes.Buffer{}
 
 	cql.WriteString("SELECT ")
+
+	if b.json {
+		cql.WriteString("JSON ")
+	}
+
 	switch {
 	case len(b.distinct) > 0:
 		cql.WriteString("DISTINCT ")
@@ -110,6 +116,12 @@ func (b *SelectBuilder) ToCql() (stmt string, names []string) {
 // From sets the table to be selected from.
 func (b *SelectBuilder) From(table string) *SelectBuilder {
 	b.table = table
+	return b
+}
+
+// Json sets the clause of the query.
+func (b *SelectBuilder) Json() *SelectBuilder {
+	b.json = true
 	return b
 }
 
