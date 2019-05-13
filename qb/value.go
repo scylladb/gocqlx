@@ -22,6 +22,23 @@ func (p param) writeCql(cql *bytes.Buffer) (names []string) {
 	return []string{string(p)}
 }
 
+// param is a named CQL tuple '?' parameter.
+type tupleParam struct {
+	param param
+	count int
+}
+
+func (t tupleParam) writeCql(cql *bytes.Buffer) (names []string) {
+	cql.WriteByte('(')
+	for i := 0; i < t.count-1; i++ {
+		cql.WriteByte('?')
+		cql.WriteByte(',')
+	}
+	cql.WriteByte('?')
+	cql.WriteByte(')')
+	return []string{string(t.param)}
+}
+
 // lit is a literal CQL value.
 type lit string
 

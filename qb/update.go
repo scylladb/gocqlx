@@ -105,6 +105,7 @@ func (b *UpdateBuilder) TimestampNamed(name string) *UpdateBuilder {
 }
 
 // Set adds SET clauses to the query.
+// To set a tuple column use SetTuple instead.
 func (b *UpdateBuilder) Set(columns ...string) *UpdateBuilder {
 	for _, c := range columns {
 		b.assignments = append(b.assignments, assignment{
@@ -133,6 +134,18 @@ func (b *UpdateBuilder) SetLit(column, literal string) *UpdateBuilder {
 // SetFunc adds SET column=someFunc(?...) clause to the query.
 func (b *UpdateBuilder) SetFunc(column string, fn *Func) *UpdateBuilder {
 	b.assignments = append(b.assignments, assignment{column: column, value: fn})
+	return b
+}
+
+// SetTuple adds a SET clause for a tuple to the query.
+func (b *UpdateBuilder) SetTuple(column string, count int) *UpdateBuilder {
+	b.assignments = append(b.assignments, assignment{
+		column: column,
+		value: tupleParam{
+			param: param(column),
+			count: count,
+		},
+	})
 	return b
 }
 

@@ -128,6 +128,18 @@ func (b *InsertBuilder) FuncColumn(column string, fn *Func) *InsertBuilder {
 	return b
 }
 
+// TupleColumn adds an insert column for a tuple value to the query.
+func (b *InsertBuilder) TupleColumn(column string, count int) *InsertBuilder {
+	b.columns = append(b.columns, initializer{
+		column: column,
+		value: tupleParam{
+			param: param(column),
+			count: count,
+		},
+	})
+	return b
+}
+
 // Unique sets a IF NOT EXISTS clause on the query.
 func (b *InsertBuilder) Unique() *InsertBuilder {
 	b.unique = true
