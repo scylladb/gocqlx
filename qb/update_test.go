@@ -48,7 +48,7 @@ func TestUpdateBuilder(t *testing.T) {
 		{
 			B: Update("cycling.cyclist_name").SetTuple("id", 2).Set("user_uuid", "firstname").Where(EqTuple("id", 2)),
 			S: "UPDATE cycling.cyclist_name SET id=(?,?),user_uuid=?,firstname=? WHERE id=(?,?) ",
-			N: []string{"id", "user_uuid", "firstname", "id"},
+			N: []string{"id_0", "id_1", "user_uuid", "firstname", "id_0", "id_1"},
 		},
 		// Add SET SetFunc
 		{
