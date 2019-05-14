@@ -31,7 +31,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: LtTuple("lt", 2),
 			S: "lt<(?,?)",
-			N: []string{"lt"},
+			N: []string{"lt_0", "lt_1"},
 		},
 		{
 			C: LtOrEq("lt"),
@@ -41,7 +41,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: LtOrEqTuple("lt", 2),
 			S: "lt<=(?,?)",
-			N: []string{"lt"},
+			N: []string{"lt_0", "lt_1"},
 		},
 		{
 			C: Gt("gt"),
@@ -51,7 +51,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: GtTuple("gt", 2),
 			S: "gt>(?,?)",
-			N: []string{"gt"},
+			N: []string{"gt_0", "gt_1"},
 		},
 		{
 			C: GtOrEq("gt"),
@@ -61,7 +61,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: GtOrEqTuple("gt", 2),
 			S: "gt>=(?,?)",
-			N: []string{"gt"},
+			N: []string{"gt_0", "gt_1"},
 		},
 		{
 			C: In("in"),
@@ -71,7 +71,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: InTuple("in", 2),
 			S: "in IN (?,?)",
-			N: []string{"in"},
+			N: []string{"in_0", "in_1"},
 		},
 		{
 			C: Contains("cnt"),
@@ -81,7 +81,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: ContainsTuple("cnt", 2),
 			S: "cnt CONTAINS (?,?)",
-			N: []string{"cnt"},
+			N: []string{"cnt_0", "cnt_1"},
 		},
 		{
 			C: ContainsKey("cntKey"),
@@ -91,7 +91,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: ContainsKeyTuple("cntKey", 2),
 			S: "cntKey CONTAINS KEY (?,?)",
-			N: []string{"cntKey"},
+			N: []string{"cntKey_0", "cntKey_1"},
 		},
 		{
 			C: Like("like"),
@@ -101,7 +101,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: LikeTuple("like", 2),
 			S: "like LIKE (?,?)",
-			N: []string{"like"},
+			N: []string{"like_0", "like_1"},
 		},
 
 		// Custom bind names

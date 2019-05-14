@@ -69,13 +69,13 @@ func TestSelectBuilder(t *testing.T) {
 		{
 			B: Select("cycling.cyclist_name").Where(EqTuple("id", 2), Gt("firstname")),
 			S: "SELECT * FROM cycling.cyclist_name WHERE id=(?,?) AND firstname>? ",
-			N: []string{"id", "firstname"},
+			N: []string{"id_0", "id_1", "firstname"},
 		},
 		// Add WHERE with only tuples
 		{
 			B: Select("cycling.cyclist_name").Where(EqTuple("id", 2), GtTuple("firstname", 2)),
 			S: "SELECT * FROM cycling.cyclist_name WHERE id=(?,?) AND firstname>(?,?) ",
-			N: []string{"id", "firstname"},
+			N: []string{"id_0", "id_1", "firstname_0", "firstname_1"},
 		},
 		// Add GROUP BY
 		{
