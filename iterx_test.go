@@ -16,6 +16,7 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx"
 	. "github.com/scylladb/gocqlx/gocqlxtest"
+	"github.com/scylladb/gocqlx/qb"
 	"gopkg.in/inf.v0"
 )
 
@@ -324,6 +325,49 @@ func TestNotFound(t *testing.T) {
 		}
 		if cap(v) > 0 {
 			t.Fatal("side effect alloc")
+		}
+	})
+}
+
+func TestPaging(t *testing.T) {
+	session := CreateSession(t)
+	defer session.Close()
+	if err := ExecStmt(session, `CREATE TABLE gocqlx_test.paging_table (id int PRIMARY KEY, val int)`); err != nil {
+		t.Fatal("create table:", err)
+	}
+	if err := ExecStmt(session, `CREATE INDEX id_val_index ON gocqlx_test.paging_table (val)`); err != nil {
+		t.Fatal("create index:", err)
+	}
+	stmt, names := qb.Insert("gocqlx_test.paging_table").Columns("id", "val").ToCql()
+	q := gocqlx.Query(session.Query(stmt), names)
+	for i := 0; i < 5000; i++ {
+		if err := q.Bind(i, i).Exec(); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	type Paging struct {
+		ID  int
+		Val int
+	}
+
+	t.Run("iter", func(t *testing.T) {
+		stmt, names := qb.Select("gocqlx_test.paging_table").
+			Where(qb.Lt("val")).
+			AllowFiltering().
+			Columns("id", "val").ToCql()
+		it := gocqlx.Query(session.Query(stmt, 100).PageSize(10), names).Iter()
+		defer it.Close()
+		var cnt int
+		for {
+			p := &Paging{}
+			if !it.StructScan(p) {
+				break
+			}
+			cnt++
+		}
+		if cnt != 100 {
+			t.Fatal("expected 100", "got", cnt)
 		}
 	})
 }
