@@ -80,11 +80,6 @@ func (iter *Iterx) scanAny(dest interface{}, structOnly bool) bool {
 		return false
 	}
 
-	// no results or query error
-	if iter.Iter.NumRows() == 0 {
-		return false
-	}
-
 	base := reflectx.Deref(value.Type())
 	scannable := isScannable(base)
 
@@ -132,11 +127,6 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) bool {
 		return false
 	}
 
-	// no results or query error
-	if iter.Iter.NumRows() == 0 {
-		return false
-	}
-
 	slice, err := baseType(value.Type(), reflect.Slice)
 	if err != nil {
 		iter.err = err
@@ -180,7 +170,7 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) bool {
 
 		// allocate memory for the page data
 		if !alloc {
-			v = reflect.MakeSlice(slice, 0, iter.Iter.NumRows())
+			v = reflect.MakeSlice(slice, 0, iter.NumRows())
 			alloc = true
 		}
 
@@ -209,11 +199,6 @@ func (iter *Iterx) StructScan(dest interface{}) bool {
 	v := reflect.ValueOf(dest)
 	if v.Kind() != reflect.Ptr {
 		iter.err = errors.New("must pass a pointer, not a value, to StructScan destination")
-		return false
-	}
-
-	// no results or query error
-	if iter.Iter.NumRows() == 0 {
 		return false
 	}
 
