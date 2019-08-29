@@ -131,7 +131,7 @@ func (t TokenBuilder) cmp(op op, names []string) Cmp {
 
 func (t TokenBuilder) valueCmp(op op, name string) Cmp {
 	if name == "" {
-		name = "token_val"
+		name = "token"
 	}
 	return Cmp{
 		op:     op,

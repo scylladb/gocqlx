@@ -73,7 +73,7 @@ func TestToken(t *testing.T) {
 		{
 			C: Token("a", "b").EqValue(),
 			S: "token(a,b)=?",
-			N: []string{"token_val"},
+			N: []string{"token"},
 		},
 		{
 			C: Token("a", "b").EqValueNamed("c"),
@@ -83,7 +83,7 @@ func TestToken(t *testing.T) {
 		{
 			C: Token("a", "b").LtValue(),
 			S: "token(a,b)<?",
-			N: []string{"token_val"},
+			N: []string{"token"},
 		},
 		{
 			C: Token("a", "b").LtValueNamed("c"),
@@ -93,7 +93,7 @@ func TestToken(t *testing.T) {
 		{
 			C: Token("a", "b").LtOrEqValue(),
 			S: "token(a,b)<=?",
-			N: []string{"token_val"},
+			N: []string{"token"},
 		},
 		{
 			C: Token("a", "b").LtOrEqValueNamed("c"),
@@ -103,7 +103,7 @@ func TestToken(t *testing.T) {
 		{
 			C: Token("a", "b").GtValue(),
 			S: "token(a,b)>?",
-			N: []string{"token_val"},
+			N: []string{"token"},
 		},
 		{
 			C: Token("a", "b").GtValueNamed("c"),
@@ -113,7 +113,7 @@ func TestToken(t *testing.T) {
 		{
 			C: Token("a", "b").GtOrEqValue(),
 			S: "token(a,b)>=?",
-			N: []string{"token_val"},
+			N: []string{"token"},
 		},
 		{
 			C: Token("a", "b").GtOrEqValueNamed("c"),
