@@ -70,6 +70,56 @@ func TestToken(t *testing.T) {
 			S: "token(a,b)>=token(?,?)",
 			N: []string{"c", "d"},
 		},
+		{
+			C: Token("a", "b").EqValue(),
+			S: "token(a,b)=?",
+			N: []string{"token"},
+		},
+		{
+			C: Token("a", "b").EqValueNamed("c"),
+			S: "token(a,b)=?",
+			N: []string{"c"},
+		},
+		{
+			C: Token("a", "b").LtValue(),
+			S: "token(a,b)<?",
+			N: []string{"token"},
+		},
+		{
+			C: Token("a", "b").LtValueNamed("c"),
+			S: "token(a,b)<?",
+			N: []string{"c"},
+		},
+		{
+			C: Token("a", "b").LtOrEqValue(),
+			S: "token(a,b)<=?",
+			N: []string{"token"},
+		},
+		{
+			C: Token("a", "b").LtOrEqValueNamed("c"),
+			S: "token(a,b)<=?",
+			N: []string{"c"},
+		},
+		{
+			C: Token("a", "b").GtValue(),
+			S: "token(a,b)>?",
+			N: []string{"token"},
+		},
+		{
+			C: Token("a", "b").GtValueNamed("c"),
+			S: "token(a,b)>?",
+			N: []string{"c"},
+		},
+		{
+			C: Token("a", "b").GtOrEqValue(),
+			S: "token(a,b)>=?",
+			N: []string{"token"},
+		},
+		{
+			C: Token("a", "b").GtOrEqValueNamed("c"),
+			S: "token(a,b)>=?",
+			N: []string{"c"},
+		},
 	}
 
 	buf := bytes.Buffer{}
