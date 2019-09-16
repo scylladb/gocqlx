@@ -40,6 +40,7 @@ type SelectBuilder struct {
 	limit             uint
 	limitPerPartition uint
 	allowFiltering    bool
+	bypassCache       bool
 	json              bool
 }
 
@@ -107,6 +108,10 @@ func (b *SelectBuilder) ToCql() (stmt string, names []string) {
 
 	if b.allowFiltering {
 		cql.WriteString("ALLOW FILTERING ")
+	}
+
+	if b.bypassCache {
+		cql.WriteString("BYPASS CACHE ")
 	}
 
 	stmt = cql.String()
@@ -177,6 +182,15 @@ func (b *SelectBuilder) LimitPerPartition(limit uint) *SelectBuilder {
 // AllowFiltering sets a ALLOW FILTERING clause on the query.
 func (b *SelectBuilder) AllowFiltering() *SelectBuilder {
 	b.allowFiltering = true
+	return b
+}
+
+// BypassCache sets a BYPASS CACHE clause on the query.
+//
+// BYPASS CACHE is a feature specific to ScyllaDB.
+// See https://docs.scylladb.com/getting-started/dml/#bypass-cache
+func (b *SelectBuilder) BypassCache() *SelectBuilder {
+	b.bypassCache = true
 	return b
 }
 

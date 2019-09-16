@@ -128,6 +128,18 @@ func TestSelectBuilder(t *testing.T) {
 			S: "SELECT * FROM cycling.cyclist_name WHERE id=? ALLOW FILTERING ",
 			N: []string{"expr"},
 		},
+		// Add ALLOW FILTERING and BYPASS CACHE
+		{
+			B: Select("cycling.cyclist_name").Where(w).AllowFiltering().BypassCache(),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? ALLOW FILTERING BYPASS CACHE ",
+			N: []string{"expr"},
+		},
+		// Add BYPASS CACHE
+		{
+			B: Select("cycling.cyclist_name").Where(w).BypassCache(),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? BYPASS CACHE ",
+			N: []string{"expr"},
+		},
 		// Add COUNT all
 		{
 			B: Select("cycling.cyclist_name").CountAll().Where(Gt("stars")),
