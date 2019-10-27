@@ -12,3 +12,6 @@
 
 # Go vendor dir
 vendor
+
+# GoLand IDE
+.idea/

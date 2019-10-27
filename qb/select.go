@@ -132,7 +132,11 @@ func (b *SelectBuilder) Json() *SelectBuilder {
 
 // Columns adds result columns to the query.
 func (b *SelectBuilder) Columns(columns ...string) *SelectBuilder {
-	b.columns = append(b.columns, columns...)
+	if len(b.columns) == 0 {
+		b.columns = columns
+	} else {
+		b.columns = append(b.columns, columns...)
+	}
 	return b
 }
 
@@ -143,21 +147,33 @@ func As(column, name string) string {
 
 // Distinct sets DISTINCT clause on the query.
 func (b *SelectBuilder) Distinct(columns ...string) *SelectBuilder {
-	b.distinct = append(b.distinct, columns...)
+	if len(b.where) == 0 {
+		b.distinct = columns
+	} else {
+		b.distinct = append(b.distinct, columns...)
+	}
 	return b
 }
 
 // Where adds an expression to the WHERE clause of the query. Expressions are
 // ANDed together in the generated CQL.
 func (b *SelectBuilder) Where(w ...Cmp) *SelectBuilder {
-	b.where = append(b.where, w...)
+	if len(b.where) == 0 {
+		b.where = w
+	} else {
+		b.where = append(b.where, w...)
+	}
 	return b
 }
 
 // GroupBy sets GROUP BY clause on the query. Columns must be a primary key,
 // this will automatically add the the columns as first selectors.
 func (b *SelectBuilder) GroupBy(columns ...string) *SelectBuilder {
-	b.groupBy = append(b.groupBy, columns...)
+	if len(b.groupBy) == 0 {
+		b.groupBy = columns
+	} else {
+		b.groupBy = append(b.groupBy, columns...)
+	}
 	return b
 }
 
