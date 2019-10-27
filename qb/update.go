@@ -212,14 +212,22 @@ func (b *UpdateBuilder) removeValue(column string, value value) *UpdateBuilder {
 // Where adds an expression to the WHERE clause of the query. Expressions are
 // ANDed together in the generated CQL.
 func (b *UpdateBuilder) Where(w ...Cmp) *UpdateBuilder {
-	b.where = append(b.where, w...)
+	if len(b.where) == 0 {
+		b.where = w
+	} else {
+		b.where = append(b.where, w...)
+	}
 	return b
 }
 
 // If adds an expression to the IF clause of the query. Expressions are ANDed
 // together in the generated CQL.
 func (b *UpdateBuilder) If(w ...Cmp) *UpdateBuilder {
-	b._if = append(b._if, w...)
+	if len(b._if) == 0 {
+		b._if = w
+	} else {
+		b._if = append(b._if, w...)
+	}
 	return b
 }
 

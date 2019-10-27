@@ -14,7 +14,7 @@ type TokenBuilder []string
 
 // Token creates a new TokenBuilder.
 func Token(columns ...string) TokenBuilder {
-	return TokenBuilder(columns)
+	return columns
 }
 
 // Eq produces token(column)=token(?).
