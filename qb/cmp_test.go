@@ -103,6 +103,16 @@ func TestCmp(t *testing.T) {
 			S: "like LIKE (?,?)",
 			N: []string{"like_0", "like_1"},
 		},
+		{
+			C: Ne("ne"),
+			S: "ne!=?",
+			N: []string{"ne"},
+		},
+		{
+			C: NeTuple("ne", 3),
+			S: "ne!=(?,?,?)",
+			N: []string{"ne_0", "ne_1", "ne_2"},
+		},
 
 		// Custom bind names
 		{
@@ -145,6 +155,11 @@ func TestCmp(t *testing.T) {
 			S: "cntKey CONTAINS KEY ?",
 			N: []string{"name"},
 		},
+		{
+			C: NeNamed("ne", "name"),
+			S: "ne!=?",
+			N: []string{"name"},
+		},
 
 		// Literals
 		{
@@ -174,6 +189,10 @@ func TestCmp(t *testing.T) {
 		{
 			C: ContainsLit("cnt", "litval"),
 			S: "cnt CONTAINS litval",
+		},
+		{
+			C: NeLit("ne", "litval"),
+			S: "ne!=litval",
 		},
 
 		// Functions
@@ -213,6 +232,11 @@ func TestCmp(t *testing.T) {
 			C: GtOrEqFunc("eq", MaxTimeuuid("arg0")),
 			S: "eq>=maxTimeuuid(?)",
 			N: []string{"arg0"},
+		},
+		{
+			C: NeFunc("ne", Fn("fn", "arg0", "arg1", "arg2")),
+			S: "ne!=fn(?,?,?)",
+			N: []string{"arg0", "arg1", "arg2"},
 		},
 	}
 
