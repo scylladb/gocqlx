@@ -21,6 +21,7 @@ const (
 	cnt
 	cntKey
 	like
+	ne
 )
 
 // Cmp if a filtering comparator that is used in WHERE and IF clauses.
@@ -53,6 +54,8 @@ func (c Cmp) writeCql(cql *bytes.Buffer) (names []string) {
 		cql.WriteString(" CONTAINS KEY ")
 	case like:
 		cql.WriteString(" LIKE ")
+	case ne:
+		cql.WriteString("!=")
 	}
 	return c.value.writeCql(cql)
 }
@@ -100,6 +103,54 @@ func EqLit(column, literal string) Cmp {
 func EqFunc(column string, fn *Func) Cmp {
 	return Cmp{
 		op:     eq,
+		column: column,
+		value:  fn,
+	}
+}
+
+// Ne produces column!=?.
+func Ne(column string) Cmp {
+	return Cmp{
+		op:     ne,
+		column: column,
+		value:  param(column),
+	}
+}
+
+// NeTuple produces column!=(?,?,...) with count number of placeholders.
+func NeTuple(column string, count int) Cmp {
+	return Cmp{
+		op:     ne,
+		column: column,
+		value: tupleParam{
+			param: param(column),
+			count: count,
+		},
+	}
+}
+
+// NeNamed produces column!=? with a custom parameter name.
+func NeNamed(column, name string) Cmp {
+	return Cmp{
+		op:     ne,
+		column: column,
+		value:  param(name),
+	}
+}
+
+// NeLit produces column!=literal and does not add a parameter to the query.
+func NeLit(column, literal string) Cmp {
+	return Cmp{
+		op:     ne,
+		column: column,
+		value:  lit(literal),
+	}
+}
+
+// NeFunc produces column!=someFunc(?...).
+func NeFunc(column string, fn *Func) Cmp {
+	return Cmp{
+		op:     ne,
 		column: column,
 		value:  fn,
 	}
