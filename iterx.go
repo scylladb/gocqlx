@@ -32,7 +32,9 @@ type Iterx struct {
 	*gocql.Iter
 	err error
 
-	unsafe bool
+	unsafe      bool
+	forceStruct bool
+
 	Mapper *reflectx.Mapper
 	// these fields cache memory use for a rows during iteration w/ structScan
 	started bool
@@ -56,14 +58,28 @@ func (iter *Iterx) Unsafe() *Iterx {
 	return iter
 }
 
-// Get scans first row into a destination and closes the iterator. If the
-// destination type is a struct pointer, then StructScan will be used.
-// If the destination is some other type, then the row must only have one column
-// which can scan into that type.
+// Struct forces the iterator to treat a single-argument struct as non-scannable.
+// This is is useful if you need to scan a row into a struct that also implements gocql.Unmarshaler
+// or gocql.UDTUnmarshaler.
+func (iter *Iterx) Struct() *Iterx {
+	iter.forceStruct = true
+	return iter
+}
+
+// Get scans first row into a destination and closes the iterator.
+//
+// If the destination type is scannable (non-struct, gocql.Unmarshaler, gocql.Marshaler), the row must have only
+// one column which can scan into that type.
+// If the destination type is non-scannable struct pointer or Struct() was used on the iterator, then
+// StructScan will be used.
 //
 // If no rows were selected, ErrNotFound is returned.
 func (iter *Iterx) Get(dest interface{}) error {
-	iter.scanAny(dest)
+	if iter.forceStruct {
+		iter.StructScan(dest)
+	} else {
+		iter.scanAny(dest)
+	}
 	iter.Close()
 
 	return iter.checkErrAndNotFound()
@@ -95,11 +111,12 @@ func (iter *Iterx) scanAny(dest interface{}) bool {
 	return iter.StructScan(dest)
 }
 
-// Select scans all rows into a destination, which must be a pointer to slice
-// of any type and closes the iterator. If the destination slice type is
-// a struct, then StructScan will be used on each row. If the destination is
-// some other type, then each row must only have one column which can scan into
-// that type.
+// Select scans all rows into a destination.
+//
+// If the destination type is slice of scannable types (non-struct, gocql.Unmarshaler, gocql.Marshaler), each row must
+// have only one column which can scan into that type.
+// If the destination type is slice of non-scannable struct pointers or Struct() was used on the iterator, then
+// StructScan will be used on each row.
 //
 // If no rows were selected, ErrNotFound is NOT returned.
 func (iter *Iterx) Select(dest interface{}) error {
@@ -132,10 +149,17 @@ func (iter *Iterx) scanAll(dest interface{}) bool {
 	base := reflectx.Deref(slice.Elem())
 	scannable := isScannable(base)
 
-	// if it's a base type make sure it only has 1 column;  if not return an error
-	if scannable && len(iter.Columns()) > 1 {
-		iter.err = fmt.Errorf("non-struct dest type %s with >1 columns (%d)", base.Kind(), len(iter.Columns()))
-		return false
+	if iter.forceStruct {
+		if base.Kind() != reflect.Struct {
+			iter.err = fmt.Errorf("non-struct dest type %s with StructSelect", base.Kind())
+			return false
+		}
+	} else {
+		// if it's a base type make sure it only has 1 column;  if not return an error
+		if scannable && len(iter.Columns()) > 1 {
+			iter.err = fmt.Errorf("non-struct dest type %s with >1 columns (%d)", base.Kind(), len(iter.Columns()))
+			return false
+		}
 	}
 
 	var (
@@ -149,7 +173,7 @@ func (iter *Iterx) scanAll(dest interface{}) bool {
 		vp = reflect.New(base)
 
 		// scan into the struct field pointers
-		if !scannable {
+		if iter.forceStruct || !scannable {
 			ok = iter.StructScan(vp.Interface())
 		} else {
 			ok = iter.Scan(vp.Interface())
