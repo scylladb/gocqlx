@@ -1,7 +1,8 @@
 sudo: true
 language: go
 go:
-  - 1.11.x
+  - stable
+  - oldstable
 
 env:
   global:

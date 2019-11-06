@@ -24,14 +24,14 @@ var (
 	flagRetry        = flag.Int("retries", 5, "number of times to retry queries")
 	flagCompressTest = flag.String("compressor", "", "compressor to use")
 	flagTimeout      = flag.Duration("gocql.timeout", 5*time.Second, "sets the connection `timeout` for all operations")
-
-	clusterHosts []string
 )
 
 func init() {
-	flag.Parse()
-	clusterHosts = strings.Split(*flagCluster, ",")
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
+}
+
+func clusterHosts() []string {
+	return strings.Split(*flagCluster, ",")
 }
 
 var initOnce sync.Once
@@ -43,7 +43,7 @@ func CreateSession(tb testing.TB) *gocql.Session {
 }
 
 func createCluster() *gocql.ClusterConfig {
-	cluster := gocql.NewCluster(clusterHosts...)
+	cluster := gocql.NewCluster(clusterHosts()...)
 	cluster.ProtoVersion = *flagProto
 	cluster.CQLVersion = *flagCQL
 	cluster.Timeout = *flagTimeout
