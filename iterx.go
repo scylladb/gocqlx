@@ -63,13 +63,13 @@ func (iter *Iterx) Unsafe() *Iterx {
 //
 // If no rows were selected, ErrNotFound is returned.
 func (iter *Iterx) Get(dest interface{}) error {
-	iter.scanAny(dest, false)
+	iter.scanAny(dest)
 	iter.Close()
 
 	return iter.checkErrAndNotFound()
 }
 
-func (iter *Iterx) scanAny(dest interface{}, structOnly bool) bool {
+func (iter *Iterx) scanAny(dest interface{}) bool {
 	value := reflect.ValueOf(dest)
 	if value.Kind() != reflect.Ptr {
 		iter.err = errors.New("must pass a pointer, not a value, to StructScan destination")
@@ -82,11 +82,6 @@ func (iter *Iterx) scanAny(dest interface{}, structOnly bool) bool {
 
 	base := reflectx.Deref(value.Type())
 	scannable := isScannable(base)
-
-	if structOnly && scannable {
-		iter.err = structOnlyError(base)
-		return false
-	}
 
 	if scannable && len(iter.Columns()) > 1 {
 		iter.err = fmt.Errorf("scannable dest type %s with >1 columns (%d) in result", base.Kind(), len(iter.Columns()))
@@ -108,13 +103,13 @@ func (iter *Iterx) scanAny(dest interface{}, structOnly bool) bool {
 //
 // If no rows were selected, ErrNotFound is NOT returned.
 func (iter *Iterx) Select(dest interface{}) error {
-	iter.scanAll(dest, false)
+	iter.scanAll(dest)
 	iter.Close()
 
 	return iter.err
 }
 
-func (iter *Iterx) scanAll(dest interface{}, structOnly bool) bool {
+func (iter *Iterx) scanAll(dest interface{}) bool {
 	value := reflect.ValueOf(dest)
 
 	// json.Unmarshal returns errors for these
@@ -136,11 +131,6 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) bool {
 	isPtr := slice.Elem().Kind() == reflect.Ptr
 	base := reflectx.Deref(slice.Elem())
 	scannable := isScannable(base)
-
-	if structOnly && scannable {
-		iter.err = structOnlyError(base)
-		return false
-	}
 
 	// if it's a base type make sure it only has 1 column;  if not return an error
 	if scannable && len(iter.Columns()) > 1 {
