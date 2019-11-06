@@ -200,10 +200,17 @@ func (q *Queryx) ExecRelease() error {
 	return q.Exec()
 }
 
-// Get scans first row into a destination. If the destination type is a struct
-// pointer, then Iter.StructScan will be used. If the destination is some
-// other type, then the row must only have one column which can scan into that
-// type.
+// Get scans first row into a destination and closes the iterator.
+//
+// If the destination type is a struct pointer, then Iter.StructScan will be
+// used.
+// If the destination is some other type, then the row must only have one column
+// which can scan into that type.
+// This includes types that implement gocql.Unmarshaler and gocql.UDTUnmarshaler.
+//
+// If you'd like to treat a type that implements gocql.Unmarshaler or
+// gocql.UDTUnmarshaler as an ordinary struct you should call
+// Iter().StructOnly().Get(dest) instead.
 //
 // If no rows were selected, ErrNotFound is returned.
 func (q *Queryx) Get(dest interface{}) error {
@@ -221,9 +228,17 @@ func (q *Queryx) GetRelease(dest interface{}) error {
 }
 
 // Select scans all rows into a destination, which must be a pointer to slice
-// of any type. If the destination slice type is a struct, then Iter.StructScan
-// will be used on each row. If the destination is some other type, then each
-// row must only have one column which can scan into that type.
+// of any type, and closes the iterator.
+//
+// If the destination slice type is a struct, then Iter.StructScan will be used
+// on each row.
+// If the destination is some other type, then each row must only have one
+// column which can scan into that type.
+// This includes types that implement gocql.Unmarshaler and gocql.UDTUnmarshaler.
+//
+// If you'd like to treat a type that implements gocql.Unmarshaler or
+// gocql.UDTUnmarshaler as an ordinary struct you should call
+// Iter().StructOnly().Select(dest) instead.
 //
 // If no rows were selected, ErrNotFound is NOT returned.
 func (q *Queryx) Select(dest interface{}) error {

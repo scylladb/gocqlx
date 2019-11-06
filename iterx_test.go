@@ -35,9 +35,29 @@ func (n *FullName) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
 	return nil
 }
 
+type FullNameUDT struct {
+	FirstName string
+	LastName  string
+}
+
+func (n FullNameUDT) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
+	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(n), name)
+	return gocql.Marshal(info, f.Interface())
+}
+
+func (n *FullNameUDT) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
+	f := gocqlx.DefaultMapper.FieldByName(reflect.ValueOf(n), name)
+	return gocql.Unmarshal(info, data, f.Addr().Interface())
+}
+
 func TestStruct(t *testing.T) {
 	session := CreateSession(t)
 	defer session.Close()
+
+	if err := ExecStmt(session, `CREATE TYPE gocqlx_test.FullName (first_Name text, last_name text)`); err != nil {
+		t.Fatal("create type:", err)
+	}
+
 	if err := ExecStmt(session, `CREATE TABLE gocqlx_test.struct_table (
 			testuuid       timeuuid PRIMARY KEY,
 			testtimestamp  timestamp,
@@ -54,8 +74,8 @@ func TestStruct(t *testing.T) {
 			testmap        map<varchar, varchar>,
 			testvarint     varint,
 			testinet       inet,
-			testcustom     text
-
+			testcustom     text,
+			testudt        gocqlx_test.FullName
 		)`); err != nil {
 		t.Fatal("create table:", err)
 	}
@@ -77,6 +97,7 @@ func TestStruct(t *testing.T) {
 		Testvarint    *big.Int
 		Testinet      string
 		Testcustom    FullName
+		Testudt       FullNameUDT
 	}
 
 	bigInt := new(big.Int)
@@ -101,9 +122,10 @@ func TestStruct(t *testing.T) {
 		Testvarint:    bigInt,
 		Testinet:      "213.212.2.19",
 		Testcustom:    FullName{FirstName: "John", LastName: "Doe"},
+		Testudt:       FullNameUDT{FirstName: "John", LastName: "Doe"},
 	}
 
-	if err := session.Query(`INSERT INTO struct_table (testuuid, testtimestamp, testvarchar, testbigint, testblob, testbool, testfloat,testdouble, testint, testdecimal, testlist, testset, testmap, testvarint, testinet, testcustom) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	if err := session.Query(`INSERT INTO struct_table (testuuid, testtimestamp, testvarchar, testbigint, testblob, testbool, testfloat,testdouble, testint, testdecimal, testlist, testset, testmap, testvarint, testinet, testcustom, testudt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		m.Testuuid,
 		m.Testtimestamp,
 		m.Testvarchar,
@@ -119,7 +141,8 @@ func TestStruct(t *testing.T) {
 		m.Testmap,
 		m.Testvarint,
 		m.Testinet,
-		m.Testcustom).Exec(); err != nil {
+		m.Testcustom,
+		m.Testudt).Exec(); err != nil {
 		t.Fatal("insert:", err)
 	}
 
@@ -215,6 +238,148 @@ func TestScannable(t *testing.T) {
 
 		if !reflect.DeepEqual(&m, v[0]) {
 			t.Fatal("not equals")
+		}
+	})
+}
+
+func TestStructOnly(t *testing.T) {
+	session := CreateSession(t)
+	defer session.Close()
+	if err := ExecStmt(session, `CREATE TABLE gocqlx_test.struct_only_table (first_name text, last_name text, PRIMARY KEY (first_name, last_name))`); err != nil {
+		t.Fatal("create table:", err)
+	}
+
+	m := FullName{"John", "Doe"}
+
+	if err := session.Query(`INSERT INTO struct_only_table (first_name, last_name) values (?, ?)`, m.FirstName, m.LastName).Exec(); err != nil {
+		t.Fatal("insert:", err)
+	}
+
+	t.Run("get", func(t *testing.T) {
+		var v FullName
+		if err := gocqlx.Iter(session.Query(`SELECT first_name, last_name FROM struct_only_table`)).StructOnly().Get(&v); err != nil {
+			t.Fatal("get failed", err)
+		}
+
+		if !reflect.DeepEqual(m, v) {
+			t.Fatal("not equals")
+		}
+	})
+
+	t.Run("select", func(t *testing.T) {
+		var v []FullName
+		if err := gocqlx.Iter(session.Query(`SELECT first_name, last_name FROM struct_only_table`)).StructOnly().Select(&v); err != nil {
+			t.Fatal("select failed", err)
+		}
+
+		if len(v) != 1 {
+			t.Fatal("select unexpected number of rows", len(v))
+		}
+
+		if !reflect.DeepEqual(m, v[0]) {
+			t.Fatal("not equals")
+		}
+	})
+
+	t.Run("select ptr", func(t *testing.T) {
+		var v []*FullName
+		if err := gocqlx.Iter(session.Query(`SELECT first_name, last_name FROM struct_only_table`)).StructOnly().Select(&v); err != nil {
+			t.Fatal("select failed", err)
+		}
+
+		if len(v) != 1 {
+			t.Fatal("select unexpected number of rows", len(v))
+		}
+
+		if !reflect.DeepEqual(&m, v[0]) {
+			t.Fatal("not equals")
+		}
+	})
+
+	t.Run("get error", func(t *testing.T) {
+		var v FullName
+		err := gocqlx.Iter(session.Query(`SELECT first_name, last_name FROM struct_only_table`)).Get(&v)
+		if err == nil || !strings.HasPrefix(err.Error(), "expected 1 column in result") {
+			t.Fatal("get expected validation error got", err)
+		}
+	})
+
+	t.Run("select error", func(t *testing.T) {
+		var v []FullName
+		err := gocqlx.Iter(session.Query(`SELECT first_name, last_name FROM struct_only_table`)).Select(&v)
+		if err == nil || !strings.HasPrefix(err.Error(), "expected 1 column in result") {
+			t.Fatal("select expected validation error got", err)
+		}
+	})
+}
+
+func TestStructOnlyUDT(t *testing.T) {
+	session := CreateSession(t)
+	defer session.Close()
+	if err := ExecStmt(session, `CREATE TABLE gocqlx_test.struct_only_udt_table (first_name text, last_name text, PRIMARY KEY (first_name, last_name))`); err != nil {
+		t.Fatal("create table:", err)
+	}
+
+	m := FullNameUDT{"John", "Doe"}
+
+	if err := session.Query(`INSERT INTO struct_only_udt_table (first_name, last_name) values (?, ?)`, m.FirstName, m.LastName).Exec(); err != nil {
+		t.Fatal("insert:", err)
+	}
+
+	t.Run("get", func(t *testing.T) {
+		var v FullNameUDT
+		if err := gocqlx.Iter(session.Query(`SELECT first_name, last_name FROM struct_only_udt_table`)).StructOnly().Get(&v); err != nil {
+			t.Fatal("get failed", err)
+		}
+
+		if !reflect.DeepEqual(m, v) {
+			t.Fatal("not equals")
+		}
+	})
+
+	t.Run("select", func(t *testing.T) {
+		var v []FullNameUDT
+		if err := gocqlx.Iter(session.Query(`SELECT first_name, last_name FROM struct_only_udt_table`)).StructOnly().Select(&v); err != nil {
+			t.Fatal("select failed", err)
+		}
+
+		if len(v) != 1 {
+			t.Fatal("select unexpected number of rows", len(v))
+		}
+
+		if !reflect.DeepEqual(m, v[0]) {
+			t.Fatal("not equals")
+		}
+	})
+
+	t.Run("select ptr", func(t *testing.T) {
+		var v []*FullNameUDT
+		if err := gocqlx.Iter(session.Query(`SELECT first_name, last_name FROM struct_only_udt_table`)).StructOnly().Select(&v); err != nil {
+			t.Fatal("select failed", err)
+		}
+
+		if len(v) != 1 {
+			t.Fatal("select unexpected number of rows", len(v))
+		}
+
+		if !reflect.DeepEqual(&m, v[0]) {
+			t.Fatal("not equals")
+		}
+	})
+
+	t.Run("get error", func(t *testing.T) {
+		var v FullNameUDT
+		err := gocqlx.Iter(session.Query(`SELECT first_name, last_name FROM struct_only_udt_table`)).Get(&v)
+		if err == nil || !strings.HasPrefix(err.Error(), "expected 1 column in result") {
+			t.Fatal("get expected validation error got", err)
+		}
+	})
+
+	t.Run("select error", func(t *testing.T) {
+		var v []FullNameUDT
+		err := gocqlx.Iter(session.Query(`SELECT first_name, last_name FROM struct_only_udt_table`)).Select(&v)
+		if err == nil || !strings.HasPrefix(err.Error(), "expected 1 column in result") {
+			t.Fatal("select expected validation error got", err)
 		}
 	})
 }

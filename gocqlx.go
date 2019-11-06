@@ -14,22 +14,29 @@ import (
 )
 
 // structOnlyError returns an error appropriate for type when a non-scannable
-// struct is expected but something else is given
+// struct is expected but something else is given.
 func structOnlyError(t reflect.Type) error {
-	isStruct := t.Kind() == reflect.Struct
-	isScanner := reflect.PtrTo(t).Implements(_unmarshallerInterface)
-	if !isStruct {
-		return fmt.Errorf("expected %s but got %s", reflect.Struct, t.Kind())
+	if isStruct := t.Kind() == reflect.Struct; !isStruct {
+		return fmt.Errorf("expected a struct but got %s", t.Kind())
 	}
-	if isScanner {
-		return fmt.Errorf("structscan expects a struct dest but the provided struct type %s implements unmarshaler", t.Name())
+
+	if isUnmarshaller := reflect.PtrTo(t).Implements(unmarshallerInterface); isUnmarshaller {
+		return fmt.Errorf("expected a struct but the provided struct type %s implements gocql.Unmarshaler", t.Name())
 	}
+
+	if isUDTUnmarshaller := reflect.PtrTo(t).Implements(udtUnmarshallerInterface); isUDTUnmarshaller {
+		return fmt.Errorf("expected a struct but the provided struct type %s implements gocql.UDTUnmarshaler", t.Name())
+	}
+
 	return fmt.Errorf("expected a struct, but struct %s has no exported fields", t.Name())
 }
 
 // reflect helpers
 
-var _unmarshallerInterface = reflect.TypeOf((*gocql.Unmarshaler)(nil)).Elem()
+var (
+	unmarshallerInterface    = reflect.TypeOf((*gocql.Unmarshaler)(nil)).Elem()
+	udtUnmarshallerInterface = reflect.TypeOf((*gocql.UDTUnmarshaler)(nil)).Elem()
+)
 
 func baseType(t reflect.Type, expected reflect.Kind) (reflect.Type, error) {
 	t = reflectx.Deref(t)
