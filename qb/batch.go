@@ -76,7 +76,7 @@ func (b *BatchBuilder) AddWithPrefix(prefix string, builder Builder) *BatchBuild
 
 // AddStmtWithPrefix adds statement to the batch. Names are prefixed with
 // the prefix + ".".
-func (b *BatchBuilder) AddStmtWithPrefix(prefix string, stmt string, names []string) *BatchBuilder {
+func (b *BatchBuilder) AddStmtWithPrefix(prefix, stmt string, names []string) *BatchBuilder {
 	b.stmts = append(b.stmts, stmt)
 	for _, name := range names {
 		if prefix != "" {

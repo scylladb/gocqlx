@@ -30,5 +30,5 @@ func fileChecksum(path string) (string, error) {
 		return "", err
 	}
 	v := h.Sum(nil)
-	return encode(v[:]), nil
+	return encode(v), nil
 }
