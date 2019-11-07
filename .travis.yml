@@ -1,23 +1,15 @@
-sudo: true
 language: go
+
 go:
-  - 1.11.x
+  - stable
 
-env:
-  global:
-    - SCYLLA_OPTS="--developer-mode 1 --log-to-stdout 1 --default-log-level info"
-  matrix:
-    - DB="scylla"
-    - DB="cassandra"
-
-dist: trusty
-addons:
-  apt:
-    packages:
-      - moreutils
+services:
+  - docker
 
 before_install:
-  - ./.travis_start_db.sh
+  - docker pull scylladb/scylla:latest
+  - docker run --name scylla -p 9042:9042 -d scylladb/scylla
+  - until docker exec scylla cqlsh -e "DESCRIBE SCHEMA"; do sleep 2; done
 
 install:
   - make get-deps get-tools
