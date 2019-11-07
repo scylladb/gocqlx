@@ -13,6 +13,7 @@ type op byte
 
 const (
 	eq op = iota
+	ne
 	lt
 	leq
 	gt
@@ -21,7 +22,6 @@ const (
 	cnt
 	cntKey
 	like
-	ne
 )
 
 // Cmp if a filtering comparator that is used in WHERE and IF clauses.
@@ -36,6 +36,8 @@ func (c Cmp) writeCql(cql *bytes.Buffer) (names []string) {
 	switch c.op {
 	case eq:
 		cql.WriteByte('=')
+	case ne:
+		cql.WriteString("!=")
 	case lt:
 		cql.WriteByte('<')
 	case leq:
@@ -54,8 +56,6 @@ func (c Cmp) writeCql(cql *bytes.Buffer) (names []string) {
 		cql.WriteString(" CONTAINS KEY ")
 	case like:
 		cql.WriteString(" LIKE ")
-	case ne:
-		cql.WriteString("!=")
 	}
 	return c.value.writeCql(cql)
 }
