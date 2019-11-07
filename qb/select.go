@@ -230,7 +230,6 @@ func (b *SelectBuilder) Sum(column string) *SelectBuilder {
 	return b
 }
 
-func (b *SelectBuilder) fn(name, column string) *SelectBuilder {
+func (b *SelectBuilder) fn(name, column string) {
 	b.Columns(name + "(" + column + ")")
-	return b
 }

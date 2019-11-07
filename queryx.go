@@ -33,7 +33,8 @@ func CompileNamedQuery(qs []byte) (stmt string, names []string, err error) {
 
 	for i, b := range qs {
 		// a ':' while we're in a name is an error
-		if b == ':' {
+		switch {
+		case b == ':':
 			// if this is the second ':' in a '::' escape sequence, append a ':'
 			if inName && i > 0 && qs[i-1] == ':' {
 				rebound = append(rebound, ':')
@@ -46,11 +47,11 @@ func CompileNamedQuery(qs []byte) (stmt string, names []string, err error) {
 			inName = true
 			name = []byte{}
 			// if we're in a name, and this is an allowed character, continue
-		} else if inName && (allowedBindRune(b) || b == '_' || b == '.') && i != last {
+		case inName && (allowedBindRune(b) || b == '_' || b == '.') && i != last:
 			// append the byte to the name if we are in a name and not on the last byte
 			name = append(name, b)
 			// if we're in a name and it's not an allowed character, the name is done
-		} else if inName {
+		case inName:
 			inName = false
 			// if this is the final byte of the string and it is part of the name, then
 			// make sure to add it to the name
@@ -67,7 +68,7 @@ func CompileNamedQuery(qs []byte) (stmt string, names []string, err error) {
 			} else if !allowedBindRune(b) {
 				rebound = append(rebound, b)
 			}
-		} else {
+		default:
 			// this is a normal byte and should just go onto the rebound query
 			rebound = append(rebound, b)
 		}
@@ -137,7 +138,7 @@ func bindStructArgs(names []string, arg0 interface{}, arg1 map[string]interface{
 
 	err := m.TraversalsByNameFunc(v.Type(), names, func(i int, t []int) error {
 		if len(t) != 0 {
-			val := reflectx.FieldByIndexesReadOnly(v, t)
+			val := reflectx.FieldByIndexesReadOnly(v, t) // nolint:scopelint
 			arglist = append(arglist, val.Interface())
 		} else {
 			val, ok := arg1[names[i]]
