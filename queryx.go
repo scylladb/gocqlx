@@ -210,7 +210,7 @@ func (q *Queryx) Get(dest interface{}) error {
 	if q.err != nil {
 		return q.err
 	}
-	return Iter(q.Query).Get(dest)
+	return q.Iter().Get(dest)
 }
 
 // GetRelease calls Get and releases the query, a released query cannot be
@@ -230,7 +230,7 @@ func (q *Queryx) Select(dest interface{}) error {
 	if q.err != nil {
 		return q.err
 	}
-	return Iter(q.Query).Select(dest)
+	return q.Iter().Select(dest)
 }
 
 // SelectRelease calls Select and releases the query, a released query cannot be
@@ -244,5 +244,7 @@ func (q *Queryx) SelectRelease(dest interface{}) error {
 // big to be loaded with Select in order to do row by row iteration.
 // See Iterx StructScan function.
 func (q *Queryx) Iter() *Iterx {
-	return Iter(q.Query)
+	i := Iter(q.Query)
+	i.Mapper = q.Mapper
+	return i
 }
