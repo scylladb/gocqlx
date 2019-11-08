@@ -244,5 +244,7 @@ func (q *Queryx) SelectRelease(dest interface{}) error {
 // big to be loaded with Select in order to do row by row iteration.
 // See Iterx StructScan function.
 func (q *Queryx) Iter() *Iterx {
-	return Iter(q.Query)
+	i := Iter(q.Query)
+	i.Mapper = q.Mapper
+	return i
 }
