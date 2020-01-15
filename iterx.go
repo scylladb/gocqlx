@@ -13,6 +13,10 @@ import (
 	"github.com/scylladb/go-reflectx"
 )
 
+// DefaultUnsafe enables the behavior of forcing the iterator to ignore
+// missing fields for all queries. See Unsafe below for more information.
+var DefaultUnsafe bool
+
 // Get is a convenience function for creating iterator and calling Get.
 //
 // DEPRECATED use Queryx.Get or Queryx.GetRelease.
@@ -208,7 +212,7 @@ func (iter *Iterx) StructScan(dest interface{}) bool {
 
 		iter.fields = m.TraversalsByName(v.Type(), columns)
 		// if we are not unsafe and are missing fields, return an error
-		if !iter.unsafe {
+		if !iter.unsafe && !DefaultUnsafe {
 			if f, err := missingFields(iter.fields); err != nil {
 				iter.err = fmt.Errorf("missing destination name %q in %T", columns[f], dest)
 				return false
