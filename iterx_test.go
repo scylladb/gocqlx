@@ -279,7 +279,7 @@ func TestUnsafe(t *testing.T) {
 
 	t.Run("DefaultUnsafe select", func(t *testing.T) {
 		gocqlx.DefaultUnsafe = true
-		defer func() { gocqlx.DefaultUnsafe = true }()
+		defer func() { gocqlx.DefaultUnsafe = false }()
 		var v []UnsafeTable
 		i := gocqlx.Iter(session.Query(`SELECT * FROM unsafe_table`))
 		if err := i.Select(&v); err != nil {
