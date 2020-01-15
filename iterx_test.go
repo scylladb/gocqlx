@@ -276,6 +276,22 @@ func TestUnsafe(t *testing.T) {
 			t.Fatal("select failed")
 		}
 	})
+
+	t.Run("DefaultUnsafe select", func(t *testing.T) {
+		gocqlx.DefaultUnsafe = true
+		defer func() { gocqlx.DefaultUnsafe = true }()
+		var v []UnsafeTable
+		i := gocqlx.Iter(session.Query(`SELECT * FROM unsafe_table`))
+		if err := i.Select(&v); err != nil {
+			t.Fatal(err)
+		}
+		if len(v) != 1 {
+			t.Fatal("select failed")
+		}
+		if v[0].Testtext != "test" {
+			t.Fatal("select failed")
+		}
+	})
 }
 
 func TestNotFound(t *testing.T) {
