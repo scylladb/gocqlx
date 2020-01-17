@@ -39,31 +39,12 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.bench_person (
 
 var benchPersonCols = []string{"id", "first_name", "last_name", "email", "gender", "ip_address"}
 
-func loadFixtures() []*benchPerson {
-	f, err := os.Open("testdata/people.json")
-	if err != nil {
-		panic(err)
-	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			panic(err)
-		}
-	}()
-
-	var v []*benchPerson
-	if err := json.NewDecoder(f).Decode(&v); err != nil {
-		panic(err)
-	}
-
-	return v
-}
-
 //
 // Insert
 //
 
-// BenchmarkE2EGocqlInsert performs standard insert.
-func BenchmarkE2EGocqlInsert(b *testing.B) {
+// BenchmarkBaseGocqlInsert performs standard insert.
+func BenchmarkBaseGocqlInsert(b *testing.B) {
 	people := loadFixtures()
 	session := CreateSession(b)
 	defer session.Close()
@@ -85,8 +66,8 @@ func BenchmarkE2EGocqlInsert(b *testing.B) {
 	}
 }
 
-// BenchmarkE2EGocqlInsert performs insert with struct binding.
-func BenchmarkE2EGocqlxInsert(b *testing.B) {
+// BenchmarkGocqlInsert performs insert with struct binding.
+func BenchmarkGocqlxInsert(b *testing.B) {
 	people := loadFixtures()
 	session := CreateSession(b)
 	defer session.Close()
@@ -112,8 +93,8 @@ func BenchmarkE2EGocqlxInsert(b *testing.B) {
 // Get
 //
 
-// BenchmarkE2EGocqlGet performs standard scan.
-func BenchmarkE2EGocqlGet(b *testing.B) {
+// BenchmarkBaseGocqlGet performs standard scan.
+func BenchmarkBaseGocqlGet(b *testing.B) {
 	people := loadFixtures()
 	session := CreateSession(b)
 	defer session.Close()
@@ -121,24 +102,22 @@ func BenchmarkE2EGocqlGet(b *testing.B) {
 	initTable(b, session, people)
 
 	stmt, _ := qb.Select("gocqlx_test.bench_person").Columns(benchPersonCols...).Where(qb.Eq("id")).Limit(1).ToCql()
+	q := session.Query(stmt)
+	defer q.Release()
+
 	var p benchPerson
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		// prepare
-		q := session.Query(stmt)
 		q.Bind(people[i%len(people)].ID)
-		// scan
 		if err := q.Scan(&p.ID, &p.FirstName, &p.LastName, &p.Email, &p.Gender, &p.IPAddress); err != nil {
 			b.Fatal(err)
 		}
-		// release
-		q.Release()
 	}
 }
 
-// BenchmarkE2EGocqlxGet performs get.
-func BenchmarkE2EGocqlxGet(b *testing.B) {
+// BenchmarkGocqlxGet performs get.
+func BenchmarkGocqlxGet(b *testing.B) {
 	people := loadFixtures()
 	session := CreateSession(b)
 	defer session.Close()
@@ -146,14 +125,15 @@ func BenchmarkE2EGocqlxGet(b *testing.B) {
 	initTable(b, session, people)
 
 	stmt, _ := qb.Select("gocqlx_test.bench_person").Columns(benchPersonCols...).Where(qb.Eq("id")).Limit(1).ToCql()
+	q := session.Query(stmt)
+	defer q.Release()
+
 	var p benchPerson
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		// prepare
-		q := session.Query(stmt).Bind(people[i%len(people)].ID)
-		// get and release
-		if err := gocqlx.Query(q, nil).GetRelease(&p); err != nil {
+		q.Bind(people[i%len(people)].ID)
+		if err := gocqlx.Query(q, nil).Get(&p); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -163,8 +143,9 @@ func BenchmarkE2EGocqlxGet(b *testing.B) {
 // Select
 //
 
-// BenchmarkE2EGocqlSelect performs standard loop scan.
-func BenchmarkE2EGocqlSelect(b *testing.B) {
+// BenchmarkBaseGocqlSelect performs standard loop scan with a slice of
+// pointers.
+func BenchmarkBaseGocqlSelect(b *testing.B) {
 	people := loadFixtures()
 	session := CreateSession(b)
 	defer session.Close()
@@ -172,29 +153,26 @@ func BenchmarkE2EGocqlSelect(b *testing.B) {
 	initTable(b, session, people)
 
 	stmt, _ := qb.Select("gocqlx_test.bench_person").Columns(benchPersonCols...).Limit(100).ToCql()
+	q := session.Query(stmt)
+	defer q.Release()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		// prepare
+		iter := q.Iter()
 		v := make([]*benchPerson, 100)
-		q := session.Query(stmt)
-		i := q.Iter()
-		// loop scan
 		p := new(benchPerson)
-		for i.Scan(&p.ID, &p.FirstName, &p.LastName, &p.Email, &p.Gender, &p.IPAddress) {
+		for iter.Scan(&p.ID, &p.FirstName, &p.LastName, &p.Email, &p.Gender, &p.IPAddress) {
 			v = append(v, p)
 			p = new(benchPerson)
 		}
-		if err := i.Close(); err != nil {
+		if err := iter.Close(); err != nil {
 			b.Fatal(err)
 		}
-		// release
-		q.Release()
 	}
 }
 
-// BenchmarkE2EGocqlSelect performs select.
-func BenchmarkE2EGocqlxSelect(b *testing.B) {
+// BenchmarkGocqlSelect performs select to a slice pointers.
+func BenchmarkGocqlxSelect(b *testing.B) {
 	people := loadFixtures()
 	session := CreateSession(b)
 	defer session.Close()
@@ -202,17 +180,35 @@ func BenchmarkE2EGocqlxSelect(b *testing.B) {
 	initTable(b, session, people)
 
 	stmt, _ := qb.Select("gocqlx_test.bench_person").Columns(benchPersonCols...).Limit(100).ToCql()
+	q := gocqlx.Query(session.Query(stmt), nil)
+	defer q.Release()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		// prepare
-		q := session.Query(stmt)
 		var v []*benchPerson
-		// select and release
-		if err := gocqlx.Query(q, nil).SelectRelease(&v); err != nil {
+		if err := q.Select(&v); err != nil {
 			b.Fatal(err)
 		}
 	}
+}
+
+func loadFixtures() []*benchPerson {
+	f, err := os.Open("testdata/people.json")
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			panic(err)
+		}
+	}()
+
+	var v []*benchPerson
+	if err := json.NewDecoder(f).Decode(&v); err != nil {
+		panic(err)
+	}
+
+	return v
 }
 
 func initTable(b *testing.B, session *gocql.Session, people []*benchPerson) {

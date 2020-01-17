@@ -97,16 +97,16 @@ See more examples in [example_test.go](https://github.com/scylladb/gocqlx/blob/m
 
 ## Performance
 
-Gocqlx is fast, this is a benchmark result comparing `gocqlx` to raw `gocql` 
-on a local machine, Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz.
+With regards to performance `gocqlx` package is comparable to the raw `gocql` baseline.
+Below benchmark results running on a local machine.
 
 ```
-BenchmarkE2EGocqlInsert            20000             86713 ns/op            2030 B/op         33 allocs/op
-BenchmarkE2EGocqlxInsert           20000             87882 ns/op            2030 B/op         33 allocs/op
-BenchmarkE2EGocqlGet               20000             94308 ns/op            1504 B/op         29 allocs/op
-BenchmarkE2EGocqlxGet              20000             95722 ns/op            2128 B/op         33 allocs/op
-BenchmarkE2EGocqlSelect             1000           1792469 ns/op           43595 B/op        921 allocs/op
-BenchmarkE2EGocqlxSelect            1000           1839574 ns/op           36986 B/op        927 allocs/op
+BenchmarkBaseGocqlInsert            1840            586579 ns/op            7803 B/op         39 allocs/op
+BenchmarkGocqlxInsert               2107            665080 ns/op            7803 B/op         39 allocs/op
+BenchmarkBaseGocqlGet               2124            579242 ns/op            7311 B/op         35 allocs/op
+BenchmarkGocqlxGet                  2206            529855 ns/op            7647 B/op         38 allocs/op
+BenchmarkBaseGocqlSelect             418           3051462 ns/op           49428 B/op        927 allocs/op
+BenchmarkGocqlxSelect                357           3492430 ns/op           42632 B/op        933 allocs/op
 ```
 
 See the benchmark in [benchmark_test.go](https://github.com/scylladb/gocqlx/blob/master/benchmark_test.go).
