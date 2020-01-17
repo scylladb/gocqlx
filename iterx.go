@@ -76,11 +76,11 @@ func (iter *Iterx) Get(dest interface{}) error {
 func (iter *Iterx) scanAny(dest interface{}, structOnly bool) bool {
 	value := reflect.ValueOf(dest)
 	if value.Kind() != reflect.Ptr {
-		iter.err = errors.New("must pass a pointer, not a value, to StructScan destination")
+		iter.err = fmt.Errorf("expected a pointer but got %T", dest)
 		return false
 	}
 	if value.IsNil() {
-		iter.err = errors.New("nil pointer passed to StructScan destination")
+		iter.err = errors.New("expected a pointer but got nil")
 		return false
 	}
 
@@ -123,11 +123,11 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) bool {
 
 	// json.Unmarshal returns errors for these
 	if value.Kind() != reflect.Ptr {
-		iter.err = errors.New("must pass a pointer, not a value, to StructScan destination")
+		iter.err = fmt.Errorf("expected a pointer but got %T", dest)
 		return false
 	}
 	if value.IsNil() {
-		iter.err = errors.New("nil pointer passed to StructScan destination")
+		iter.err = errors.New("expected a pointer but got nil")
 		return false
 	}
 
