@@ -8,7 +8,7 @@ services:
 
 before_install:
   - docker pull scylladb/scylla:latest
-  - docker run --name scylla -p 9042:9042 -d scylladb/scylla
+  - docker run --name scylla -p 9042:9042 --cpus=0 -d scylladb/scylla
   - until docker exec scylla cqlsh -e "DESCRIBE SCHEMA"; do sleep 2; done
 
 install:
