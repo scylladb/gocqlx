@@ -141,7 +141,7 @@ func TestStruct(t *testing.T) {
 		}
 
 		if len(v) != 1 {
-			t.Fatal("select unexpecrted number of rows", len(v))
+			t.Fatal("select unexpected number of rows", len(v))
 		}
 
 		if !reflect.DeepEqual(m, v[0]) {
@@ -156,7 +156,7 @@ func TestStruct(t *testing.T) {
 		}
 
 		if len(v) != 1 {
-			t.Fatal("select unexpecrted number of rows", len(v))
+			t.Fatal("select unexpected number of rows", len(v))
 		}
 
 		if !reflect.DeepEqual(&m, v[0]) {
@@ -195,7 +195,7 @@ func TestScannable(t *testing.T) {
 		}
 
 		if len(v) != 1 {
-			t.Fatal("select unexpecrted number of rows", len(v))
+			t.Fatal("select unexpected number of rows", len(v))
 		}
 
 		if !reflect.DeepEqual(m, v[0]) {
@@ -210,7 +210,7 @@ func TestScannable(t *testing.T) {
 		}
 
 		if len(v) != 1 {
-			t.Fatal("select unexpecrted number of rows", len(v))
+			t.Fatal("select unexpected number of rows", len(v))
 		}
 
 		if !reflect.DeepEqual(&m, v[0]) {
