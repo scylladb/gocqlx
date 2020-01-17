@@ -74,6 +74,22 @@ func (iter *Iterx) Get(dest interface{}) error {
 	return iter.checkErrAndNotFound()
 }
 
+// isScannable takes the reflect.Type and the actual dest value and returns
+// whether or not it's Scannable. t is scannable if:
+//   * ptr to t implements gocql.Unmarshaler
+//   * it is not a struct
+//   * it has no exported fields
+func (iter *Iterx) isScannable(t reflect.Type) bool {
+	if reflect.PtrTo(t).Implements(_unmarshallerInterface) {
+		return true
+	}
+	if t.Kind() != reflect.Struct {
+		return true
+	}
+
+	return len(iter.Mapper.TypeMap(t).Index) == 0
+}
+
 func (iter *Iterx) scanAny(dest interface{}, structOnly bool) bool {
 	value := reflect.ValueOf(dest)
 	if value.Kind() != reflect.Ptr {
@@ -86,7 +102,7 @@ func (iter *Iterx) scanAny(dest interface{}, structOnly bool) bool {
 	}
 
 	base := reflectx.Deref(value.Type())
-	scannable := isScannable(base)
+	scannable := iter.isScannable(base)
 
 	if structOnly && scannable {
 		iter.err = structOnlyError(base)
@@ -140,7 +156,7 @@ func (iter *Iterx) scanAll(dest interface{}, structOnly bool) bool {
 
 	isPtr := slice.Elem().Kind() == reflect.Ptr
 	base := reflectx.Deref(slice.Elem())
-	scannable := isScannable(base)
+	scannable := iter.isScannable(base)
 
 	if structOnly && scannable {
 		iter.err = structOnlyError(base)

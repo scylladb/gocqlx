@@ -39,26 +39,6 @@ func baseType(t reflect.Type, expected reflect.Kind) (reflect.Type, error) {
 	return t, nil
 }
 
-// isScannable takes the reflect.Type and the actual dest value and returns
-// whether or not it's Scannable. Something is scannable if:
-//   * it is not a struct
-//   * it implements gocql.Unmarshaler
-//   * it has no exported fields
-func isScannable(t reflect.Type) bool {
-	if reflect.PtrTo(t).Implements(_unmarshallerInterface) {
-		return true
-	}
-	if t.Kind() != reflect.Struct {
-		return true
-	}
-
-	// it's not important that we use the right mapper for this particular object,
-	// we're only concerned on how many exported fields this struct has
-	m := DefaultMapper
-
-	return len(m.TypeMap(t).Index) == 0
-}
-
 // fieldsByName fills a values interface with fields from the passed value based
 // on the traversals in int. If ptrs is true, return addresses instead of values.
 // We write this instead of using FieldsByName to save allocations and map lookups
