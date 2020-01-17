@@ -17,20 +17,6 @@ import (
 // missing fields for all queries. See Unsafe below for more information.
 var DefaultUnsafe bool
 
-// Get is a convenience function for creating iterator and calling Get.
-//
-// DEPRECATED use Queryx.Get or Queryx.GetRelease.
-func Get(dest interface{}, q *gocql.Query) error {
-	return Iter(q).Get(dest)
-}
-
-// Select is a convenience function for creating iterator and calling Select.
-//
-// DEPRECATED use Queryx.Select or Queryx.SelectRelease.
-func Select(dest interface{}, q *gocql.Query) error {
-	return Iter(q).Select(dest)
-}
-
 // Iterx is a wrapper around gocql.Iter which adds struct scanning capabilities.
 type Iterx struct {
 	*gocql.Iter

@@ -69,17 +69,20 @@ func List(ctx context.Context, session *gocql.Session) ([]*Info, error) {
 		return nil, err
 	}
 
+	q := gocqlx.Query(session.Query(selectInfo).WithContext(ctx), nil)
+
 	var v []*Info
-	err := gocqlx.Select(&v, session.Query(selectInfo).WithContext(ctx))
-	if err == gocql.ErrNotFound {
+	if err := q.SelectRelease(&v); err == gocql.ErrNotFound {
 		return nil, nil
+	} else if err != nil {
+		return v, err
 	}
 
 	sort.Slice(v, func(i, j int) bool {
 		return v[i].Name < v[j].Name
 	})
 
-	return v, err
+	return v, nil
 }
 
 func ensureInfoTable(ctx context.Context, session *gocql.Session) error {
