@@ -34,14 +34,15 @@ func Select(dest interface{}, q *gocql.Query) error {
 // Iterx is a wrapper around gocql.Iter which adds struct scanning capabilities.
 type Iterx struct {
 	*gocql.Iter
-	err error
-
-	unsafe bool
 	Mapper *reflectx.Mapper
-	// these fields cache memory use for a rows during iteration w/ structScan
+
+	unsafe  bool
 	started bool
-	fields  [][]int
-	values  []interface{}
+	err     error
+
+	// Cache memory for a rows during iteration in StructScan.
+	fields [][]int
+	values []interface{}
 }
 
 // Iter creates a new Iterx from gocql.Query using a default mapper.
