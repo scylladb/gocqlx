@@ -15,6 +15,14 @@ Package `gocqlx` is an idiomatic extension to `gocql` that provides usability fe
 * Database migrations ([package migrate](https://github.com/scylladb/gocqlx/blob/master/migrate))
 * Fast!
 
+## Training and Scylla University
+
+[Scylla University](https://university.scylladb.com/) includes training material and online courses which will help you become a Scylla NoSQL database expert.
+The course [Using Scylla Drivers](https://university.scylladb.com/courses/using-scylla-drivers/) explains how to use drivers in different languages to interact with a Scylla cluster.
+The lesson, [Golang and Scylla Part 3](https://university.scylladb.com/courses/using-scylla-drivers/lessons/golang-and-scylla-part-3-gocqlx/) includes a sample application that uses the GoCQXL package.
+It connects to a Scylla cluster, displays the contents of a  table, inserts and deletes data, and shows the contents of the table after each action.
+Courses in [Scylla University](https://university.scylladb.com/) cover a variety of topics dealing with Scylla data modeling, administration, architecture and also covering some basic NoSQL concepts.
+
 ## Example
 
 ```go
