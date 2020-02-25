@@ -45,7 +45,8 @@ func New(m Metadata) *Table { // nolint: gocritic
 	for _, k := range m.SortKey {
 		t.primaryKeyCmp = append(t.primaryKeyCmp, qb.Eq(k))
 	}
-	t.partKeyCmp = t.primaryKeyCmp[:len(t.metadata.PartKey)]
+	t.partKeyCmp = make([]qb.Cmp, len(m.PartKey))
+	copy(t.partKeyCmp, t.primaryKeyCmp[:len(t.metadata.PartKey)])
 
 	// prepare get stmt
 	t.get.stmt, t.get.names = qb.Select(m.Name).Where(t.primaryKeyCmp...).ToCql()
