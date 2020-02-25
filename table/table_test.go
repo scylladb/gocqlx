@@ -5,9 +5,11 @@
 package table
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/scylladb/gocqlx/qb"
 )
 
 func TestTableGet(t *testing.T) {
@@ -217,5 +219,61 @@ func TestTableDelete(t *testing.T) {
 		if diff := cmp.Diff(test.N, names); diff != "" {
 			t.Error(diff, names)
 		}
+	}
+}
+
+func TestTableConcurrentUsage(t *testing.T) {
+	table := []struct {
+		Name string
+		M    Metadata
+		C    []string
+		N    []string
+		S    string
+	}{
+		{
+			Name: "Full select",
+			M: Metadata{
+				Name:    "table",
+				Columns: []string{"a", "b", "c", "d"},
+				PartKey: []string{"a"},
+				SortKey: []string{"b"},
+			},
+			N: []string{"a", "b"},
+			S: "SELECT * FROM table WHERE a=? AND b=? ",
+		},
+		{
+			Name: "Sub select",
+			M: Metadata{
+				Name:    "table",
+				Columns: []string{"a", "b", "c", "d"},
+				PartKey: []string{"a"},
+				SortKey: []string{"b"},
+			},
+			C: []string{"d"},
+			N: []string{"a", "b"},
+			S: "SELECT d FROM table WHERE a=? AND b=? ",
+		},
+	}
+
+	parallelCount := 3
+	// run SelectBuilder on the data set in parallel
+	for _, test := range table {
+		var wg sync.WaitGroup
+		testTable := New(test.M)
+		wg.Add(parallelCount)
+		for i := 0; i < parallelCount; i++ {
+			go func() {
+				defer wg.Done()
+				stmt, names := testTable.SelectBuilder(test.C...).
+					Where(qb.Eq("b")).ToCql()
+				if diff := cmp.Diff(test.S, stmt); diff != "" {
+					t.Error(diff)
+				}
+				if diff := cmp.Diff(test.N, names); diff != "" {
+					t.Error(diff, names)
+				}
+			}()
+		}
+		wg.Wait()
 	}
 }
