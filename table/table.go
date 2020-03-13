@@ -105,10 +105,20 @@ func (t *Table) Insert() (stmt string, names []string) {
 
 // Update returns update by primary key statement.
 func (t *Table) Update(columns ...string) (stmt string, names []string) {
-	return qb.Update(t.metadata.Name).Set(columns...).Where(t.primaryKeyCmp...).ToCql()
+	return t.UpdateBuilder(columns...).ToCql()
+}
+
+// UpdateBuilder returns a builder initialised to update by primary key statement.
+func (t *Table) UpdateBuilder(columns ...string) *qb.UpdateBuilder {
+	return qb.Update(t.metadata.Name).Set(columns...).Where(t.primaryKeyCmp...)
 }
 
 // Delete returns delete by primary key statement.
 func (t *Table) Delete(columns ...string) (stmt string, names []string) {
-	return qb.Delete(t.metadata.Name).Columns(columns...).Where(t.primaryKeyCmp...).ToCql()
+	return t.DeleteBuilder(columns...).ToCql()
+}
+
+// DeleteBuilder returns a builder initialised to delete by primary key statement.
+func (t *Table) DeleteBuilder(columns ...string) *qb.DeleteBuilder {
+	return qb.Delete(t.metadata.Name).Columns(columns...).Where(t.primaryKeyCmp...)
 }

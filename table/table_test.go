@@ -171,6 +171,17 @@ func TestTableUpdate(t *testing.T) {
 			t.Error(diff, names)
 		}
 	}
+
+	// run UpdateBuilder on the same data set
+	for _, test := range table {
+		stmt, names := New(test.M).UpdateBuilder(test.C...).ToCql()
+		if diff := cmp.Diff(test.S, stmt); diff != "" {
+			t.Error(diff)
+		}
+		if diff := cmp.Diff(test.N, names); diff != "" {
+			t.Error(diff, names)
+		}
+	}
 }
 
 func TestTableDelete(t *testing.T) {
@@ -213,6 +224,17 @@ func TestTableDelete(t *testing.T) {
 
 	for _, test := range table {
 		stmt, names := New(test.M).Delete(test.C...)
+		if diff := cmp.Diff(test.S, stmt); diff != "" {
+			t.Error(diff)
+		}
+		if diff := cmp.Diff(test.N, names); diff != "" {
+			t.Error(diff, names)
+		}
+	}
+
+	// run DeleteBuilder on the same data set
+	for _, test := range table {
+		stmt, names := New(test.M).DeleteBuilder(test.C...).ToCql()
 		if diff := cmp.Diff(test.S, stmt); diff != "" {
 			t.Error(diff)
 		}
