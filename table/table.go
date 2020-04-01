@@ -63,6 +63,13 @@ func (t *Table) Metadata() Metadata {
 	return t.metadata
 }
 
+// PrimaryKeyCmp returns copy of table's primaryKeyCmp.
+func (t *Table) PrimaryKeyCmp() []qb.Cmp {
+	primaryKeyCmp := make([]qb.Cmp, len(t.primaryKeyCmp))
+	copy(primaryKeyCmp, t.primaryKeyCmp)
+	return primaryKeyCmp
+}
+
 // Name returns table name.
 func (t *Table) Name() string {
 	return t.metadata.Name
