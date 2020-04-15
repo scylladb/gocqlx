@@ -180,6 +180,13 @@ func bindMapArgs(names []string, arg map[string]interface{}) ([]interface{}, err
 	return arglist, nil
 }
 
+// Bind sets query arguments of query. This can also be used to rebind new query arguments
+// to an existing query instance.
+func (q *Queryx) Bind(v ...interface{}) *Queryx {
+	q.Query.Bind(udtWrapSlice(q.Mapper, DefaultUnsafe, v)...)
+	return q
+}
+
 // Err returns any binding errors.
 func (q *Queryx) Err() error {
 	return q.err

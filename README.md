@@ -8,10 +8,11 @@ Package `gocqlx` is an idiomatic extension to `gocql` that provides usability fe
 
 ## Features
 
-* Binding query parameters form struct or map
-* Scanning results directly into struct or slice
+* Binding query parameters form struct
+* Scanning results into struct or slice
+* Automated UDT support
+* CRUD operations based on table model ([package table](https://github.com/scylladb/gocqlx/blob/master/table))
 * CQL query builder ([package qb](https://github.com/scylladb/gocqlx/blob/master/qb))
-* Super simple CRUD operations based on table model ([package table](https://github.com/scylladb/gocqlx/blob/master/table))
 * Database migrations ([package migrate](https://github.com/scylladb/gocqlx/blob/master/migrate))
 * Fast!
 

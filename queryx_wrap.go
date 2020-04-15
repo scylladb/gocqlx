@@ -117,13 +117,6 @@ func (q *Queryx) Idempotent(value bool) *Queryx {
 	return q
 }
 
-// Bind sets query arguments of query. This can also be used to rebind new query arguments
-// to an existing query instance.
-func (q *Queryx) Bind(v ...interface{}) *Queryx {
-	q.Query.Bind(v...)
-	return q
-}
-
 // SerialConsistency sets the consistency level for the
 // serial phase of conditional updates. That consistency can only be
 // either SERIAL or LOCAL_SERIAL and if not present, it defaults to
