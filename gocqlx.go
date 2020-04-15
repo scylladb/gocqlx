@@ -28,6 +28,10 @@ func structOnlyError(t reflect.Type) error {
 		return fmt.Errorf("expected a struct but the provided struct type %s implements gocql.UDTUnmarshaler", t.Name())
 	}
 
+	if isAutoUDT := reflect.PtrTo(t).Implements(autoUDTInterface); isAutoUDT {
+		return fmt.Errorf("expected a struct but the provided struct type %s implements gocqlx.UDT", t.Name())
+	}
+
 	return fmt.Errorf("expected a struct, but struct %s has no exported fields", t.Name())
 }
 
@@ -36,6 +40,7 @@ func structOnlyError(t reflect.Type) error {
 var (
 	unmarshallerInterface    = reflect.TypeOf((*gocql.Unmarshaler)(nil)).Elem()
 	udtUnmarshallerInterface = reflect.TypeOf((*gocql.UDTUnmarshaler)(nil)).Elem()
+	autoUDTInterface         = reflect.TypeOf((*UDT)(nil)).Elem()
 )
 
 func baseType(t reflect.Type, expected reflect.Kind) (reflect.Type, error) {
@@ -44,32 +49,6 @@ func baseType(t reflect.Type, expected reflect.Kind) (reflect.Type, error) {
 		return nil, fmt.Errorf("expected %s but got %s", expected, t.Kind())
 	}
 	return t, nil
-}
-
-// fieldsByName fills a values interface with fields from the passed value based
-// on the traversals in int. If ptrs is true, return addresses instead of values.
-// We write this instead of using FieldsByName to save allocations and map lookups
-// when iterating over many rows. Empty traversals will get an interface pointer.
-// Because of the necessity of requesting ptrs or values, it's considered a bit too
-// specialized for inclusion in reflectx itself.
-func fieldsByTraversal(v reflect.Value, traversals [][]int, values []interface{}, ptrs bool) error {
-	v = reflect.Indirect(v)
-	if v.Kind() != reflect.Struct {
-		return errors.New("argument not a struct")
-	}
-
-	for i, traversal := range traversals {
-		if len(traversal) == 0 {
-			continue
-		}
-		f := reflectx.FieldByIndexes(v, traversal)
-		if ptrs {
-			values[i] = f.Addr().Interface()
-		} else {
-			values[i] = f.Interface()
-		}
-	}
-	return nil
 }
 
 func missingFields(transversals [][]int) (field int, err error) {
