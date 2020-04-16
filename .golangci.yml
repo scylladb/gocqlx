@@ -1,7 +1,6 @@
 run:
   deadline: 5m
   tests: false
-  silent: true
 
 linters-settings:
   errcheck:
@@ -13,6 +12,13 @@ linters-settings:
       - diagnostic
       - performance
       - style
+    disabled-checks:
+      - commentedOutCode
+      - evalOrder
+      - hugeParam
+      - importShadow
+      - yodaStyleExpr
+      - whyNoLint
   lll:
     line-length: 180
 
@@ -22,10 +28,12 @@ linters:
     - funlen
     - gas
     - gochecknoglobals
+    - gochecknoinits
+    - gomnd
     - interfacer
     - maligned
     - nakedret
-    - stylecheck
+    - prealloc
     - wsl
 
 issues:
