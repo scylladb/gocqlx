@@ -16,7 +16,7 @@ fmt:
 check:
 	@$(GOBIN)/golangci-lint run ./...
 
-GOTEST := go test -cover -race -tags all
+GOTEST := go test -count=1 -cover -race -tags all
 
 .PHONY: test
 test:
