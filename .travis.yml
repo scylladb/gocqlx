@@ -6,9 +6,12 @@ go:
 services:
   - docker
 
+env:
+  - SCYLLA_VERSION=latest
+
 before_install:
-  - docker pull scylladb/scylla:latest
-  - docker run --name scylla -p 9042:9042 --cpus=0 -d scylladb/scylla
+  - docker pull scylladb/scylla:${SCYLLA_VERSION}
+  - docker run --rm --name scylla -p 9042:9042 --cpus=0 -d scylladb/scylla:${SCYLLA_VERSION}
   - until docker exec scylla cqlsh -e "DESCRIBE SCHEMA"; do sleep 2; done
 
 install:
