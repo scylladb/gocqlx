@@ -36,6 +36,7 @@ func Iter(q *gocql.Query) *Iterx {
 	return &Iterx{
 		Iter:   q.Iter(),
 		Mapper: DefaultMapper,
+		unsafe: DefaultUnsafe,
 	}
 }
 
@@ -215,7 +216,7 @@ func (iter *Iterx) StructScan(dest interface{}) bool {
 
 		iter.fields = m.TraversalsByName(v.Type(), columns)
 		// if we are not unsafe and are missing fields, return an error
-		if !iter.unsafe && !DefaultUnsafe {
+		if !iter.unsafe {
 			if f, err := missingFields(iter.fields); err != nil {
 				iter.err = fmt.Errorf("missing destination name %q in %T", columns[f], dest)
 				return false
