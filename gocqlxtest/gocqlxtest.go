@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/scylladb/gocqlx"
 )
 
 var (
@@ -28,7 +29,7 @@ var (
 var initOnce sync.Once
 
 // CreateSession creates a new gocql session from flags.
-func CreateSession(tb testing.TB) *gocql.Session {
+func CreateSession(tb testing.TB) gocqlx.Session {
 	cluster := createCluster()
 	return createSessionFromCluster(cluster, tb)
 }
@@ -60,7 +61,7 @@ func createCluster() *gocql.ClusterConfig {
 	return cluster
 }
 
-func createSessionFromCluster(cluster *gocql.ClusterConfig, tb testing.TB) *gocql.Session {
+func createSessionFromCluster(cluster *gocql.ClusterConfig, tb testing.TB) gocqlx.Session {
 	// Drop and re-create the keyspace once. Different tests should use their own
 	// individual tables, but can assume that the table does not exist before.
 	initOnce.Do(func() {
@@ -68,11 +69,10 @@ func createSessionFromCluster(cluster *gocql.ClusterConfig, tb testing.TB) *gocq
 	})
 
 	cluster.Keyspace = "gocqlx_test"
-	session, err := cluster.CreateSession()
+	session, err := gocqlx.WrapSession(cluster.CreateSession())
 	if err != nil {
 		tb.Fatal("CreateSession:", err)
 	}
-
 	return session
 }
 
@@ -80,31 +80,23 @@ func createKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace string
 	c := *cluster
 	c.Keyspace = "system"
 	c.Timeout = 30 * time.Second
-	session, err := c.CreateSession()
+	session, err := gocqlx.WrapSession(c.CreateSession())
 	if err != nil {
 		tb.Fatal(err)
 	}
 	defer session.Close()
 
-	err = ExecStmt(session, `DROP KEYSPACE IF EXISTS `+keyspace)
+	err = session.ExecStmt(`DROP KEYSPACE IF EXISTS ` + keyspace)
 	if err != nil {
 		tb.Fatalf("unable to drop keyspace: %v", err)
 	}
 
-	err = ExecStmt(session, fmt.Sprintf(`CREATE KEYSPACE %s
+	err = session.ExecStmt(fmt.Sprintf(`CREATE KEYSPACE %s
 	WITH replication = {
 		'class' : 'SimpleStrategy',
 		'replication_factor' : %d
 	}`, keyspace, *flagRF))
-
 	if err != nil {
 		tb.Fatalf("unable to create keyspace: %v", err)
 	}
-}
-
-// ExecStmt executes a statement string.
-func ExecStmt(s *gocql.Session, stmt string) error {
-	q := s.Query(stmt).RetryPolicy(nil)
-	defer q.Release()
-	return q.Exec()
 }

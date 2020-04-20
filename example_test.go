@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
     PRIMARY KEY(first_name, last_name)
 )`
 
-	if err := ExecStmt(session, personSchema); err != nil {
+	if err := session.ExecStmt(personSchema); err != nil {
 		t.Fatal("create table:", err)
 	}
 
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 	// Insert, bind data from struct.
 	{
 		stmt, names := qb.Insert("gocqlx_test.person").Columns("first_name", "last_name", "email").ToCql()
-		q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
+		q := session.Query(stmt, names).BindStruct(p)
 
 		if err := q.ExecRelease(); err != nil {
 			t.Fatal(err)
@@ -63,9 +63,9 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 			TTL(86400 * time.Second).
 			Timestamp(time.Now()).
 			ToCql()
+		q := session.Query(stmt, names).BindStruct(p)
 
-		err := gocqlx.Query(session.Query(stmt), names).BindStruct(p).ExecRelease()
-		if err != nil {
+		if err := q.ExecRelease(); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 			Set("email").
 			Where(qb.Eq("first_name"), qb.Eq("last_name")).
 			ToCql()
-		q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
+		q := session.Query(stmt, names).BindStruct(p)
 
 		if err := q.ExecRelease(); err != nil {
 			t.Fatal(err)
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 			AddNamed("email", "new_email").
 			Where(qb.Eq("first_name"), qb.Eq("last_name")).
 			ToCql()
-		q := gocqlx.Query(session.Query(stmt), names).BindStructMap(p, qb.M{
+		q := session.Query(stmt, names).BindStructMap(p, qb.M{
 			"new_email": []string{"patricia2.citzen@gocqlx_test.com", "patricia3.citzen@gocqlx_test.com"},
 		})
 
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 				[]string{"ian.citzen@gocqlx_test.com"},
 			},
 		}
-		q := gocqlx.Query(session.Query(stmt), names).BindStruct(&batch)
+		q := session.Query(stmt, names).BindStruct(&batch)
 
 		if err := q.ExecRelease(); err != nil {
 			t.Fatal(err)
@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 		var p Person
 
 		stmt, names := qb.Select("gocqlx_test.person").Where(qb.Eq("first_name")).ToCql()
-		q := gocqlx.Query(session.Query(stmt), names).BindMap(qb.M{
+		q := session.Query(stmt, names).BindMap(qb.M{
 			"first_name": "Patricia",
 		})
 
@@ -153,7 +153,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 		var people []Person
 
 		stmt, names := qb.Select("gocqlx_test.person").Where(qb.In("first_name")).ToCql()
-		q := gocqlx.Query(session.Query(stmt), names).BindMap(qb.M{
+		q := session.Query(stmt, names).BindMap(qb.M{
 			"first_name": []string{"Patricia", "Igy", "Ian"},
 		})
 
@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 			Where(qb.Token("first_name").Gt()).
 			Limit(10).
 			ToCql()
-		q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
+		q := session.Query(stmt, names).BindStruct(p)
 
 		var people []Person
 		if err := q.SelectRelease(&people); err != nil {
@@ -202,7 +202,8 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 			"Citizen",
 			[]string{"jane.citzen@gocqlx_test.com"},
 		}
-		q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
+		q := session.Query(stmt, names).BindStruct(p)
+
 		if err := q.ExecRelease(); err != nil {
 			t.Fatal(err)
 		}

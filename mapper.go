@@ -12,4 +12,6 @@ import (
 // snake case. It can be set to whatever you want, but it is encouraged to be
 // set before gocqlx is used as name-to-field mappings are cached after first
 // use on a type.
+//
+// A custom mapper can always be set per Sessionm, Query and Iter.
 var DefaultMapper = reflectx.NewMapperFunc("db", reflectx.CamelToSnakeASCII)

@@ -9,7 +9,6 @@ package table_test
 import (
 	"testing"
 
-	"github.com/scylladb/gocqlx"
 	. "github.com/scylladb/gocqlx/gocqlxtest"
 	"github.com/scylladb/gocqlx/qb"
 	"github.com/scylladb/gocqlx/table"
@@ -26,7 +25,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
     email list<text>,
     PRIMARY KEY(first_name, last_name)
 )`
-	if err := ExecStmt(session, personSchema); err != nil {
+	if err := session.ExecStmt(personSchema); err != nil {
 		t.Fatal("create table:", err)
 	}
 
@@ -58,8 +57,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 			[]string{"patricia.citzen@gocqlx_test.com"},
 		}
 
-		stmt, names := personTable.Insert()
-		q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
+		q := session.Query(personTable.Insert()).BindStruct(p)
 		if err := q.ExecRelease(); err != nil {
 			t.Fatal(err)
 		}
@@ -73,8 +71,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 			nil, // no email
 		}
 
-		stmt, names := personTable.Get() // you can filter columns too
-		q := gocqlx.Query(session.Query(stmt), names).BindStruct(p)
+		q := session.Query(personTable.Get()).BindStruct(p)
 		if err := q.GetRelease(&p); err != nil {
 			t.Fatal(err)
 		}
@@ -87,9 +84,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 	{
 		var people []Person
 
-		stmt, names := personTable.Select() // you can filter columns too
-		q := gocqlx.Query(session.Query(stmt), names).BindMap(qb.M{"first_name": "Patricia"})
-
+		q := session.Query(personTable.Select()).BindMap(qb.M{"first_name": "Patricia"})
 		if err := q.SelectRelease(&people); err != nil {
 			t.Fatal(err)
 		}
