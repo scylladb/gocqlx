@@ -24,6 +24,7 @@ type Iterx struct {
 
 	unsafe     bool
 	structOnly bool
+	applied    bool
 	err        error
 
 	// Cache memory for a rows during iteration in structScan.
@@ -252,6 +253,8 @@ func (iter *Iterx) StructScan(dest interface{}) bool {
 	return iter.structScan(value)
 }
 
+const appliedColumn = "[applied]"
+
 func (iter *Iterx) structScan(value reflect.Value) bool {
 	if value.Kind() != reflect.Ptr {
 		panic("value must be a pointer")
@@ -259,16 +262,20 @@ func (iter *Iterx) structScan(value reflect.Value) bool {
 
 	if iter.fields == nil {
 		columns := columnNames(iter.Iter.Columns())
-		iter.fields = iter.Mapper.TraversalsByName(value.Type(), columns)
+		cas := len(columns) > 0 && columns[0] == appliedColumn
 
-		// if we are not unsafe and are missing fields, return an error
-		if !iter.unsafe {
+		iter.fields = iter.Mapper.TraversalsByName(value.Type(), columns)
+		// if we are not unsafe and it's not CAS query and are missing fields, return an error
+		if !iter.unsafe && !cas {
 			if f, err := missingFields(iter.fields); err != nil {
 				iter.err = fmt.Errorf("missing destination name %q in %s", columns[f], reflect.Indirect(value).Type())
 				return false
 			}
 		}
 		iter.values = make([]interface{}, len(columns))
+		if cas {
+			iter.values[0] = &iter.applied
+		}
 	}
 
 	if err := iter.fieldsByTraversal(value, iter.fields, iter.values); err != nil {

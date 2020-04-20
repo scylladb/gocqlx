@@ -209,6 +209,23 @@ func (q *Queryx) ExecRelease() error {
 	return q.Exec()
 }
 
+// ExecCAS executes the Lightweight Transaction query, returns whether query was applied.
+// See: https://docs.scylladb.com/using-scylla/lwt/ for more details.
+func (q *Queryx) ExecCAS() (applied bool, err error) {
+	iter := q.Iter().StructOnly()
+	if err := iter.Get(&struct{}{}); err != nil {
+		return false, err
+	}
+	return iter.applied, iter.Close()
+}
+
+// ExecCASRelease calls ExecCAS and releases the query, a released query cannot be
+// reused.
+func (q *Queryx) ExecCASRelease() (bool, error) {
+	defer q.Release()
+	return q.ExecCAS()
+}
+
 // Get scans first row into a destination and closes the iterator.
 //
 // If the destination type is a struct pointer, then Iter.StructScan will be
@@ -234,6 +251,26 @@ func (q *Queryx) Get(dest interface{}) error {
 func (q *Queryx) GetRelease(dest interface{}) error {
 	defer q.Release()
 	return q.Get(dest)
+}
+
+// GetCAS executes a lightweight transaction.
+// If the transaction fails because the existing values did not match,
+// the previous values will be stored in dest object.
+// See: https://docs.scylladb.com/using-scylla/lwt/ for more details.
+func (q *Queryx) GetCAS(dest interface{}) (applied bool, err error) {
+	iter := q.Iter()
+	if err := iter.Get(dest); err != nil {
+		return false, err
+	}
+
+	return iter.applied, iter.Close()
+}
+
+// GetCASRelease calls GetCAS and releases the query, a released query cannot be
+// reused.
+func (q *Queryx) GetCASRelease(dest interface{}) (bool, error) {
+	defer q.Release()
+	return q.GetCAS(dest)
 }
 
 // Select scans all rows into a destination, which must be a pointer to slice
