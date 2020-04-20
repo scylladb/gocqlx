@@ -90,6 +90,8 @@ type Queryx struct {
 }
 
 // Query creates a new Queryx from gocql.Query using a default mapper.
+//
+// Deprecated: Use Session API instead.
 func Query(q *gocql.Query, names []string) *Queryx {
 	return &Queryx{
 		Query:  q,
@@ -266,7 +268,9 @@ func (q *Queryx) SelectRelease(dest interface{}) error {
 // big to be loaded with Select in order to do row by row iteration.
 // See Iterx StructScan function.
 func (q *Queryx) Iter() *Iterx {
-	i := Iter(q.Query)
-	i.Mapper = q.Mapper
-	return i
+	return &Iterx{
+		Iter:   q.Query.Iter(),
+		Mapper: q.Mapper,
+		unsafe: DefaultUnsafe,
+	}
 }

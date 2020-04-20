@@ -15,7 +15,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gocql/gocql"
+	"github.com/scylladb/gocqlx"
 	. "github.com/scylladb/gocqlx/gocqlxtest"
 	"github.com/scylladb/gocqlx/migrate"
 )
@@ -30,16 +30,16 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.migrate_table (
 
 var insertMigrate = `INSERT INTO gocqlx_test.migrate_table (testint, testuuid) VALUES (%d, now())`
 
-func recreateTables(tb testing.TB, session *gocql.Session) {
+func recreateTables(tb testing.TB, session gocqlx.Session) {
 	tb.Helper()
 
-	if err := ExecStmt(session, "DROP TABLE IF EXISTS gocqlx_test.gocqlx_migrate"); err != nil {
+	if err := session.ExecStmt("DROP TABLE IF EXISTS gocqlx_test.gocqlx_migrate"); err != nil {
 		tb.Fatal(err)
 	}
-	if err := ExecStmt(session, migrateSchema); err != nil {
+	if err := session.ExecStmt(migrateSchema); err != nil {
 		tb.Fatal(err)
 	}
-	if err := ExecStmt(session, "TRUNCATE gocqlx_test.migrate_table"); err != nil {
+	if err := session.ExecStmt("TRUNCATE gocqlx_test.migrate_table"); err != nil {
 		tb.Fatal(err)
 	}
 }
@@ -105,7 +105,7 @@ func TestMigrationNoSemicolon(t *testing.T) {
 	defer session.Close()
 	recreateTables(t, session)
 
-	if err := ExecStmt(session, migrateSchema); err != nil {
+	if err := session.ExecStmt(migrateSchema); err != nil {
 		t.Fatal(err)
 	}
 
@@ -134,7 +134,7 @@ func TestMigrationCallback(t *testing.T) {
 		beforeCalled int
 		afterCalled  int
 	)
-	migrate.Callback = func(ctx context.Context, session *gocql.Session, ev migrate.CallbackEvent, name string) error {
+	migrate.Callback = func(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
 		switch ev {
 		case migrate.BeforeMigration:
 			beforeCalled += 1
@@ -166,7 +166,7 @@ func TestMigrationCallback(t *testing.T) {
 	defer session.Close()
 	recreateTables(t, session)
 
-	if err := ExecStmt(session, migrateSchema); err != nil {
+	if err := session.ExecStmt(migrateSchema); err != nil {
 		t.Fatal(err)
 	}
 
@@ -215,14 +215,11 @@ func makeMigrationDir(tb testing.TB, n int) (dir string) {
 	return dir
 }
 
-func countMigrations(tb testing.TB, session *gocql.Session) int {
+func countMigrations(tb testing.TB, session gocqlx.Session) int {
 	tb.Helper()
 
-	q := session.Query("SELECT COUNT(*) FROM gocqlx_test.migrate_table")
-	defer q.Release()
-
 	var v int
-	if err := q.Scan(&v); err != nil {
+	if err := session.Query("SELECT COUNT(*) FROM gocqlx_test.migrate_table", nil).Get(&v); err != nil {
 		tb.Fatal(err)
 	}
 	return v

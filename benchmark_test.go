@@ -11,7 +11,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx"
 	. "github.com/scylladb/gocqlx/gocqlxtest"
 	"github.com/scylladb/gocqlx/qb"
@@ -49,12 +48,12 @@ func BenchmarkBaseGocqlInsert(b *testing.B) {
 	session := CreateSession(b)
 	defer session.Close()
 
-	if err := ExecStmt(session, benchPersonSchema); err != nil {
+	if err := session.ExecStmt(benchPersonSchema); err != nil {
 		b.Fatal(err)
 	}
 
 	stmt, _ := qb.Insert("gocqlx_test.bench_person").Columns(benchPersonCols...).ToCql()
-	q := session.Query(stmt)
+	q := session.Session.Query(stmt)
 	defer q.Release()
 
 	b.ResetTimer()
@@ -72,12 +71,12 @@ func BenchmarkGocqlxInsert(b *testing.B) {
 	session := CreateSession(b)
 	defer session.Close()
 
-	if err := ExecStmt(session, benchPersonSchema); err != nil {
+	if err := session.ExecStmt(benchPersonSchema); err != nil {
 		b.Fatal(err)
 	}
 
 	stmt, names := qb.Insert("gocqlx_test.bench_person").Columns(benchPersonCols...).ToCql()
-	q := gocqlx.Query(session.Query(stmt), names)
+	q := session.Query(stmt, names)
 	defer q.Release()
 
 	b.ResetTimer()
@@ -102,7 +101,7 @@ func BenchmarkBaseGocqlGet(b *testing.B) {
 	initTable(b, session, people)
 
 	stmt, _ := qb.Select("gocqlx_test.bench_person").Columns(benchPersonCols...).Where(qb.Eq("id")).Limit(1).ToCql()
-	q := session.Query(stmt)
+	q := session.Session.Query(stmt)
 	defer q.Release()
 
 	var p benchPerson
@@ -124,8 +123,8 @@ func BenchmarkGocqlxGet(b *testing.B) {
 
 	initTable(b, session, people)
 
-	stmt, _ := qb.Select("gocqlx_test.bench_person").Columns(benchPersonCols...).Where(qb.Eq("id")).Limit(1).ToCql()
-	q := session.Query(stmt)
+	stmt, names := qb.Select("gocqlx_test.bench_person").Columns(benchPersonCols...).Where(qb.Eq("id")).Limit(1).ToCql()
+	q := session.Query(stmt, names)
 	defer q.Release()
 
 	var p benchPerson
@@ -133,7 +132,7 @@ func BenchmarkGocqlxGet(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		q.Bind(people[i%len(people)].ID)
-		if err := gocqlx.Query(q, nil).Get(&p); err != nil {
+		if err := q.Get(&p); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -153,7 +152,7 @@ func BenchmarkBaseGocqlSelect(b *testing.B) {
 	initTable(b, session, people)
 
 	stmt, _ := qb.Select("gocqlx_test.bench_person").Columns(benchPersonCols...).Limit(100).ToCql()
-	q := session.Query(stmt)
+	q := session.Session.Query(stmt)
 	defer q.Release()
 
 	b.ResetTimer()
@@ -179,8 +178,8 @@ func BenchmarkGocqlxSelect(b *testing.B) {
 
 	initTable(b, session, people)
 
-	stmt, _ := qb.Select("gocqlx_test.bench_person").Columns(benchPersonCols...).Limit(100).ToCql()
-	q := gocqlx.Query(session.Query(stmt), nil)
+	stmt, names := qb.Select("gocqlx_test.bench_person").Columns(benchPersonCols...).Limit(100).ToCql()
+	q := session.Query(stmt, names)
 	defer q.Release()
 
 	b.ResetTimer()
@@ -211,13 +210,13 @@ func loadFixtures() []*benchPerson {
 	return v
 }
 
-func initTable(b *testing.B, session *gocql.Session, people []*benchPerson) {
-	if err := ExecStmt(session, benchPersonSchema); err != nil {
+func initTable(b *testing.B, session gocqlx.Session, people []*benchPerson) {
+	if err := session.ExecStmt(benchPersonSchema); err != nil {
 		b.Fatal(err)
 	}
 
 	stmt, names := qb.Insert("gocqlx_test.bench_person").Columns(benchPersonCols...).ToCql()
-	q := gocqlx.Query(session.Query(stmt), names)
+	q := session.Query(stmt, names)
 
 	for _, p := range people {
 		if err := q.BindStruct(p).Exec(); err != nil {

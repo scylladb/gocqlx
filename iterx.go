@@ -31,15 +31,6 @@ type Iterx struct {
 	values []interface{}
 }
 
-// Iter creates a new Iterx from gocql.Query using a default mapper.
-func Iter(q *gocql.Query) *Iterx {
-	return &Iterx{
-		Iter:   q.Iter(),
-		Mapper: DefaultMapper,
-		unsafe: DefaultUnsafe,
-	}
-}
-
 // Unsafe forces the iterator to ignore missing fields. By default when scanning
 // a struct if result row has a column that cannot be mapped to any destination
 // field an error is reported. With unsafe such columns are ignored.

@@ -7,7 +7,7 @@ package migrate
 import (
 	"context"
 
-	"github.com/gocql/gocql"
+	"github.com/scylladb/gocqlx"
 )
 
 // CallbackEvent specifies type of the event when calling CallbackFunc.
@@ -21,7 +21,7 @@ const (
 
 // CallbackFunc enables interrupting the migration process and executing code
 // while migrating. If error is returned the migration is aborted.
-type CallbackFunc func(ctx context.Context, session *gocql.Session, ev CallbackEvent, name string) error
+type CallbackFunc func(ctx context.Context, session gocqlx.Session, ev CallbackEvent, name string) error
 
 // Callback is called before and after each migration.
 // See CallbackFunc for details.

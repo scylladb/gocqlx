@@ -64,12 +64,12 @@ type Info struct {
 }
 
 // List provides a listing of applied migrations.
-func List(ctx context.Context, session *gocql.Session) ([]*Info, error) {
+func List(ctx context.Context, session gocqlx.Session) ([]*Info, error) {
 	if err := ensureInfoTable(ctx, session); err != nil {
 		return nil, err
 	}
 
-	q := gocqlx.Query(session.Query(selectInfo).WithContext(ctx), nil)
+	q := session.ContextQuery(ctx, selectInfo, nil)
 
 	var v []*Info
 	if err := q.SelectRelease(&v); err == gocql.ErrNotFound {
@@ -85,12 +85,12 @@ func List(ctx context.Context, session *gocql.Session) ([]*Info, error) {
 	return v, nil
 }
 
-func ensureInfoTable(ctx context.Context, session *gocql.Session) error {
-	return gocqlx.Query(session.Query(infoSchema).WithContext(ctx), nil).ExecRelease()
+func ensureInfoTable(ctx context.Context, session gocqlx.Session) error {
+	return session.ContextQuery(ctx, infoSchema, nil).ExecRelease()
 }
 
 // Migrate reads the cql files from a directory and applies required migrations.
-func Migrate(ctx context.Context, session *gocql.Session, dir string) error {
+func Migrate(ctx context.Context, session gocqlx.Session, dir string) error {
 	// get database migrations
 	dbm, err := List(ctx, session)
 	if err != nil {
@@ -147,7 +147,7 @@ func Migrate(ctx context.Context, session *gocql.Session, dir string) error {
 	return nil
 }
 
-func applyMigration(ctx context.Context, session *gocql.Session, path string, done int) error {
+func applyMigration(ctx context.Context, session gocqlx.Session, path string, done int) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -173,8 +173,8 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 		"end_time",
 	).ToCql()
 
-	iq := gocqlx.Query(session.Query(stmt).WithContext(ctx), names)
-	defer iq.Release()
+	update := session.ContextQuery(ctx, stmt, names)
+	defer update.Release()
 
 	if DefaultAwaitSchemaAgreement.ShouldAwait(AwaitSchemaAgreementBeforeEachFile) {
 		if err = session.AwaitSchemaAgreement(ctx); err != nil {
@@ -216,7 +216,7 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 		}
 
 		// execute
-		q := gocqlx.Query(session.Query(stmt).RetryPolicy(nil).WithContext(ctx), nil)
+		q := session.ContextQuery(ctx, stmt, nil).RetryPolicy(nil)
 		if err := q.ExecRelease(); err != nil {
 			return fmt.Errorf("statement %d failed: %s", i, err)
 		}
@@ -224,7 +224,7 @@ func applyMigration(ctx context.Context, session *gocql.Session, path string, do
 		// update info
 		info.Done = i
 		info.EndTime = time.Now()
-		if err := iq.BindStruct(info).Exec(); err != nil {
+		if err := update.BindStruct(info).Exec(); err != nil {
 			return fmt.Errorf("migration statement %d failed: %s", i, err)
 		}
 	}
