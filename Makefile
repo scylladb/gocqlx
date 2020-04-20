@@ -37,6 +37,10 @@ test:
 bench:
 	@go test -cpu $(GOTEST_CPU) -tags all -run=XXX -bench=. -benchmem ./...
 
+.PHONY: run-examples
+run-examples:
+	@go test -tags all -v -run=Example
+
 .PHONY: run-scylla
 run-scylla:
 	@echo "==> Running test instance of Scylla $(SCYLLA_VERSION)"

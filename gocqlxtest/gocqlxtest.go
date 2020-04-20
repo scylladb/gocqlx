@@ -28,13 +28,14 @@ var (
 
 var initOnce sync.Once
 
-// CreateSession creates a new gocql session from flags.
+// CreateSession creates a new gocqlx session from flags.
 func CreateSession(tb testing.TB) gocqlx.Session {
-	cluster := createCluster()
+	cluster := CreateCluster()
 	return createSessionFromCluster(cluster, tb)
 }
 
-func createCluster() *gocql.ClusterConfig {
+// CreateCluster creates gocql ClusterConfig from flags.
+func CreateCluster() *gocql.ClusterConfig {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
