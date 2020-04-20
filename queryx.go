@@ -15,6 +15,13 @@ import (
 	"github.com/scylladb/go-reflectx"
 )
 
+// CompileNamedQueryString translates query with named parameters in a form
+// ':<identifier>' to query with '?' placeholders and a list of parameter names.
+// If you need to use ':' in a query, i.e. with maps or UDTs use '::' instead.
+func CompileNamedQueryString(qs string) (stmt string, names []string, err error) {
+	return CompileNamedQuery([]byte(qs))
+}
+
 // CompileNamedQuery translates query with named parameters in a form
 // ':<identifier>' to query with '?' placeholders and a list of parameter names.
 // If you need to use ':' in a query, i.e. with maps or UDTs use '::' instead.

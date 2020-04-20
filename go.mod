@@ -6,6 +6,7 @@ require (
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/go-cmp v0.2.0
 	github.com/scylladb/go-reflectx v1.0.1
+	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	gopkg.in/inf.v0 v0.9.1
 )
 
