@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
     first_name text,
     last_name text,
     email list<text>,
+    salary int,
     PRIMARY KEY(first_name, last_name)
 )`
 
@@ -38,12 +39,14 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 		FirstName string
 		LastName  string
 		Email     []string
+		Salary    int
 	}
 
 	p := Person{
 		"Patricia",
 		"Citizen",
 		[]string{"patricia.citzen@gocqlx_test.com"},
+		500,
 	}
 
 	// Insert, bind data from struct.
@@ -117,11 +120,13 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 				"Igy",
 				"Citizen",
 				[]string{"igy.citzen@gocqlx_test.com"},
+				500,
 			},
 			B: Person{
 				"Ian",
 				"Citizen",
 				[]string{"ian.citzen@gocqlx_test.com"},
+				500,
 			},
 		}
 		q := session.Query(stmt, names).BindStruct(&batch)
@@ -171,6 +176,7 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 			"Ian",
 			"Citizen",
 			[]string{"ian.citzen@gocqlx_test.com"},
+			500,
 		}
 
 		stmt, names := qb.Select("gocqlx_test.person").
@@ -201,11 +207,52 @@ CREATE TABLE IF NOT EXISTS gocqlx_test.person (
 			"Jane",
 			"Citizen",
 			[]string{"jane.citzen@gocqlx_test.com"},
+			500,
 		}
 		q := session.Query(stmt, names).BindStruct(p)
 
 		if err := q.ExecRelease(); err != nil {
 			t.Fatal(err)
 		}
+	}
+
+	// Support for Lightweight Transactions
+	{
+
+		p := Person{
+			"Stephen",
+			"Johns",
+			[]string{"stephen.johns@gocqlx_test.com"},
+			500,
+		}
+
+		stmt, names := qb.Insert("gocqlx_test.person").
+			Columns("first_name", "last_name", "email", "salary").
+			Unique().
+			ToCql()
+
+		applied, err := session.Query(stmt, names).BindStruct(p).ExecCASRelease()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		t.Log(applied)
+
+		stmt, names = qb.Update("gocqlx_test.person").
+			SetNamed("salary", "new_salary").
+			Where(qb.Eq("first_name"), qb.Eq("last_name")).
+			If(qb.LtNamed("salary", "old_salary")).
+			ToCql()
+		q := session.Query(stmt, names).BindStructMap(&p, qb.M{
+			"old_salary": 1000,
+			"new_salary": 1500,
+		})
+
+		applied, err = q.GetCAS(&p)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		t.Log(applied, p)
 	}
 }
