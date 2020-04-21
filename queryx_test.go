@@ -5,8 +5,10 @@
 package gocqlx
 
 import (
+	"reflect"
 	"testing"
 
+	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -148,4 +150,26 @@ func TestQueryxBindMap(t *testing.T) {
 			t.Fatal("unexpected error")
 		}
 	})
+}
+
+func TestQyeryxAllWrapped(t *testing.T) {
+	var (
+		gocqlQueryPtr = reflect.TypeOf((*gocql.Query)(nil))
+		queryxPtr     = reflect.TypeOf((*Queryx)(nil))
+	)
+
+	for i := 0; i < gocqlQueryPtr.NumMethod(); i++ {
+		m, ok := queryxPtr.MethodByName(gocqlQueryPtr.Method(i).Name)
+		if !ok {
+			t.Fatalf("Queryx missing method %s", gocqlQueryPtr.Method(i).Name)
+		}
+
+		t.Log(m.Name)
+
+		for j := 0; j < m.Type.NumOut(); j++ {
+			if m.Type.Out(j) == gocqlQueryPtr {
+				t.Errorf("Queryx method %s not wrapped", m.Name)
+			}
+		}
+	}
 }
