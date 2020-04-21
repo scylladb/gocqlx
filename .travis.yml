@@ -7,7 +7,7 @@ services:
   - docker
 
 env:
-  - SCYLLA_VERSION=latest
+  - SCYLLA_VERSION=4.0.rc1
 
 before_install:
   - make run-scylla
