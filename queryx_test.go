@@ -61,7 +61,7 @@ func TestCompileQuery(t *testing.T) {
 	}
 }
 
-func TestBindStruct(t *testing.T) {
+func TestQueryxBindStruct(t *testing.T) {
 	v := &struct {
 		Name  string
 		Age   int
@@ -121,7 +121,7 @@ func TestBindStruct(t *testing.T) {
 	})
 }
 
-func TestBindMap(t *testing.T) {
+func TestQueryxBindMap(t *testing.T) {
 	v := map[string]interface{}{
 		"name":  "name",
 		"age":   30,
