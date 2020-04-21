@@ -8,12 +8,13 @@ package gocqlx_test
 
 import (
 	"math/big"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/gocqlx"
 	. "github.com/scylladb/gocqlx/gocqlxtest"
 	"github.com/scylladb/gocqlx/qb"
@@ -45,7 +46,7 @@ type FullNamePtrUDT struct {
 	*FullName
 }
 
-func TestStruct(t *testing.T) {
+func TestIterxStruct(t *testing.T) {
 	session := CreateSession(t)
 	defer session.Close()
 
@@ -123,9 +124,9 @@ func TestStruct(t *testing.T) {
 		Testptrudt:    FullNamePtrUDT{FullName: &FullName{FirstName: "John", LastName: "Doe"}},
 	}
 
-	const stmt = `INSERT INTO struct_table (testuuid, testtimestamp, testvarchar, testbigint, testblob, testbool, testfloat,testdouble, testint, testdecimal, testlist, testset, testmap, testvarint, testinet, testcustom, testudt, testptrudt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	const insertStmt = `INSERT INTO struct_table (testuuid, testtimestamp, testvarchar, testbigint, testblob, testbool, testfloat,testdouble, testint, testdecimal, testlist, testset, testmap, testvarint, testinet, testcustom, testudt, testptrudt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	if err := session.Query(stmt, nil).Bind(
+	if err := session.Query(insertStmt, nil).Bind(
 		m.Testuuid,
 		m.Testtimestamp,
 		m.Testvarchar,
@@ -147,44 +148,43 @@ func TestStruct(t *testing.T) {
 		t.Fatal("insert:", err)
 	}
 
+	diffOpts := cmpopts.IgnoreUnexported(big.Int{}, inf.Dec{})
+
+	const stmt = `SELECT * FROM struct_table`
+
 	t.Run("get", func(t *testing.T) {
 		var v StructTable
-		if err := session.Query(`SELECT * FROM struct_table`, nil).Get(&v); err != nil {
-			t.Fatal("get failed", err)
+		if err := session.Query(stmt, nil).Get(&v); err != nil {
+			t.Fatal("Get() failed:", err)
 		}
-
-		if !reflect.DeepEqual(m, v) {
-			t.Fatal("not equals")
+		if diff := cmp.Diff(m, v, diffOpts); diff != "" {
+			t.Fatalf("Get()=%+v expected %+v, diff: %s", v, m, diff)
 		}
 	})
 
 	t.Run("select", func(t *testing.T) {
 		var v []StructTable
-		if err := session.Query(`SELECT * FROM struct_table`, nil).Select(&v); err != nil {
-			t.Fatal("select failed", err)
+		if err := session.Query(stmt, nil).Select(&v); err != nil {
+			t.Fatal("Select() failed:", err)
 		}
-
 		if len(v) != 1 {
-			t.Fatal("select unexpected number of rows", len(v))
+			t.Fatalf("Select()=%+v expected 1 row got %d", v, len(v))
 		}
-
-		if !reflect.DeepEqual(m, v[0]) {
-			t.Fatal("not equals")
+		if diff := cmp.Diff(m, v[0], diffOpts); diff != "" {
+			t.Fatalf("Select()[0]=%+v expected %+v, diff: %s", v[0], m, diff)
 		}
 	})
 
 	t.Run("select ptr", func(t *testing.T) {
 		var v []*StructTable
-		if err := session.Query(`SELECT * FROM struct_table`, nil).Select(&v); err != nil {
-			t.Fatal("select failed", err)
+		if err := session.Query(stmt, nil).Select(&v); err != nil {
+			t.Fatal("Select() failed:", err)
 		}
-
 		if len(v) != 1 {
-			t.Fatal("select unexpected number of rows", len(v))
+			t.Fatalf("Select()=%+v expected 1 row got %d", v, len(v))
 		}
-
-		if !reflect.DeepEqual(&m, v[0]) {
-			t.Fatal("not equals")
+		if diff := cmp.Diff(&m, v[0], diffOpts); diff != "" {
+			t.Fatalf("Select()[0]=%+v expected %+v, diff: %s", v[0], &m, diff)
 		}
 	})
 
@@ -194,80 +194,79 @@ func TestStruct(t *testing.T) {
 			n int
 		)
 
-		i := session.Query(`SELECT * FROM struct_table`, nil).Iter()
-		for i.StructScan(&v) {
+		iter := session.Query(stmt, nil).Iter()
+		for iter.StructScan(&v) {
 			n++
 		}
-		if err := i.Close(); err != nil {
-			t.Fatal("struct scan failed", err)
+		if err := iter.Close(); err != nil {
+			t.Fatal("StructScan() failed:", err)
 		}
-
 		if n != 1 {
-			t.Fatal("struct scan unexpected number of rows", n)
+			t.Fatalf("StructScan() expected 1 row got %d", n)
 		}
-		if !reflect.DeepEqual(m, v) {
-			t.Fatal("not equals")
+		if diff := cmp.Diff(m, v, diffOpts); diff != "" {
+			t.Fatalf("StructScan()=%+v expected %+v, diff: %s", v, m, diff)
 		}
 	})
 }
 
-func TestScannable(t *testing.T) {
+func TestIterxScannable(t *testing.T) {
 	session := CreateSession(t)
 	defer session.Close()
+
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.scannable_table (testfullname text PRIMARY KEY)`); err != nil {
 		t.Fatal("create table:", err)
 	}
+
 	m := FullName{"John", "Doe"}
 
 	if err := session.Query(`INSERT INTO scannable_table (testfullname) values (?)`, nil).Bind(m).Exec(); err != nil {
 		t.Fatal("insert:", err)
 	}
 
+	const stmt = `SELECT testfullname FROM scannable_table`
+
 	t.Run("get", func(t *testing.T) {
 		var v FullName
-		if err := session.Query(`SELECT testfullname FROM scannable_table`, nil).Get(&v); err != nil {
-			t.Fatal("get failed", err)
+		if err := session.Query(stmt, nil).Get(&v); err != nil {
+			t.Fatal("Get() failed:", err)
 		}
-
-		if !reflect.DeepEqual(m, v) {
-			t.Fatal("not equals")
+		if diff := cmp.Diff(m, v); diff != "" {
+			t.Fatalf("Get()=%+v expected %+v, diff: %s", v, m, diff)
 		}
 	})
 
 	t.Run("select", func(t *testing.T) {
 		var v []FullName
-		if err := session.Query(`SELECT testfullname FROM scannable_table`, nil).Select(&v); err != nil {
-			t.Fatal("select failed", err)
+		if err := session.Query(stmt, nil).Select(&v); err != nil {
+			t.Fatal("Select() failed:", err)
 		}
-
 		if len(v) != 1 {
-			t.Fatal("select unexpected number of rows", len(v))
+			t.Fatalf("Select()=%+v expected 1 row got %d", v, len(v))
 		}
-
-		if !reflect.DeepEqual(m, v[0]) {
-			t.Fatal("not equals")
+		if diff := cmp.Diff(m, v[0]); diff != "" {
+			t.Fatalf("Select()[0]=%+v expected %+v, diff: %s", v[0], m, diff)
 		}
 	})
 
 	t.Run("select ptr", func(t *testing.T) {
 		var v []*FullName
-		if err := session.Query(`SELECT testfullname FROM scannable_table`, nil).Select(&v); err != nil {
-			t.Fatal("select failed", err)
+		if err := session.Query(stmt, nil).Select(&v); err != nil {
+			t.Fatal("Select() failed:", err)
 		}
-
 		if len(v) != 1 {
-			t.Fatal("select unexpected number of rows", len(v))
+			t.Fatalf("Select()=%+v expected 1 row got %d", v, len(v))
 		}
-
-		if !reflect.DeepEqual(&m, v[0]) {
-			t.Fatal("not equals")
+		if diff := cmp.Diff(&m, v[0]); diff != "" {
+			t.Fatalf("Select()[0]=%+v expected %+v, diff: %s", v[0], &m, diff)
 		}
 	})
 }
 
-func TestStructOnly(t *testing.T) {
+func TestIterxStructOnly(t *testing.T) {
 	session := CreateSession(t)
 	defer session.Close()
+
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.struct_only_table (first_name text, last_name text, PRIMARY KEY (first_name, last_name))`); err != nil {
 		t.Fatal("create table:", err)
 	}
@@ -278,67 +277,67 @@ func TestStructOnly(t *testing.T) {
 		t.Fatal("insert:", err)
 	}
 
+	const stmt = `SELECT first_name, last_name FROM struct_only_table`
+
 	t.Run("get", func(t *testing.T) {
 		var v FullName
-		if err := session.Query(`SELECT first_name, last_name FROM struct_only_table`, nil).Iter().StructOnly().Get(&v); err != nil {
-			t.Fatal("get failed", err)
+		if err := session.Query(stmt, nil).Iter().StructOnly().Get(&v); err != nil {
+			t.Fatal("Get() failed:", err)
 		}
-
-		if !reflect.DeepEqual(m, v) {
-			t.Fatal("not equals")
+		if diff := cmp.Diff(m, v); diff != "" {
+			t.Fatalf("Get()=%+v expected %+v, diff: %s", v, m, diff)
 		}
 	})
 
 	t.Run("select", func(t *testing.T) {
 		var v []FullName
-		if err := session.Query(`SELECT first_name, last_name FROM struct_only_table`, nil).Iter().StructOnly().Select(&v); err != nil {
-			t.Fatal("select failed", err)
+		if err := session.Query(stmt, nil).Iter().StructOnly().Select(&v); err != nil {
+			t.Fatal("Select() failed:", err)
 		}
-
 		if len(v) != 1 {
-			t.Fatal("select unexpected number of rows", len(v))
+			t.Fatalf("Select()=%+v expected 1 row got %d", v, len(v))
 		}
-
-		if !reflect.DeepEqual(m, v[0]) {
-			t.Fatal("not equals")
+		if diff := cmp.Diff(m, v[0]); diff != "" {
+			t.Fatalf("Select()[0]=%+v expected %+v, diff: %s", v[0], m, diff)
 		}
 	})
 
 	t.Run("select ptr", func(t *testing.T) {
 		var v []*FullName
-		if err := session.Query(`SELECT first_name, last_name FROM struct_only_table`, nil).Iter().StructOnly().Select(&v); err != nil {
-			t.Fatal("select failed", err)
+		if err := session.Query(stmt, nil).Iter().StructOnly().Select(&v); err != nil {
+			t.Fatal("Select() failed:", err)
 		}
-
 		if len(v) != 1 {
-			t.Fatal("select unexpected number of rows", len(v))
+			t.Fatalf("Select()=%+v expected 1 row got %d", v, len(v))
 		}
-
-		if !reflect.DeepEqual(&m, v[0]) {
-			t.Fatal("not equals")
+		if diff := cmp.Diff(&m, v[0]); diff != "" {
+			t.Fatalf("Select()[0]=%+v expected %+v, diff: %s", v[0], &m, diff)
 		}
 	})
 
+	const golden = "expected 1 column in result"
+
 	t.Run("get error", func(t *testing.T) {
 		var v FullName
-		err := session.Query(`SELECT first_name, last_name FROM struct_only_table`, nil).Get(&v)
-		if err == nil || !strings.HasPrefix(err.Error(), "expected 1 column in result") {
-			t.Fatal("get expected validation error got", err)
+		err := session.Query(stmt, nil).Get(&v)
+		if err == nil || !strings.HasPrefix(err.Error(), golden) {
+			t.Fatalf("Get() error=%q expected %s", err, golden)
 		}
 	})
 
 	t.Run("select error", func(t *testing.T) {
 		var v []FullName
-		err := session.Query(`SELECT first_name, last_name FROM struct_only_table`, nil).Select(&v)
-		if err == nil || !strings.HasPrefix(err.Error(), "expected 1 column in result") {
-			t.Fatal("select expected validation error got", err)
+		err := session.Query(stmt, nil).Select(&v)
+		if err == nil || !strings.HasPrefix(err.Error(), golden) {
+			t.Fatalf("Select() error=%q expected %s", err, golden)
 		}
 	})
 }
 
-func TestStructOnlyUDT(t *testing.T) {
+func TestIterxStructOnlyUDT(t *testing.T) {
 	session := CreateSession(t)
 	defer session.Close()
+
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.struct_only_udt_table (first_name text, last_name text, PRIMARY KEY (first_name, last_name))`); err != nil {
 		t.Fatal("create table:", err)
 	}
@@ -354,67 +353,67 @@ func TestStructOnlyUDT(t *testing.T) {
 		t.Fatal("insert:", err)
 	}
 
+	const stmt = `SELECT first_name, last_name FROM struct_only_udt_table`
+
 	t.Run("get", func(t *testing.T) {
 		var v FullNameUDT
-		if err := session.Query(`SELECT first_name, last_name FROM struct_only_udt_table`, nil).Iter().StructOnly().Get(&v); err != nil {
-			t.Fatal("get failed", err)
+		if err := session.Query(stmt, nil).Iter().StructOnly().Get(&v); err != nil {
+			t.Fatal("Get() failed:", err)
 		}
-
-		if !reflect.DeepEqual(m, v) {
-			t.Fatal("not equals")
+		if diff := cmp.Diff(m, v); diff != "" {
+			t.Fatalf("Get()=%+v expected %+v, diff: %s", v, m, diff)
 		}
 	})
 
 	t.Run("select", func(t *testing.T) {
 		var v []FullNameUDT
-		if err := session.Query(`SELECT first_name, last_name FROM struct_only_udt_table`, nil).Iter().StructOnly().Select(&v); err != nil {
-			t.Fatal("select failed", err)
+		if err := session.Query(stmt, nil).Iter().StructOnly().Select(&v); err != nil {
+			t.Fatal("Select() failed:", err)
 		}
-
 		if len(v) != 1 {
-			t.Fatal("select unexpected number of rows", len(v))
+			t.Fatalf("Select()=%+v expected 1 row got %d", v, len(v))
 		}
-
-		if !reflect.DeepEqual(m, v[0]) {
-			t.Fatal("not equals")
+		if diff := cmp.Diff(m, v[0]); diff != "" {
+			t.Fatalf("Select()[0]=%+v expected %+v, diff: %s", v[0], m, diff)
 		}
 	})
 
 	t.Run("select ptr", func(t *testing.T) {
 		var v []*FullNameUDT
-		if err := session.Query(`SELECT first_name, last_name FROM struct_only_udt_table`, nil).Iter().StructOnly().Select(&v); err != nil {
-			t.Fatal("select failed", err)
+		if err := session.Query(stmt, nil).Iter().StructOnly().Select(&v); err != nil {
+			t.Fatal("Select() failed:", err)
 		}
-
 		if len(v) != 1 {
-			t.Fatal("select unexpected number of rows", len(v))
+			t.Fatalf("Select()=%+v expected 1 row got %d", v, len(v))
 		}
-
-		if !reflect.DeepEqual(&m, v[0]) {
-			t.Fatal("not equals")
+		if diff := cmp.Diff(&m, v[0]); diff != "" {
+			t.Fatalf("Select()[0]=%+v expected %+v, diff: %s", v[0], &m, diff)
 		}
 	})
 
+	const golden = "expected 1 column in result"
+
 	t.Run("get error", func(t *testing.T) {
 		var v FullNameUDT
-		err := session.Query(`SELECT first_name, last_name FROM struct_only_udt_table`, nil).Get(&v)
-		if err == nil || !strings.HasPrefix(err.Error(), "expected 1 column in result") {
-			t.Fatal("get expected validation error got", err)
+		err := session.Query(stmt, nil).Get(&v)
+		if err == nil || !strings.HasPrefix(err.Error(), golden) {
+			t.Fatalf("Get() error=%q expected %s", err, golden)
 		}
 	})
 
 	t.Run("select error", func(t *testing.T) {
 		var v []FullNameUDT
-		err := session.Query(`SELECT first_name, last_name FROM struct_only_udt_table`, nil).Select(&v)
-		if err == nil || !strings.HasPrefix(err.Error(), "expected 1 column in result") {
-			t.Fatal("select expected validation error got", err)
+		err := session.Query(stmt, nil).Select(&v)
+		if err == nil || !strings.HasPrefix(err.Error(), golden) {
+			t.Fatalf("Select() error=%q expected %s", err, golden)
 		}
 	})
 }
 
-func TestUnsafe(t *testing.T) {
+func TestIterxUnsafe(t *testing.T) {
 	session := CreateSession(t)
 	defer session.Close()
+
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.unsafe_table (testtext text PRIMARY KEY, testtextunbound text)`); err != nil {
 		t.Fatal("create table:", err)
 	}
@@ -426,72 +425,82 @@ func TestUnsafe(t *testing.T) {
 		Testtext string
 	}
 
-	t.Run("safe get", func(t *testing.T) {
+	m := UnsafeTable{
+		Testtext: "test",
+	}
+
+	const (
+		stmt   = `SELECT * FROM unsafe_table`
+		golden = "missing destination name \"testtextunbound\" in gocqlx_test.UnsafeTable"
+	)
+
+	t.Run("get", func(t *testing.T) {
 		var v UnsafeTable
-		err := session.Query(`SELECT * FROM unsafe_table`, nil).Get(&v)
-		if err == nil || err.Error() != "missing destination name \"testtextunbound\" in gocqlx_test.UnsafeTable" {
-			t.Fatal("expected ErrNotFound", "got", err)
+		err := session.Query(stmt, nil).Get(&v)
+		if err == nil || !strings.HasPrefix(err.Error(), golden) {
+			t.Fatalf("Get() error=%q expected %s", err, golden)
 		}
 	})
 
-	t.Run("safe select", func(t *testing.T) {
+	t.Run("select", func(t *testing.T) {
 		var v []UnsafeTable
-		err := session.Query(`SELECT * FROM unsafe_table`, nil).Select(&v)
-		if err == nil || err.Error() != "missing destination name \"testtextunbound\" in gocqlx_test.UnsafeTable" {
-			t.Fatal("expected ErrNotFound", "got", err)
+		err := session.Query(stmt, nil).Select(&v)
+		if err == nil || !strings.HasPrefix(err.Error(), golden) {
+			t.Fatalf("Select() error=%q expected %s", err, golden)
 		}
 		if cap(v) > 0 {
-			t.Fatal("side effect alloc")
+			t.Fatalf("Select() effect alloc cap=%d expected 0", cap(v))
 		}
 	})
 
-	t.Run("unsafe get", func(t *testing.T) {
+	t.Run("get unsafe", func(t *testing.T) {
 		var v UnsafeTable
-		err := session.Query(`SELECT * FROM unsafe_table`, nil).Iter().Unsafe().Get(&v)
+		err := session.Query(stmt, nil).Iter().Unsafe().Get(&v)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatal("Get() failed:", err)
 		}
-		if v.Testtext != "test" {
-			t.Fatal("get failed")
+		if diff := cmp.Diff(m, v); diff != "" {
+			t.Fatalf("Get()=%+v expected %+v, diff: %s", v, m, diff)
 		}
 	})
 
-	t.Run("unsafe select", func(t *testing.T) {
+	t.Run("select unsafe", func(t *testing.T) {
 		var v []UnsafeTable
-		err := session.Query(`SELECT * FROM unsafe_table`, nil).Iter().Unsafe().Select(&v)
+		err := session.Query(stmt, nil).Iter().Unsafe().Select(&v)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatal("Select() failed:", err)
 		}
 		if len(v) != 1 {
-			t.Fatal("select failed")
+			t.Fatalf("Select()=%+v expected 1 row got %d", v, len(v))
 		}
-		if v[0].Testtext != "test" {
-			t.Fatal("select failed")
+		if diff := cmp.Diff(m, v[0]); diff != "" {
+			t.Fatalf("Select()[0]=%+v expected %+v, diff: %s", v[0], m, diff)
 		}
 	})
 
-	t.Run("DefaultUnsafe select", func(t *testing.T) {
+	t.Run("select default unsafe", func(t *testing.T) {
 		gocqlx.DefaultUnsafe = true
 		defer func() {
 			gocqlx.DefaultUnsafe = false
 		}()
 		var v []UnsafeTable
-		err := session.Query(`SELECT * FROM unsafe_table`, nil).Iter().Select(&v)
+		err := session.Query(stmt, nil).Iter().Select(&v)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatal("Select() failed:", err)
 		}
 		if len(v) != 1 {
-			t.Fatal("select failed")
+			t.Fatalf("Select()=%+v expected 1 row got %d", v, len(v))
 		}
-		if v[0].Testtext != "test" {
-			t.Fatal("select failed")
+		if diff := cmp.Diff(m, v[0]); diff != "" {
+			t.Fatalf("Select()[0]=%+v expected %+v, diff: %s", v[0], m, diff)
 		}
 	})
 }
 
-func TestNotFound(t *testing.T) {
+func TestIterxNotFound(t *testing.T) {
 	session := CreateSession(t)
 	defer session.Close()
+
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.not_found_table (testtext text PRIMARY KEY)`); err != nil {
 		t.Fatal("create table:", err)
 	}
@@ -504,7 +513,7 @@ func TestNotFound(t *testing.T) {
 		var v NotFoundTable
 		err := session.Query(`SELECT * FROM not_found_table WRONG`, nil).RetryPolicy(nil).Get(&v)
 		if err == nil || !strings.Contains(err.Error(), "WRONG") {
-			t.Fatal(err)
+			t.Fatalf("Get() error=%q", err)
 		}
 	})
 
@@ -512,7 +521,7 @@ func TestNotFound(t *testing.T) {
 		var v NotFoundTable
 		err := session.Query(`SELECT * FROM not_found_table`, nil).Get(&v)
 		if err != gocql.ErrNotFound {
-			t.Fatal("expected ErrNotFound", "got", err)
+			t.Fatalf("Get() error=%q expected %s", err, gocql.ErrNotFound)
 		}
 	})
 
@@ -520,7 +529,7 @@ func TestNotFound(t *testing.T) {
 		var v []NotFoundTable
 		err := session.Query(`SELECT * FROM not_found_table WRONG`, nil).RetryPolicy(nil).Select(&v)
 		if err == nil || !strings.Contains(err.Error(), "WRONG") {
-			t.Fatal(err)
+			t.Fatalf("Get() error=%q", err)
 		}
 	})
 
@@ -528,17 +537,18 @@ func TestNotFound(t *testing.T) {
 		var v []NotFoundTable
 		err := session.Query(`SELECT * FROM not_found_table`, nil).Select(&v)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("Select() error=%q expected %s", err, gocql.ErrNotFound)
 		}
 		if cap(v) > 0 {
-			t.Fatal("side effect alloc")
+			t.Fatalf("Select() effect alloc cap=%d expected 0", cap(v))
 		}
 	})
 }
 
-func TestErrorOnNil(t *testing.T) {
+func TestIterxErrorOnNil(t *testing.T) {
 	session := CreateSession(t)
 	defer session.Close()
+
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.nil_table (testtext text PRIMARY KEY)`); err != nil {
 		t.Fatal("create table:", err)
 	}
@@ -551,28 +561,29 @@ func TestErrorOnNil(t *testing.T) {
 	t.Run("get", func(t *testing.T) {
 		err := session.Query(stmt, nil).Get(nil)
 		if err == nil || err.Error() != golden {
-			t.Fatalf("Get()=%q expected %q error", err, golden)
+			t.Fatalf("Get() error=%q expected %q", err, golden)
 		}
 	})
 	t.Run("select", func(t *testing.T) {
 		err := session.Query(stmt, nil).Select(nil)
 		if err == nil || err.Error() != golden {
-			t.Fatalf("Select()=%q expected %q error", err, golden)
+			t.Fatalf("Select() error=%q expected %q", err, golden)
 		}
 	})
 	t.Run("struct scan", func(t *testing.T) {
-		i := session.Query(stmt, nil).Iter()
-		i.StructScan(nil)
-		err := i.Close()
+		iter := session.Query(stmt, nil).Iter()
+		iter.StructScan(nil)
+		err := iter.Close()
 		if err == nil || err.Error() != golden {
-			t.Fatalf("StructScan()=%q expected %q error", err, golden)
+			t.Fatalf("StructScan() error=%q expected %q", err, golden)
 		}
 	})
 }
 
-func TestPaging(t *testing.T) {
+func TestIterxPaging(t *testing.T) {
 	session := CreateSession(t)
 	defer session.Close()
+
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.paging_table (id int PRIMARY KEY, val int)`); err != nil {
 		t.Fatal("create table:", err)
 	}
@@ -592,24 +603,22 @@ func TestPaging(t *testing.T) {
 		Val int
 	}
 
-	t.Run("iter", func(t *testing.T) {
-		stmt, names := qb.Select("gocqlx_test.paging_table").
-			Where(qb.Lt("val")).
-			AllowFiltering().
-			Columns("id", "val").ToCql()
-		iter := session.Query(stmt, names).Bind(100).PageSize(10).Iter()
-		defer iter.Close()
+	stmt, names := qb.Select("gocqlx_test.paging_table").
+		Where(qb.Lt("val")).
+		AllowFiltering().
+		Columns("id", "val").ToCql()
+	iter := session.Query(stmt, names).Bind(100).PageSize(10).Iter()
+	defer iter.Close()
 
-		var cnt int
-		for {
-			p := &Paging{}
-			if !iter.StructScan(p) {
-				break
-			}
-			cnt++
+	var cnt int
+	for {
+		p := &Paging{}
+		if !iter.StructScan(p) {
+			break
 		}
-		if cnt != 100 {
-			t.Fatal("expected 100", "got", cnt)
-		}
-	})
+		cnt++
+	}
+	if cnt != 100 {
+		t.Fatal("expected 100", "got", cnt)
+	}
 }
