@@ -23,6 +23,8 @@ type BatchBuilder struct {
 }
 
 // Batch returns a new BatchBuilder.
+//
+// Deprecated: use session.NewBatch() instead
 func Batch() *BatchBuilder {
 	return &BatchBuilder{}
 }
