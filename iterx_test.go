@@ -623,7 +623,7 @@ func TestIterxPaging(t *testing.T) {
 	}
 }
 
-func TestIterx_CASInsertAndUpdates(t *testing.T) {
+func TestIterxCAS(t *testing.T) {
 	session := CreateSession(t)
 	defer session.Close()
 
@@ -638,57 +638,54 @@ func TestIterx_CASInsertAndUpdates(t *testing.T) {
 		Salary int
 	}{ID: id, Salary: baseSalary}
 
-	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.salaries (id int PRIMARY KEY, salary int)`); err != nil {
+	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.cas_table (id int PRIMARY KEY, salary int)`); err != nil {
 		t.Fatal("create table:", err)
 	}
 
-	insertQ := session.Query(qb.Insert("gocqlx_test.salaries").Columns("id", "salary").Unique().ToCql())
-	applied, err := insertQ.BindStruct(john).ExecCAS()
+	insert := session.Query(qb.Insert("cas_table").Columns("id", "salary").Unique().ToCql())
+
+	applied, err := insert.BindStruct(john).ExecCAS()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("ExecCAS() failed:", err)
 	}
 	if !applied {
-		t.Error("Expected first insert success")
+		t.Error("ExecCAS() expected first insert success")
 	}
 
-	applied, err = insertQ.BindStruct(john).ExecCASRelease()
+	applied, err = insert.BindStruct(john).ExecCAS()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("ExecCAS() failed:", err)
 	}
 	if applied {
-		t.Error("Expected second insert to not be applied")
+		t.Error("ExecCAS() Expected second insert to not be applied")
 	}
 
-	updateQ := session.Query(qb.Update("gocqlx_test.salaries").
+	update := session.Query(qb.Update("cas_table").
 		SetNamed("salary", "min_salary").
 		Where(qb.Eq("id")).
 		If(qb.LtNamed("salary", "min_salary")).
 		ToCql(),
 	)
 
-	applied, err = updateQ.BindStructMap(john, qb.M{
-		"min_salary": minSalary,
-	}).GetCAS(&john)
+	applied, err = update.BindStructMap(john, qb.M{"min_salary": minSalary}).GetCAS(&john)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("GetCAS() failed:", err)
 	}
 	if !applied {
-		t.Error("Expected update to be applied")
+		t.Error("GetCAS() expected update to be applied")
 	}
 	if john.Salary != baseSalary {
-		t.Error("Expected to have pre-image in struct after GetCAS")
+		t.Error("GetCAS()=%=v expected to have pre-image", john)
 	}
 
-	applied, err = updateQ.BindStructMap(john, qb.M{
-		"min_salary": minSalary * 2,
-	}).GetCASRelease(&john)
+	applied, err = update.BindStructMap(john, qb.M{"min_salary": minSalary * 2}).GetCAS(&john)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !applied {
-		t.Error("Expected update to be applied")
+		t.Error("GetCAS() expected update to be applied")
 	}
 	if john.Salary != minSalary {
-		t.Error("Expected to have pre-image in struct after GetCAS")
+		t.Error("GetCAS()=%=v expected to have pre-image", john)
 	}
 }
