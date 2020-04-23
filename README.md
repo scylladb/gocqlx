@@ -103,7 +103,9 @@ t.Log(people)
 
 ## Examples
 
-You can find lots of other examples in [example_test.go](https://github.com/scylladb/gocqlx/blob/master/example_test.go), go and run the examples locally:
+You can find lots of examples in [example_test.go](https://github.com/scylladb/gocqlx/blob/master/example_test.go).
+
+Go and run them locally:
 
 ```bash
 make run-scylla
@@ -124,12 +126,7 @@ BenchmarkBaseGocqlSelect             747           1664365 ns/op           49415
 BenchmarkGocqlxSelect                667           1877859 ns/op           42521 B/op        932 allocs/op
 ```
 
-See the benchmark in [benchmark_test.go](https://github.com/scylladb/gocqlx/blob/master/benchmark_test.go), you can run the benchmark locally:
-
-```bash
-make run-scylla
-make bench
-```
+See the benchmark in [benchmark_test.go](https://github.com/scylladb/gocqlx/blob/master/benchmark_test.go).
 
 ## License
 
