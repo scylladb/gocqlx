@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
-	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/gocqlx/v2"
 )
 
 var (

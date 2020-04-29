@@ -7,7 +7,7 @@ package migrate
 import (
 	"context"
 
-	"github.com/scylladb/gocqlx"
+	"github.com/scylladb/gocqlx/v2"
 )
 
 // CallbackEvent specifies type of the event when calling CallbackFunc.
