@@ -1,4 +1,4 @@
-module github.com/scylladb/gocqlx
+module github.com/scylladb/gocqlx/v2
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
