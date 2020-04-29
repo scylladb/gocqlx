@@ -19,7 +19,9 @@ Subpackages provide additional functionality:
 
 ## Installation
 
-    go get -u github.com/scylladb/gocqlx
+```bash
+    go get -u github.com/scylladb/gocqlx/v2
+```
 
 ## Getting started
 
