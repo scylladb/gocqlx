@@ -9,4 +9,6 @@ require (
 	gopkg.in/inf.v0 v0.9.1
 )
 
+replace github.com/gocql/gocql v0.0.0-20200131111108-92af2e088537 => github.com/zimnx/gocql v1.3.5-0.20200429145752-c6207f195316
+
 go 1.13

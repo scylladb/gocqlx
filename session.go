@@ -58,3 +58,12 @@ func (s Session) Query(stmt string, names []string) *Queryx {
 func (s Session) ExecStmt(stmt string) error {
 	return s.Query(stmt, nil).ExecRelease()
 }
+
+func (s Session) Schema(keyspace string) (string, error) {
+	km, err := s.Session.KeyspaceMetadata(keyspace)
+	if err != nil {
+		return "", err
+	}
+
+	return schemaRecreator{km: km}.Recreate()
+}
