@@ -22,8 +22,19 @@ type Session struct {
 	Mapper *reflectx.Mapper
 }
 
+// NewSession wraps existing gocql.session.
+func NewSession(session *gocql.Session) Session {
+	return Session{
+		Session: session,
+		Mapper:  DefaultMapper,
+	}
+}
+
 // WrapSession should be called on CreateSession() gocql function to convert
 // the created session to gocqlx.Session.
+//
+// Example:
+//     session, err := gocqlx.WrapSession(cluster.CreateSession())
 func WrapSession(session *gocql.Session, err error) (Session, error) {
 	return Session{
 		Session: session,
