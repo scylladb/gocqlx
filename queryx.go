@@ -98,7 +98,7 @@ type Queryx struct {
 
 // Query creates a new Queryx from gocql.Query using a default mapper.
 //
-// Deprecated: Use Session API instead.
+// Deprecated: Use gocqlx.Session.Query API instead.
 func Query(q *gocql.Query, names []string) *Queryx {
 	return &Queryx{
 		Query:  q,
