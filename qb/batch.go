@@ -24,7 +24,7 @@ type BatchBuilder struct {
 
 // Batch returns a new BatchBuilder.
 //
-// Deprecated: use session.NewBatch() instead
+// Deprecated: Please use gocql.Session.NewBatch() instead.
 func Batch() *BatchBuilder {
 	return &BatchBuilder{}
 }
