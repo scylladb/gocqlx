@@ -90,6 +90,11 @@ func (t *Table) Get(columns ...string) (stmt string, names []string) {
 		ToCql()
 }
 
+// GetQuery returns query which gets by partition key.
+func (t *Table) GetQuery(session gocqlx.Session, columns ...string) *gocqlx.Queryx {
+	return session.Query(t.Get(columns...))
+}
+
 // Select returns select by partition key statement.
 func (t *Table) Select(columns ...string) (stmt string, names []string) {
 	if len(columns) == 0 {
