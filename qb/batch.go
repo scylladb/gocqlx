@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"fmt"
 	"time"
+
+	"github.com/scylladb/gocqlx/v2"
 )
 
 // BATCH reference:
@@ -62,6 +64,11 @@ func (b *BatchBuilder) ToCql() (stmt string, names []string) {
 
 	stmt = cql.String()
 	return
+}
+
+// Query returns query built on top of current BatchBuilder state.
+func (b *BatchBuilder) Query(session gocqlx.Session) *gocqlx.Queryx {
+	return session.Query(b.ToCql())
 }
 
 // Add builds the builder and adds the statement to the batch.

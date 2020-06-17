@@ -10,6 +10,8 @@ package qb
 import (
 	"bytes"
 	"time"
+
+	"github.com/scylladb/gocqlx/v2"
 )
 
 // assignment specifies an assignment in a set operation.
@@ -71,6 +73,11 @@ func (b *UpdateBuilder) ToCql() (stmt string, names []string) {
 
 	stmt = cql.String()
 	return
+}
+
+// Query returns query built on top of current UpdateBuilder state.
+func (b *UpdateBuilder) Query(session gocqlx.Session) *gocqlx.Queryx {
+	return session.Query(b.ToCql())
 }
 
 // Table sets the table to be updated.
