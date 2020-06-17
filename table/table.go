@@ -4,7 +4,10 @@
 
 package table
 
-import "github.com/scylladb/gocqlx/v2/qb"
+import (
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/qb"
+)
 
 // Metadata represents table schema.
 type Metadata struct {
@@ -99,6 +102,11 @@ func (t *Table) Select(columns ...string) (stmt string, names []string) {
 		ToCql()
 }
 
+// SelectQuery returns query which selects by partition key statement.
+func (t *Table) SelectQuery(session gocqlx.Session, columns ...string) *gocqlx.Queryx {
+	return session.Query(t.Select(columns...))
+}
+
 // SelectBuilder returns a builder initialised to select by partition key
 // statement.
 func (t *Table) SelectBuilder(columns ...string) *qb.SelectBuilder {
@@ -110,9 +118,19 @@ func (t *Table) Insert() (stmt string, names []string) {
 	return t.insert.stmt, t.insert.names
 }
 
+// InsertQuery returns query which inserts all columns.
+func (t *Table) InsertQuery(session gocqlx.Session) *gocqlx.Queryx {
+	return session.Query(t.Insert())
+}
+
 // Update returns update by primary key statement.
 func (t *Table) Update(columns ...string) (stmt string, names []string) {
 	return t.UpdateBuilder(columns...).ToCql()
+}
+
+// UpdateQuery returns query which updates by primary key.
+func (t *Table) UpdateQuery(session gocqlx.Session, columns ...string) *gocqlx.Queryx {
+	return session.Query(t.Update(columns...))
 }
 
 // UpdateBuilder returns a builder initialised to update by primary key statement.
@@ -123,6 +141,11 @@ func (t *Table) UpdateBuilder(columns ...string) *qb.UpdateBuilder {
 // Delete returns delete by primary key statement.
 func (t *Table) Delete(columns ...string) (stmt string, names []string) {
 	return t.DeleteBuilder(columns...).ToCql()
+}
+
+// DeleteQuery returns query which delete by primary key.
+func (t *Table) DeleteQuery(session gocqlx.Session, columns ...string) *gocqlx.Queryx {
+	return session.Query(t.Delete(columns...))
 }
 
 // DeleteBuilder returns a builder initialised to delete by primary key statement.
