@@ -10,6 +10,8 @@ package qb
 import (
 	"bytes"
 	"time"
+
+	"github.com/scylladb/gocqlx/v2"
 )
 
 // initializer specifies an value for a column in an insert operation.
@@ -76,6 +78,11 @@ func (b *InsertBuilder) ToCql() (stmt string, names []string) {
 
 	stmt = cql.String()
 	return
+}
+
+// Query returns query built on top of current InsertBuilder state.
+func (b *InsertBuilder) Query(session gocqlx.Session) *gocqlx.Queryx {
+	return session.Query(b.ToCql())
 }
 
 // Into sets the INTO clause of the query.
