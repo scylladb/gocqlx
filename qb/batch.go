@@ -6,6 +6,7 @@ package qb
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"time"
 
@@ -69,6 +70,11 @@ func (b *BatchBuilder) ToCql() (stmt string, names []string) {
 // Query returns query built on top of current BatchBuilder state.
 func (b *BatchBuilder) Query(session gocqlx.Session) *gocqlx.Queryx {
 	return session.Query(b.ToCql())
+}
+
+// QueryContext returns query wrapped with context built on top of current BatchBuilder state.
+func (b *BatchBuilder) QueryContext(ctx context.Context, session gocqlx.Session) *gocqlx.Queryx {
+	return b.Query(session).WithContext(ctx)
 }
 
 // Add builds the builder and adds the statement to the batch.

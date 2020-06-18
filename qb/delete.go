@@ -9,6 +9,7 @@ package qb
 
 import (
 	"bytes"
+	"context"
 	"time"
 
 	"github.com/scylladb/gocqlx/v2"
@@ -59,6 +60,11 @@ func (b *DeleteBuilder) ToCql() (stmt string, names []string) {
 // Query returns query built on top of current DeleteBuilder state.
 func (b *DeleteBuilder) Query(session gocqlx.Session) *gocqlx.Queryx {
 	return session.Query(b.ToCql())
+}
+
+// QueryContext returns query wrapped with context built on top of current DeleteBuilder state.
+func (b *DeleteBuilder) QueryContext(ctx context.Context, session gocqlx.Session) *gocqlx.Queryx {
+	return b.Query(session).WithContext(ctx)
 }
 
 // From sets the table to be deleted from.
