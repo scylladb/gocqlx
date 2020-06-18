@@ -9,6 +9,7 @@ package qb
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
 	"github.com/scylladb/gocqlx/v2"
@@ -123,6 +124,11 @@ func (b *SelectBuilder) ToCql() (stmt string, names []string) {
 // Query returns query built on top of current SelectBuilder state.
 func (b *SelectBuilder) Query(session gocqlx.Session) *gocqlx.Queryx {
 	return session.Query(b.ToCql())
+}
+
+// QueryContext returns query wrapped with context built on top of current SelectBuilder state.
+func (b *SelectBuilder) QueryContext(ctx context.Context, session gocqlx.Session) *gocqlx.Queryx {
+	return b.Query(session).WithContext(ctx)
 }
 
 // From sets the table to be selected from.

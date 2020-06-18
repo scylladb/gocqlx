@@ -5,6 +5,8 @@
 package table
 
 import (
+	"context"
+
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 )
@@ -95,6 +97,11 @@ func (t *Table) GetQuery(session gocqlx.Session, columns ...string) *gocqlx.Quer
 	return session.Query(t.Get(columns...))
 }
 
+// GetQueryContext returns query wrapped with context which gets by partition key.
+func (t *Table) GetQueryContext(ctx context.Context, session gocqlx.Session, columns ...string) *gocqlx.Queryx {
+	return t.GetQuery(session, columns...).WithContext(ctx)
+}
+
 // Select returns select by partition key statement.
 func (t *Table) Select(columns ...string) (stmt string, names []string) {
 	if len(columns) == 0 {
@@ -110,6 +117,11 @@ func (t *Table) Select(columns ...string) (stmt string, names []string) {
 // SelectQuery returns query which selects by partition key statement.
 func (t *Table) SelectQuery(session gocqlx.Session, columns ...string) *gocqlx.Queryx {
 	return session.Query(t.Select(columns...))
+}
+
+// SelectQueryContext returns query wrapped with context which selects by partition key statement.
+func (t *Table) SelectQueryContext(ctx context.Context, session gocqlx.Session, columns ...string) *gocqlx.Queryx {
+	return t.SelectQuery(session, columns...).WithContext(ctx)
 }
 
 // SelectBuilder returns a builder initialised to select by partition key
@@ -128,6 +140,11 @@ func (t *Table) InsertQuery(session gocqlx.Session) *gocqlx.Queryx {
 	return session.Query(t.Insert())
 }
 
+// InsertQueryContext returns query wrapped with context which inserts all columns.
+func (t *Table) InsertQueryContext(ctx context.Context, session gocqlx.Session) *gocqlx.Queryx {
+	return t.InsertQuery(session).WithContext(ctx)
+}
+
 // Update returns update by primary key statement.
 func (t *Table) Update(columns ...string) (stmt string, names []string) {
 	return t.UpdateBuilder(columns...).ToCql()
@@ -136,6 +153,11 @@ func (t *Table) Update(columns ...string) (stmt string, names []string) {
 // UpdateQuery returns query which updates by primary key.
 func (t *Table) UpdateQuery(session gocqlx.Session, columns ...string) *gocqlx.Queryx {
 	return session.Query(t.Update(columns...))
+}
+
+// UpdateQueryContext returns query wrapped with context which updates by primary key.
+func (t *Table) UpdateQueryContext(ctx context.Context, session gocqlx.Session, columns ...string) *gocqlx.Queryx {
+	return t.UpdateQuery(session, columns...).WithContext(ctx)
 }
 
 // UpdateBuilder returns a builder initialised to update by primary key statement.
@@ -151,6 +173,11 @@ func (t *Table) Delete(columns ...string) (stmt string, names []string) {
 // DeleteQuery returns query which delete by primary key.
 func (t *Table) DeleteQuery(session gocqlx.Session, columns ...string) *gocqlx.Queryx {
 	return session.Query(t.Delete(columns...))
+}
+
+// DeleteQueryContext returns query wrapped with context which delete by primary key.
+func (t *Table) DeleteQueryContext(ctx context.Context, session gocqlx.Session, columns ...string) *gocqlx.Queryx {
+	return t.DeleteQuery(session, columns...).WithContext(ctx)
 }
 
 // DeleteBuilder returns a builder initialised to delete by primary key statement.
