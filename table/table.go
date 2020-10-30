@@ -145,6 +145,11 @@ func (t *Table) InsertQueryContext(ctx context.Context, session gocqlx.Session) 
 	return t.InsertQuery(session).WithContext(ctx)
 }
 
+// InsertBuilder returns a builder initialised with all columns.
+func (t *Table) InsertBuilder() *qb.InsertBuilder {
+	return qb.Insert(t.metadata.Name).Columns(t.metadata.Columns...)
+}
+
 // Update returns update by primary key statement.
 func (t *Table) Update(columns ...string) (stmt string, names []string) {
 	return t.UpdateBuilder(columns...).ToCql()
