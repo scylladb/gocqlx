@@ -29,9 +29,10 @@ GOTEST := go test -cpu $(GOTEST_CPU) -count=1 -cover -race -tags all
 .PHONY: test
 test:
 	@$(GOTEST) .
-	@$(GOTEST) ./migrate
 	@$(GOTEST) ./qb
 	@$(GOTEST) ./table
+	@$(GOTEST) ./migrate
+	@$(GOTEST) ./dbutil
 
 .PHONY: bench
 bench:
