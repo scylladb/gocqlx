@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -90,6 +91,8 @@ func ensureInfoTable(ctx context.Context, session gocqlx.Session) error {
 }
 
 // Migrate reads the cql files from a directory and applies required migrations.
+// It also supports code based migrations, see Callback and CallbackFunc.
+// Any comment in form `-- CALL <name>;` will trigger an CallComment callback.
 func Migrate(ctx context.Context, session gocqlx.Session, dir string) error {
 	// get database migrations
 	dbm, err := List(ctx, session)
@@ -215,10 +218,21 @@ func applyMigration(ctx context.Context, session gocqlx.Session, path string, do
 			}
 		}
 
-		// execute
-		q := session.ContextQuery(ctx, stmt, nil).RetryPolicy(nil)
-		if err := q.ExecRelease(); err != nil {
-			return fmt.Errorf("statement %d failed: %s", i, err)
+		// trim new lines and all whitespace characters
+		stmt = strings.TrimSpace(stmt)
+
+		if cb := isCallback(stmt); cb != "" {
+			if Callback == nil {
+				return fmt.Errorf("statement %d failed: missing callback handler while trying to call %s", i, cb)
+			}
+			if err := Callback(ctx, session, CallComment, cb); err != nil {
+				return fmt.Errorf("callback %s failed: %s", cb, err)
+			}
+		} else {
+			q := session.ContextQuery(ctx, stmt, nil).RetryPolicy(nil)
+			if err := q.ExecRelease(); err != nil {
+				return fmt.Errorf("statement %d failed: %s", i, err)
+			}
 		}
 
 		// update info
@@ -239,4 +253,14 @@ func applyMigration(ctx context.Context, session gocqlx.Session, path string, do
 	}
 
 	return nil
+}
+
+var cbRegexp = regexp.MustCompile("^-- *CALL +(.+);$")
+
+func isCallback(stmt string) (name string) {
+	s := cbRegexp.FindStringSubmatch(stmt)
+	if len(s) == 0 {
+		return ""
+	}
+	return s[1]
 }
