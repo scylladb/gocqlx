@@ -105,9 +105,8 @@ func basicCreateAndPopulateKeyspace(t *testing.T, session gocqlx.Session) {
 	playlistTable := table.New(playlistMetadata)
 
 	// Insert song using query builder.
-	stmt, names := qb.Insert("examples.songs").
-		Columns("id", "title", "album", "artist", "tags", "data").ToCql()
-	insertSong := session.Query(stmt, names)
+	insertSong := qb.Insert("examples.songs").
+		Columns("id", "title", "album", "artist", "tags", "data").Query(session)
 
 	insertSong.BindStruct(Song{
 		ID:     mustParseUUID("756716f7-2e54-4715-9f00-91dcbea6cf50"),
@@ -122,7 +121,7 @@ func basicCreateAndPopulateKeyspace(t *testing.T, session gocqlx.Session) {
 	}
 
 	// Insert playlist using table model.
-	insertPlaylist := session.Query(playlistTable.Insert())
+	insertPlaylist := playlistTable.InsertQuery(session)
 
 	insertPlaylist.BindStruct(PlaylistItem{
 		ID:     mustParseUUID("2cc9ccb7-6221-4ccb-8387-f22b6a1b354d"),
@@ -136,7 +135,7 @@ func basicCreateAndPopulateKeyspace(t *testing.T, session gocqlx.Session) {
 	}
 
 	// Query and displays data.
-	queryPlaylist := session.Query(playlistTable.Select())
+	queryPlaylist := playlistTable.SelectQuery(session)
 
 	queryPlaylist.BindStruct(&PlaylistItem{
 		ID: mustParseUUID("2cc9ccb7-6221-4ccb-8387-f22b6a1b354d"),
@@ -186,7 +185,7 @@ func datatypesBlob(t *testing.T, session gocqlx.Session) {
 		buf[i] = 0xff
 	}
 
-	insert := session.Query(qb.Insert("examples.blobs").Columns("k", "b", "m").ToCql())
+	insert := qb.Insert("examples.blobs").Columns("k", "b", "m").Query(session)
 	insert.BindMap(qb.M{
 		"k": 1,
 		"b": buf[:],
@@ -201,7 +200,7 @@ func datatypesBlob(t *testing.T, session gocqlx.Session) {
 		Buffer  []byte            `db:"b"`
 		Mapping map[string][]byte `db:"m"`
 	}{}
-	q := session.Query(qb.Select("examples.blobs").Where(qb.EqLit("k", "1")).ToCql())
+	q := qb.Select("examples.blobs").Where(qb.EqLit("k", "1")).Query(session)
 
 	// Unsafe is used here to override validation error that check if all
 	// requested columns are consumed `failed: missing destination name "k" in struct` error
@@ -240,7 +239,7 @@ func datatypesUserDefinedType(t *testing.T, session gocqlx.Session) {
 	coordinates1 := Coordinates{X: 12, Y: 34}
 	coordinates2 := Coordinates{X: 56, Y: 78}
 
-	insert := session.Query(qb.Insert("examples.udts").Columns("k", "c").ToCql())
+	insert := qb.Insert("examples.udts").Columns("k", "c").Query(session)
 	insert.BindMap(qb.M{
 		"k": 1,
 		"c": coordinates1,
@@ -257,7 +256,7 @@ func datatypesUserDefinedType(t *testing.T, session gocqlx.Session) {
 	}
 
 	var coordinates []Coordinates
-	q := session.Query(qb.Select("examples.udts").Columns("c").ToCql())
+	q := qb.Select("examples.udts").Columns("c").Query(session)
 	if err := q.Select(&coordinates); err != nil {
 		t.Fatal("Select() failed:", err)
 	}
@@ -303,7 +302,7 @@ func datatypesUserDefinedTypeWrapper(t *testing.T, session gocqlx.Session) {
 	coordinates1 := CoordinatesUDT{coordinates: c1}
 	coordinates2 := CoordinatesUDT{coordinates: c2}
 
-	insert := session.Query(qb.Insert("examples.udts_wrapper").Columns("k", "c").ToCql())
+	insert := qb.Insert("examples.udts_wrapper").Columns("k", "c").Query(session)
 	insert.BindMap(qb.M{
 		"k": 1,
 		"c": coordinates1,
@@ -320,7 +319,7 @@ func datatypesUserDefinedTypeWrapper(t *testing.T, session gocqlx.Session) {
 	}
 
 	var coordinates []Coordinates
-	q := session.Query(qb.Select("examples.udts_wrapper").Columns("c").ToCql())
+	q := qb.Select("examples.udts_wrapper").Columns("c").Query(session)
 	if err := q.Select(&coordinates); err != nil {
 		t.Fatal("Select() failed:", err)
 	}
@@ -342,7 +341,7 @@ func datatypesJson(t *testing.T, session gocqlx.Session) {
 		t.Fatal("create table:", err)
 	}
 
-	insert := session.Query(qb.Insert("examples.querybuilder_json").Json().ToCql())
+	insert := qb.Insert("examples.querybuilder_json").Json().Query(session)
 
 	insert.Bind(`{ "id": 1, "name": "Mouse", "specs": { "color": "silver" } }`)
 	if err := insert.Exec(); err != nil {
@@ -354,12 +353,11 @@ func datatypesJson(t *testing.T, session gocqlx.Session) {
 	}
 
 	// fromJson lets you provide individual columns as JSON:
-	stmt, names := qb.Insert("examples.querybuilder_json").
+	insertFromJson := qb.Insert("examples.querybuilder_json").
 		Columns("id", "name").
 		FuncColumn("specs", qb.Fn("fromJson", "json")).
-		ToCql()
+		Query(session)
 
-	insertFromJson := session.Query(stmt, names)
 	insertFromJson.BindMap(qb.M{
 		"id":   3,
 		"name": "Screen",
@@ -370,11 +368,10 @@ func datatypesJson(t *testing.T, session gocqlx.Session) {
 	}
 
 	// Reading the whole row as a JSON object:
-	stmt, names = qb.Select("examples.querybuilder_json").
+	q := qb.Select("examples.querybuilder_json").
 		Json().
 		Where(qb.EqLit("id", "1")).
-		ToCql()
-	q := session.Query(stmt, names)
+		Query(session)
 
 	var jsonString string
 
@@ -384,11 +381,10 @@ func datatypesJson(t *testing.T, session gocqlx.Session) {
 	t.Logf("Entry #1 as JSON: %s", jsonString)
 
 	// Extracting a particular column as JSON:
-	stmt, names = qb.Select("examples.querybuilder_json").
+	q = qb.Select("examples.querybuilder_json").
 		Columns("id", "toJson(specs) AS json_specs").
 		Where(qb.EqLit("id", "2")).
-		ToCql()
-	q = session.Query(stmt, names)
+		Query(session)
 
 	row := &struct {
 		ID        int
@@ -458,14 +454,14 @@ func pagingForwardPaging(t *testing.T, session gocqlx.Session) {
 	}
 	videoTable := table.New(videoMetadata)
 
-	pagingFillTable(t, session.Query(videoTable.Insert()))
+	pagingFillTable(t, videoTable.InsertQuery(session))
 
 	// Query and displays data. Iterate over videos of user "1" 10 entries per request.
 
 	const itemsPerPage = 10
 
 	getUserVideos := func(userID int, page []byte) (userVideos []Video, nextPage []byte, err error) {
-		q := session.Query(videoTable.Select()).Bind(userID)
+		q := videoTable.SelectQuery(session).Bind(userID)
 		defer q.Release()
 		q.PageState(page)
 		q.PageSize(itemsPerPage)
@@ -527,7 +523,7 @@ func pagingEfficientFullTableScan(t *testing.T, session gocqlx.Session) {
 	}
 	videoTable := table.New(videoMetadata)
 
-	pagingFillTable(t, session.Query(videoTable.Insert()))
+	pagingFillTable(t, videoTable.InsertQuery(session))
 
 	// Calculate optimal number of workers for the cluster:
 	var (
@@ -629,13 +625,13 @@ func lwtLock(t *testing.T, session gocqlx.Session) {
 	}
 
 	extend := func(lock Lock) bool {
-		q := session.Query(qb.Update("examples.lock").
+		q := qb.Update("examples.lock").
 			Set("owner").
 			Where(qb.Eq("name")).
 			If(qb.Eq("owner")).
 			TTLNamed("ttl").
-			ToCql())
-		q.BindStruct(lock)
+			Query(session).
+			BindStruct(lock)
 
 		applied, err := q.ExecCASRelease()
 		if err != nil {
@@ -651,13 +647,12 @@ func lwtLock(t *testing.T, session gocqlx.Session) {
 			t.Logf("Acquire %+v applied %v owner %+v)", lock, applied, prev)
 		}()
 
-		q := session.Query(qb.Insert("examples.lock").
+		q := qb.Insert("examples.lock").
 			Columns("name", "owner").
 			TTLNamed("ttl").
 			Unique().
-			ToCql(),
-		)
-		q.BindStruct(lock)
+			Query(session).
+			BindStruct(lock)
 
 		applied, err = q.GetCASRelease(&prev)
 		if err != nil {
