@@ -631,6 +631,7 @@ func lwtLock(t *testing.T, session gocqlx.Session) {
 			If(qb.Eq("owner")).
 			TTLNamed("ttl").
 			Query(session).
+			SerialConsistency(gocql.Serial).
 			BindStruct(lock)
 
 		applied, err := q.ExecCASRelease()
@@ -652,6 +653,7 @@ func lwtLock(t *testing.T, session gocqlx.Session) {
 			TTLNamed("ttl").
 			Unique().
 			Query(session).
+			SerialConsistency(gocql.Serial).
 			BindStruct(lock)
 
 		applied, err = q.GetCASRelease(&prev)
