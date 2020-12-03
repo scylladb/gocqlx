@@ -97,13 +97,13 @@ func Migrate(ctx context.Context, session gocqlx.Session, dir string) error {
 	// get database migrations
 	dbm, err := List(ctx, session)
 	if err != nil {
-		return fmt.Errorf("failed to list migrations: %s", err)
+		return fmt.Errorf("list migrations: %s", err)
 	}
 
 	// get file migrations
 	fm, err := filepath.Glob(filepath.Join(dir, "*.cql"))
 	if err != nil {
-		return fmt.Errorf("failed to list migrations in %q: %s", dir, err)
+		return fmt.Errorf("list migrations in %q: %s", dir, err)
 	}
 	if len(fm) == 0 {
 		return fmt.Errorf("no migration files found in %q", dir)
@@ -122,7 +122,7 @@ func Migrate(ctx context.Context, session gocqlx.Session, dir string) error {
 		}
 		c, err := fileChecksum(fm[i])
 		if err != nil {
-			return fmt.Errorf("failed to calculate checksum for %q: %s", fm[i], err)
+			return fmt.Errorf("calculate checksum for %q: %s", fm[i], err)
 		}
 		if dbm[i].Checksum != c {
 			return fmt.Errorf("file %q was tempered with, expected md5 %s", fm[i], dbm[i].Checksum)
@@ -133,18 +133,18 @@ func Migrate(ctx context.Context, session gocqlx.Session, dir string) error {
 	if len(dbm) > 0 {
 		last := len(dbm) - 1
 		if err := applyMigration(ctx, session, fm[last], dbm[last].Done); err != nil {
-			return fmt.Errorf("failed to apply migration %q: %s", fm[last], err)
+			return fmt.Errorf("apply migration %q: %s", fm[last], err)
 		}
 	}
 
 	for i := len(dbm); i < len(fm); i++ {
 		if err := applyMigration(ctx, session, fm[i], 0); err != nil {
-			return fmt.Errorf("failed to apply migration %q: %s", fm[i], err)
+			return fmt.Errorf("apply migration %q: %s", fm[i], err)
 		}
 	}
 
 	if err = session.AwaitSchemaAgreement(ctx); err != nil {
-		return fmt.Errorf("awaiting schema agreement failed: %s", err)
+		return fmt.Errorf("awaiting schema agreement: %s", err)
 	}
 
 	return nil
@@ -181,7 +181,7 @@ func applyMigration(ctx context.Context, session gocqlx.Session, path string, do
 
 	if DefaultAwaitSchemaAgreement.ShouldAwait(AwaitSchemaAgreementBeforeEachFile) {
 		if err = session.AwaitSchemaAgreement(ctx); err != nil {
-			return fmt.Errorf("awaiting schema agreement failed: %s", err)
+			return fmt.Errorf("awaiting schema agreement: %s", err)
 		}
 	}
 
@@ -208,13 +208,13 @@ func applyMigration(ctx context.Context, session gocqlx.Session, path string, do
 
 		if Callback != nil && i == 1 {
 			if err := Callback(ctx, session, BeforeMigration, info.Name); err != nil {
-				return fmt.Errorf("before migration callback failed: %s", err)
+				return fmt.Errorf("before migration callback: %s", err)
 			}
 		}
 
 		if DefaultAwaitSchemaAgreement.ShouldAwait(AwaitSchemaAgreementBeforeEachStatement) {
 			if err = session.AwaitSchemaAgreement(ctx); err != nil {
-				return fmt.Errorf("awaiting schema agreement failed: %s", err)
+				return fmt.Errorf("awaiting schema agreement: %s", err)
 			}
 		}
 
@@ -223,15 +223,15 @@ func applyMigration(ctx context.Context, session gocqlx.Session, path string, do
 
 		if cb := isCallback(stmt); cb != "" {
 			if Callback == nil {
-				return fmt.Errorf("statement %d failed: missing callback handler while trying to call %s", i, cb)
+				return fmt.Errorf("statement %d: missing callback handler while trying to call %s", i, cb)
 			}
 			if err := Callback(ctx, session, CallComment, cb); err != nil {
-				return fmt.Errorf("callback %s failed: %s", cb, err)
+				return fmt.Errorf("callback %s: %s", cb, err)
 			}
 		} else {
 			q := session.ContextQuery(ctx, stmt, nil).RetryPolicy(nil)
 			if err := q.ExecRelease(); err != nil {
-				return fmt.Errorf("statement %d failed: %s", i, err)
+				return fmt.Errorf("statement %d: %s", i, err)
 			}
 		}
 
@@ -239,7 +239,7 @@ func applyMigration(ctx context.Context, session gocqlx.Session, path string, do
 		info.Done = i
 		info.EndTime = time.Now()
 		if err := update.BindStruct(info).Exec(); err != nil {
-			return fmt.Errorf("migration statement %d failed: %s", i, err)
+			return fmt.Errorf("migration statement %d: %s", i, err)
 		}
 	}
 	if i == 0 {
@@ -248,7 +248,7 @@ func applyMigration(ctx context.Context, session gocqlx.Session, path string, do
 
 	if Callback != nil && i > done {
 		if err := Callback(ctx, session, AfterMigration, info.Name); err != nil {
-			return fmt.Errorf("after migration callback failed: %s", err)
+			return fmt.Errorf("after migration callback: %s", err)
 		}
 	}
 
