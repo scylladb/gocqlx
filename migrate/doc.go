@@ -2,8 +2,8 @@
 // Use of this source code is governed by a ALv2-style
 // license that can be found in the LICENSE file.
 
-// Package migrate provides simple and flexible CLQ migrations.
-// Migrations can be read from a flat directory containing cql files.
-// There is no imposed naming schema, migration name is file name and the migrations are processed in lexicographical order.
-// Caller provides a gocqlx.Session, the session must use a desired keyspace as migrate would try to create migrations table.
+// Package migrate reads migrations from a flat directory containing CQL files.
+// There is no imposed naming schema. Migration name is file name.
+// The order of migrations is the lexicographical order of file names in the directory.
+// You can inject execution of Go code before processing of a migration file, after processing of a migration file, or between statements in a migration file.
 package migrate
