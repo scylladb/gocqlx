@@ -40,7 +40,7 @@ bench:
 
 .PHONY: run-examples
 run-examples:
-	@go test -tags all -v -run=Example
+	@go test -tags all -v -run=Example ./...
 
 .PHONY: run-scylla
 run-scylla:

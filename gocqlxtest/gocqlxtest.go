@@ -62,11 +62,42 @@ func CreateCluster() *gocql.ClusterConfig {
 	return cluster
 }
 
+// CreateKeyspace creates keyspace with SimpleStrategy and RF derived from flags.
+func CreateKeyspace(cluster *gocql.ClusterConfig, keyspace string) error {
+	c := *cluster
+	c.Keyspace = "system"
+	c.Timeout = 30 * time.Second
+
+	session, err := gocqlx.WrapSession(c.CreateSession())
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	{
+		err := session.ExecStmt(`DROP KEYSPACE IF EXISTS ` + keyspace)
+		if err != nil {
+			return fmt.Errorf("drop keyspace: %w", err)
+		}
+	}
+
+	{
+		err := session.ExecStmt(fmt.Sprintf(`CREATE KEYSPACE %s WITH replication = {'class' : 'SimpleStrategy', 'replication_factor' : %d}`, keyspace, *flagRF))
+		if err != nil {
+			return fmt.Errorf("create keyspace: %w", err)
+		}
+	}
+
+	return nil
+}
+
 func createSessionFromCluster(cluster *gocql.ClusterConfig, tb testing.TB) gocqlx.Session {
 	// Drop and re-create the keyspace once. Different tests should use their own
 	// individual tables, but can assume that the table does not exist before.
 	initOnce.Do(func() {
-		createKeyspace(tb, cluster, "gocqlx_test")
+		if err := CreateKeyspace(cluster, "gocqlx_test"); err != nil {
+			tb.Fatal(err)
+		}
 	})
 
 	cluster.Keyspace = "gocqlx_test"
@@ -75,29 +106,4 @@ func createSessionFromCluster(cluster *gocql.ClusterConfig, tb testing.TB) gocql
 		tb.Fatal("CreateSession:", err)
 	}
 	return session
-}
-
-func createKeyspace(tb testing.TB, cluster *gocql.ClusterConfig, keyspace string) {
-	c := *cluster
-	c.Keyspace = "system"
-	c.Timeout = 30 * time.Second
-	session, err := gocqlx.WrapSession(c.CreateSession())
-	if err != nil {
-		tb.Fatal(err)
-	}
-	defer session.Close()
-
-	err = session.ExecStmt(`DROP KEYSPACE IF EXISTS ` + keyspace)
-	if err != nil {
-		tb.Fatalf("unable to drop keyspace: %v", err)
-	}
-
-	err = session.ExecStmt(fmt.Sprintf(`CREATE KEYSPACE %s
-	WITH replication = {
-		'class' : 'SimpleStrategy',
-		'replication_factor' : %d
-	}`, keyspace, *flagRF))
-	if err != nil {
-		tb.Fatalf("unable to create keyspace: %v", err)
-	}
 }
