@@ -114,6 +114,10 @@ make run-scylla
 make run-examples
 ```
 
+## Training
+
+The course [Using Scylla Drivers](https://university.scylladb.com/courses/using-scylla-drivers) in Scylla University explains how to use drivers in different languages to interact with a Scylla cluster. The lesson, [Golang and Scylla Part 3 - GoCQLX](https://university.scylladb.com/courses/using-scylla-drivers/lessons/golang-and-scylla-part-3-gocqlx/), goes over a sample application that, using GoCQLX, interacts with a three-node Scylla cluster. It connects to a Scylla cluster, displays the contents of a table, inserts and deletes data, and shows the contents of the table after each action. [Scylla University](https://university.scylladb.com/) includes other training material and online courses which will help you become a Scylla NoSQL database expert.
+
 ## Performance
 
 GocqlX performance is comparable to the raw `gocql` driver.
