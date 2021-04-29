@@ -4,10 +4,13 @@
 
 package migrate
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func TestFileChecksum(t *testing.T) {
-	c, err := fileChecksum("testdata/file")
+	c, err := fileChecksum(os.DirFS("testdata"), "file")
 	if err != nil {
 		t.Fatal(err)
 	}

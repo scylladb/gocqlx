@@ -9,12 +9,11 @@ package migrate_test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
+	"io/fs"
 	"strings"
 	"testing"
 
+	"github.com/psanford/memfs"
 	"github.com/scylladb/gocqlx/v2"
 	. "github.com/scylladb/gocqlx/v2/gocqlxtest"
 	"github.com/scylladb/gocqlx/v2/migrate"
@@ -52,10 +51,7 @@ func TestMigration(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("init", func(t *testing.T) {
-		dir := makeMigrationDir(t, 2)
-		defer os.Remove(dir)
-
-		if err := migrate.Migrate(ctx, session, dir); err != nil {
+		if err := migrate.FromFS(ctx, session, makeTestFS(2)); err != nil {
 			t.Fatal(err)
 		}
 		if c := countMigrations(t, session); c != 2 {
@@ -64,10 +60,7 @@ func TestMigration(t *testing.T) {
 	})
 
 	t.Run("update", func(t *testing.T) {
-		dir := makeMigrationDir(t, 4)
-		defer os.Remove(dir)
-
-		if err := migrate.Migrate(ctx, session, dir); err != nil {
+		if err := migrate.FromFS(ctx, session, makeTestFS(4)); err != nil {
 			t.Fatal(err)
 		}
 		if c := countMigrations(t, session); c != 4 {
@@ -76,10 +69,8 @@ func TestMigration(t *testing.T) {
 	})
 
 	t.Run("ahead", func(t *testing.T) {
-		dir := makeMigrationDir(t, 2)
-		defer os.Remove(dir)
-
-		if err := migrate.Migrate(ctx, session, dir); err == nil || !strings.Contains(err.Error(), "ahead") {
+		err := migrate.FromFS(ctx, session, makeTestFS(2))
+		if err == nil || !strings.Contains(err.Error(), "ahead") {
 			t.Fatal("expected error")
 		} else {
 			t.Log(err)
@@ -87,12 +78,10 @@ func TestMigration(t *testing.T) {
 	})
 
 	t.Run("tempered with file", func(t *testing.T) {
-		dir := makeMigrationDir(t, 4)
-		defer os.Remove(dir)
+		f := makeTestFS(4)
+		writeFile(f, 3, "SELECT * FROM bla;")
 
-		appendMigrationFile(t, dir, 3, "\nSELECT * FROM bla;\n")
-
-		if err := migrate.Migrate(ctx, session, dir); err == nil || !strings.Contains(err.Error(), "tempered") {
+		if err := migrate.FromFS(ctx, session, f); err == nil || !strings.Contains(err.Error(), "tempered") {
 			t.Fatal("expected error")
 		} else {
 			t.Log(err)
@@ -109,19 +98,11 @@ func TestMigrationNoSemicolon(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	f := makeTestFS(0)
+	f.WriteFile("0.cql", []byte(fmt.Sprintf(insertMigrate, 0)+";"+fmt.Sprintf(insertMigrate, 1)), fs.ModePerm)
+
 	ctx := context.Background()
-
-	dir := makeMigrationDir(t, 1)
-	defer os.Remove(dir)
-
-	f, err := os.OpenFile(filepath.Join(dir, "0.cql"), os.O_WRONLY|os.O_APPEND, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Fprintf(f, insertMigrate, 0) // note no ; at the end
-	f.Close()
-
-	if err := migrate.Migrate(ctx, session, dir); err != nil {
+	if err := migrate.FromFS(ctx, session, f); err != nil {
 		t.Fatal(err)
 	}
 	if c := countMigrations(t, session); c != 2 {
@@ -231,60 +212,36 @@ func TestMigrationCallback(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("init", func(t *testing.T) {
-		dir := makeMigrationDir(t, 2)
-		defer os.Remove(dir)
+		f := makeTestFS(2)
 		reset()
 
-		if err := migrate.Migrate(ctx, session, dir); err != nil {
+		if err := migrate.FromFS(ctx, session, f); err != nil {
 			t.Fatal(err)
 		}
 		assertCallbacks(t, 2, 2, 0)
 	})
 
 	t.Run("no duplicate calls", func(t *testing.T) {
-		dir := makeMigrationDir(t, 4)
-		defer os.Remove(dir)
+		f := makeTestFS(4)
 		reset()
 
-		if err := migrate.Migrate(ctx, session, dir); err != nil {
+		if err := migrate.FromFS(ctx, session, f); err != nil {
 			t.Fatal(err)
 		}
 		assertCallbacks(t, 2, 2, 0)
 	})
 
 	t.Run("in calls", func(t *testing.T) {
-		dir := makeMigrationDir(t, 4)
-		defer os.Remove(dir)
+		f := makeTestFS(4)
+		writeFile(f, 4, "\n-- CALL Foo;\n")
+		writeFile(f, 5, "\n-- CALL Bar;\n")
 		reset()
 
-		appendMigrationFile(t, dir, 4, "\n-- CALL Foo;\n")
-		appendMigrationFile(t, dir, 5, "\n-- CALL Bar;\n")
-
-		if err := migrate.Migrate(ctx, session, dir); err != nil {
+		if err := migrate.FromFS(ctx, session, f); err != nil {
 			t.Fatal(err)
 		}
 		assertCallbacks(t, 2, 2, 2)
 	})
-}
-
-func makeMigrationDir(tb testing.TB, n int) (dir string) {
-	tb.Helper()
-
-	dir, err := ioutil.TempDir("", "gocqlx_migrate")
-	if err != nil {
-		tb.Fatal(err)
-	}
-
-	for i := 0; i < n; i++ {
-		path := migrateFilePath(dir, i)
-		cql := []byte(fmt.Sprintf(insertMigrate, i) + ";")
-		if err := ioutil.WriteFile(path, cql, os.ModePerm); err != nil {
-			os.Remove(dir)
-			tb.Fatal(err)
-		}
-	}
-
-	return dir
 }
 
 func countMigrations(tb testing.TB, session gocqlx.Session) int {
@@ -297,17 +254,14 @@ func countMigrations(tb testing.TB, session gocqlx.Session) int {
 	return v
 }
 
-func appendMigrationFile(tb testing.TB, dir string, i int, text string) {
-	path := migrateFilePath(dir, i)
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModePerm)
-	if err != nil {
-		tb.Fatal(err)
+func makeTestFS(n int) *memfs.FS {
+	f := memfs.New()
+	for i := 0; i < n; i++ {
+		writeFile(f, i, fmt.Sprintf(insertMigrate, i)+";")
 	}
-	if _, err := f.WriteString(text); err != nil {
-		tb.Fatal(err)
-	}
+	return f
 }
 
-func migrateFilePath(dir string, i int) string {
-	return filepath.Join(dir, fmt.Sprint(i, ".cql"))
+func writeFile(f *memfs.FS, i int, text string) {
+	f.WriteFile(fmt.Sprint(i, ".cql"), []byte(text), fs.ModePerm)
 }

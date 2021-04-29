@@ -8,7 +8,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"io"
-	"os"
+	"io/fs"
 )
 
 var encode = hex.EncodeToString
@@ -18,15 +18,15 @@ func checksum(b []byte) string {
 	return encode(v[:])
 }
 
-func fileChecksum(path string) (string, error) {
-	f, err := os.Open(path)
+func fileChecksum(f fs.FS, path string) (string, error) {
+	file, err := f.Open(path)
 	if err != nil {
 		return "", nil
 	}
-	defer f.Close()
+	defer file.Close()
 
 	h := md5.New()
-	if _, err := io.Copy(h, f); err != nil {
+	if _, err := io.Copy(h, file); err != nil {
 		return "", err
 	}
 	v := h.Sum(nil)
