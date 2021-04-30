@@ -265,6 +265,10 @@ func (q *Queryx) GetRelease(dest interface{}) error {
 // the previous values will be stored in dest object.
 // See: https://docs.scylladb.com/using-scylla/lwt/ for more details.
 func (q *Queryx) GetCAS(dest interface{}) (applied bool, err error) {
+	if q.err != nil {
+		return false, q.err
+	}
+
 	iter := q.Iter()
 	if err := iter.Get(dest); err != nil {
 		return false, err
