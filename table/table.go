@@ -92,7 +92,7 @@ func (t *Table) Get(columns ...string) (stmt string, names []string) {
 		ToCql()
 }
 
-// GetQuery returns query which gets by partition key.
+// GetQuery returns query which gets by primary key.
 func (t *Table) GetQuery(session gocqlx.Session, columns ...string) *gocqlx.Queryx {
 	return session.Query(t.Get(columns...))
 }
