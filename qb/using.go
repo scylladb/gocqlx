@@ -25,6 +25,7 @@ type using struct {
 	ttlName       string
 	timestamp     int64
 	timestampName string
+	using         bool
 }
 
 func (u *using) TTL(d time.Duration) *using {
@@ -55,38 +56,37 @@ func (u *using) TimestampNamed(name string) *using {
 }
 
 func (u *using) writeCql(cql *bytes.Buffer) (names []string) {
-	hasTTL := false
+	u.using = false
 
 	if u.ttl != 0 {
-		hasTTL = true
 		if u.ttl == -1 {
 			u.ttl = 0
 		}
-		cql.WriteString("USING TTL ")
-		cql.WriteString(fmt.Sprint(u.ttl))
-		cql.WriteByte(' ')
+		u.writePreamble(cql)
+		fmt.Fprintf(cql, "TTL %d ", u.ttl)
 	} else if u.ttlName != "" {
-		hasTTL = true
-		cql.WriteString("USING TTL ? ")
+		u.writePreamble(cql)
+		cql.WriteString("TTL ? ")
 		names = append(names, u.ttlName)
 	}
 
 	if u.timestamp != 0 {
-		if hasTTL {
-			cql.WriteString("AND TIMESTAMP ")
-		} else {
-			cql.WriteString("USING TIMESTAMP ")
-		}
-		cql.WriteString(fmt.Sprint(u.timestamp))
-		cql.WriteByte(' ')
+		u.writePreamble(cql)
+		fmt.Fprintf(cql, "TIMESTAMP %d ", u.timestamp)
 	} else if u.timestampName != "" {
-		if hasTTL {
-			cql.WriteString("AND TIMESTAMP ? ")
-		} else {
-			cql.WriteString("USING TIMESTAMP ? ")
-		}
+		u.writePreamble(cql)
+		cql.WriteString("TIMESTAMP ? ")
 		names = append(names, u.timestampName)
 	}
 
 	return
+}
+
+func (u *using) writePreamble(cql *bytes.Buffer) {
+	if u.using {
+		cql.WriteString("AND ")
+	} else {
+		cql.WriteString("USING ")
+		u.using = true
+	}
 }
