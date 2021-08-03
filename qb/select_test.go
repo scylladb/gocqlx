@@ -6,6 +6,7 @@ package qb
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -76,6 +77,17 @@ func TestSelectBuilder(t *testing.T) {
 			B: Select("cycling.cyclist_name").Where(EqTuple("id", 2), GtTuple("firstname", 2)),
 			S: "SELECT * FROM cycling.cyclist_name WHERE id=(?,?) AND firstname>(?,?) ",
 			N: []string{"id_0", "id_1", "firstname_0", "firstname_1"},
+		},
+		// Add TIMEOUT
+		{
+			B: Select("cycling.cyclist_name").Where(w, Gt("firstname")).Timeout(time.Second),
+			S: "SELECT * FROM cycling.cyclist_name USING TIMEOUT 1s WHERE id=? AND firstname>? ",
+			N: []string{"expr", "firstname"},
+		},
+		{
+			B: Select("cycling.cyclist_name").Where(w, Gt("firstname")).TimeoutNamed("to"),
+			S: "SELECT * FROM cycling.cyclist_name USING TIMEOUT ? WHERE id=? AND firstname>? ",
+			N: []string{"to", "expr", "firstname"},
 		},
 		// Add GROUP BY
 		{

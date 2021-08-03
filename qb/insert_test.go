@@ -76,6 +76,39 @@ func TestInsertBuilder(t *testing.T) {
 			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) USING TIMESTAMP ? ",
 			N: []string{"id", "user_uuid", "firstname", "ts"},
 		},
+		// Add TIMESTAMP
+		{
+			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
+			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) USING TIMESTAMP 1115251200000000 ",
+			N: []string{"id", "user_uuid", "firstname"},
+		},
+		{
+			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").TimestampNamed("ts"),
+			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) USING TIMESTAMP ? ",
+			N: []string{"id", "user_uuid", "firstname", "ts"},
+		},
+		// Add TIMESTAMP
+		{
+			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
+			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) USING TIMESTAMP 1115251200000000 ",
+			N: []string{"id", "user_uuid", "firstname"},
+		},
+		{
+			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").TimestampNamed("ts"),
+			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) USING TIMESTAMP ? ",
+			N: []string{"id", "user_uuid", "firstname", "ts"},
+		},
+		// Add TIMEOUT
+		{
+			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Timeout(time.Second),
+			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) USING TIMEOUT 1s ",
+			N: []string{"id", "user_uuid", "firstname"},
+		},
+		{
+			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").TimeoutNamed("to"),
+			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) USING TIMEOUT ? ",
+			N: []string{"id", "user_uuid", "firstname", "to"},
+		},
 		// Add TupleColumn
 		{
 			B: Insert("cycling.cyclist_name").TupleColumn("id", 2),

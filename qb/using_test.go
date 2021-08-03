@@ -52,6 +52,17 @@ func TestUsing(t *testing.T) {
 			S: "USING TIMESTAMP ? ",
 			N: []string{"ts"},
 		},
+		// Timeout
+		{
+			B: new(using).Timeout(time.Second),
+			S: "USING TIMEOUT 1s ",
+		},
+		// TimeoutNamed
+		{
+			B: new(using).TimeoutNamed("to"),
+			S: "USING TIMEOUT ? ",
+			N: []string{"to"},
+		},
 		// TTL Timestamp
 		{
 			B: new(using).TTL(time.Second).Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
@@ -74,6 +85,22 @@ func TestUsing(t *testing.T) {
 			B: new(using).TTLNamed("ttl").Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
 			S: "USING TTL ? AND TIMESTAMP 1115251200000000 ",
 			N: []string{"ttl"},
+		},
+		// TTL Timeout
+		{
+			B: new(using).TTL(time.Second).Timeout(time.Second),
+			S: "USING TTL 1 AND TIMEOUT 1s ",
+		},
+		// TTL TimeoutNamed
+		{
+			B: new(using).TTL(time.Second).TimeoutNamed("to"),
+			S: "USING TTL 1 AND TIMEOUT ? ",
+			N: []string{"to"},
+		},
+		// TTL Timestamp Timeout
+		{
+			B: new(using).TTL(time.Second).Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)).Timeout(time.Second),
+			S: "USING TTL 1 AND TIMESTAMP 1115251200000000 AND TIMEOUT 1s ",
 		},
 		// TTL with no duration
 		{

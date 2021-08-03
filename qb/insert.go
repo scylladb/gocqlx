@@ -183,3 +183,16 @@ func (b *InsertBuilder) TimestampNamed(name string) *InsertBuilder {
 	b.using.TimestampNamed(name)
 	return b
 }
+
+// Timeout adds USING TIMEOUT clause to the query.
+func (b *InsertBuilder) Timeout(d time.Duration) *InsertBuilder {
+	b.using.Timeout(d)
+	return b
+}
+
+// TimeoutNamed adds a USING TIMEOUT clause to the query with a custom
+// parameter name.
+func (b *InsertBuilder) TimeoutNamed(name string) *InsertBuilder {
+	b.using.TimeoutNamed(name)
+	return b
+}

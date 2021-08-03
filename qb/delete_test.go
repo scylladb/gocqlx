@@ -78,6 +78,17 @@ func TestDeleteBuilder(t *testing.T) {
 			S: "DELETE FROM cycling.cyclist_name USING TIMESTAMP ? WHERE id=? ",
 			N: []string{"ts", "expr"},
 		},
+		// Add TIMEOUT
+		{
+			B: Delete("cycling.cyclist_name").Where(w).Timeout(time.Second),
+			S: "DELETE FROM cycling.cyclist_name USING TIMEOUT 1s WHERE id=? ",
+			N: []string{"expr"},
+		},
+		{
+			B: Delete("cycling.cyclist_name").Where(w).TimeoutNamed("to"),
+			S: "DELETE FROM cycling.cyclist_name USING TIMEOUT ? WHERE id=? ",
+			N: []string{"to", "expr"},
+		},
 		// Add IF EXISTS
 		{
 			B: Delete("cycling.cyclist_name").Where(w).Existing(),

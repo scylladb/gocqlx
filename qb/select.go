@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/scylladb/gocqlx/v2"
 )
@@ -37,6 +38,7 @@ type SelectBuilder struct {
 	table             string
 	columns           columns
 	distinct          columns
+	using             using
 	where             where
 	groupBy           columns
 	orderBy           columns
@@ -83,7 +85,8 @@ func (b *SelectBuilder) ToCql() (stmt string, names []string) {
 	cql.WriteString(b.table)
 	cql.WriteByte(' ')
 
-	names = b.where.writeCql(&cql)
+	names = append(names, b.using.writeCql(&cql)...)
+	names = append(names, b.where.writeCql(&cql)...)
 
 	if len(b.groupBy) > 0 {
 		cql.WriteString("GROUP BY ")
@@ -165,6 +168,19 @@ func (b *SelectBuilder) Distinct(columns ...string) *SelectBuilder {
 	} else {
 		b.distinct = append(b.distinct, columns...)
 	}
+	return b
+}
+
+// Timeout adds USING TIMEOUT clause to the query.
+func (b *SelectBuilder) Timeout(d time.Duration) *SelectBuilder {
+	b.using.Timeout(d)
+	return b
+}
+
+// TimeoutNamed adds a USING TIMEOUT clause to the query with a custom
+// parameter name.
+func (b *SelectBuilder) TimeoutNamed(name string) *SelectBuilder {
+	b.using.TimeoutNamed(name)
 	return b
 }
 
