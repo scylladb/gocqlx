@@ -117,6 +117,19 @@ func (b *UpdateBuilder) TimestampNamed(name string) *UpdateBuilder {
 	return b
 }
 
+// Timeout adds USING TIMEOUT clause to the query.
+func (b *UpdateBuilder) Timeout(d time.Duration) *UpdateBuilder {
+	b.using.Timeout(d)
+	return b
+}
+
+// TimeoutNamed adds a USING TIMEOUT clause to the query with a custom
+// parameter name.
+func (b *UpdateBuilder) TimeoutNamed(name string) *UpdateBuilder {
+	b.using.TimeoutNamed(name)
+	return b
+}
+
 // Set adds SET clauses to the query.
 // To set a tuple column use SetTuple instead.
 func (b *UpdateBuilder) Set(columns ...string) *UpdateBuilder {

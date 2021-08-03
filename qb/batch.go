@@ -145,3 +145,16 @@ func (b *BatchBuilder) TimestampNamed(name string) *BatchBuilder {
 	b.using.TimestampNamed(name)
 	return b
 }
+
+// Timeout adds USING TIMEOUT clause to the query.
+func (b *BatchBuilder) Timeout(d time.Duration) *BatchBuilder {
+	b.using.Timeout(d)
+	return b
+}
+
+// TimeoutNamed adds a USING TIMEOUT clause to the query with a custom
+// parameter name.
+func (b *BatchBuilder) TimeoutNamed(name string) *BatchBuilder {
+	b.using.TimeoutNamed(name)
+	return b
+}

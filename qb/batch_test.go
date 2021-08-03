@@ -72,6 +72,16 @@ func TestBatchBuilder(t *testing.T) {
 			S: "BEGIN BATCH USING TIMESTAMP ? APPLY BATCH ",
 			N: []string{"ts"},
 		},
+		// Add TIMEOUT
+		{
+			B: Batch().Timeout(time.Second),
+			S: "BEGIN BATCH USING TIMEOUT 1s APPLY BATCH ",
+		},
+		{
+			B: Batch().TimeoutNamed("to"),
+			S: "BEGIN BATCH USING TIMEOUT ? APPLY BATCH ",
+			N: []string{"to"},
+		},
 	}
 
 	for _, test := range table {

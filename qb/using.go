@@ -25,7 +25,10 @@ type using struct {
 	ttlName       string
 	timestamp     int64
 	timestampName string
-	using         bool
+	timeout       time.Duration
+	timeoutName   string
+
+	using bool
 }
 
 func (u *using) TTL(d time.Duration) *using {
@@ -55,6 +58,18 @@ func (u *using) TimestampNamed(name string) *using {
 	return u
 }
 
+func (u *using) Timeout(d time.Duration) *using {
+	u.timeout = d
+	u.timeoutName = ""
+	return u
+}
+
+func (u *using) TimeoutNamed(name string) *using {
+	u.timeout = 0
+	u.timeoutName = name
+	return u
+}
+
 func (u *using) writeCql(cql *bytes.Buffer) (names []string) {
 	u.using = false
 
@@ -77,6 +92,15 @@ func (u *using) writeCql(cql *bytes.Buffer) (names []string) {
 		u.writePreamble(cql)
 		cql.WriteString("TIMESTAMP ? ")
 		names = append(names, u.timestampName)
+	}
+
+	if u.timeout != 0 {
+		u.writePreamble(cql)
+		fmt.Fprintf(cql, "TIMEOUT %s ", u.timeout)
+	} else if u.timeoutName != "" {
+		u.writePreamble(cql)
+		cql.WriteString("TIMEOUT ? ")
+		names = append(names, u.timeoutName)
 	}
 
 	return

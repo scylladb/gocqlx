@@ -126,6 +126,17 @@ func TestUpdateBuilder(t *testing.T) {
 			S: "UPDATE cycling.cyclist_name USING TIMESTAMP ? SET id=?,user_uuid=?,firstname=? WHERE id=? ",
 			N: []string{"ts", "id", "user_uuid", "firstname", "expr"},
 		},
+		// Add TIMEOUT
+		{
+			B: Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname").Where(w).Timeout(time.Second),
+			S: "UPDATE cycling.cyclist_name USING TIMEOUT 1s SET id=?,user_uuid=?,firstname=? WHERE id=? ",
+			N: []string{"id", "user_uuid", "firstname", "expr"},
+		},
+		{
+			B: Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname").Where(w).TimeoutNamed("to"),
+			S: "UPDATE cycling.cyclist_name USING TIMEOUT ? SET id=?,user_uuid=?,firstname=? WHERE id=? ",
+			N: []string{"to", "id", "user_uuid", "firstname", "expr"},
+		},
 		// Add IF EXISTS
 		{
 			B: Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname").Where(w).Existing(),

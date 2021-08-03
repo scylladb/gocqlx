@@ -92,6 +92,19 @@ func (b *DeleteBuilder) TimestampNamed(name string) *DeleteBuilder {
 	return b
 }
 
+// Timeout adds USING TIMEOUT clause to the query.
+func (b *DeleteBuilder) Timeout(d time.Duration) *DeleteBuilder {
+	b.using.Timeout(d)
+	return b
+}
+
+// TimeoutNamed adds a USING TIMEOUT clause to the query with a custom
+// parameter name.
+func (b *DeleteBuilder) TimeoutNamed(name string) *DeleteBuilder {
+	b.using.TimeoutNamed(name)
+	return b
+}
+
 // Where adds an expression to the WHERE clause of the query. Expressions are
 // ANDed together in the generated CQL.
 func (b *DeleteBuilder) Where(w ...Cmp) *DeleteBuilder {
