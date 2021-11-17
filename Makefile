@@ -12,6 +12,10 @@ ifndef GOTEST_CPU
 GOTEST_CPU := 1
 endif
 
+ifndef GOPATH
+GOPATH := $(shell go env GOPATH)
+endif
+
 ifndef GOBIN
 GOBIN := $(GOPATH)/bin
 endif
