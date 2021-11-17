@@ -7,12 +7,11 @@ import (
 	"fmt"
 	"go/format"
 	"html/template"
-	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"strings"
-	"unicode"
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx/v2"
@@ -42,44 +41,34 @@ func main() {
 		log.Fatalln("missing required flag: keyspace")
 	}
 
-	schemagen()
+	if err := schemagen(); err != nil {
+		log.Fatalf("failed to generate schema: %s", err)
+	}
 }
 
-func schemagen() {
-	err := os.MkdirAll(*flagOutput, os.ModePerm)
-	if err != nil {
-		log.Fatalln("unable to create output directory:", err)
+func schemagen() error {
+	if err := os.MkdirAll(*flagOutput, os.ModePerm); err != nil {
+		return fmt.Errorf("create output directory: %w", err)
 	}
 
+	session, err := createSession()
+	if err != nil {
+		return fmt.Errorf("open output file: %w", err)
+	}
+	metadata, err := session.KeyspaceMetadata(*flagKeyspace)
+	if err != nil {
+		return fmt.Errorf("fetch keyspace metadata: %w", err)
+	}
+	b, err := renderTemplate(metadata)
+	if err != nil {
+		return fmt.Errorf("render template: %w", err)
+	}
 	outputPath := path.Join(*flagOutput, *flagPkgname+".go")
-	f, err := os.OpenFile(outputPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
-	if err != nil {
-		log.Fatalln("unable to open output file:", err)
-	}
 
-	metadata := fetchMetadata(createSession())
-
-	if err = renderTemplate(f, metadata); err != nil {
-		log.Fatalln("unable to output template:", err)
-	}
-
-	if err = f.Close(); err != nil {
-		log.Fatalln("unable to close output file:", err)
-	}
-
-	log.Println("File written to", outputPath)
+	return ioutil.WriteFile(outputPath, b, os.ModePerm)
 }
 
-func fetchMetadata(s *gocqlx.Session) *gocql.KeyspaceMetadata {
-	md, err := s.KeyspaceMetadata(*flagKeyspace)
-	if err != nil {
-		log.Fatalln("unable to fetch keyspace metadata:", err)
-	}
-
-	return md
-}
-
-func renderTemplate(w io.Writer, md *gocql.KeyspaceMetadata) error {
+func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 	t, err := template.
 		New("keyspace.tmpl").
 		Funcs(template.FuncMap{"camelize": camelize}).
@@ -95,68 +84,17 @@ func renderTemplate(w io.Writer, md *gocql.KeyspaceMetadata) error {
 		"Tables":      md.Tables,
 	}
 
-	err = t.Execute(buf, data)
-	if err != nil {
-		log.Fatalln("unable to execute models template:", err)
+	if err = t.Execute(buf, data); err != nil {
+		return nil, fmt.Errorf("template: %w", err)
 	}
-
-	res, err := format.Source(buf.Bytes())
-	if err != nil {
-		log.Fatalln("template output is not a valid go code:", err)
-	}
-
-	_, err = w.Write(res)
-
-	return err
+	return format.Source(buf.Bytes())
 }
 
-func createSession() *gocqlx.Session {
-	cluster := createCluster()
-	s, err := gocqlx.WrapSession(cluster.CreateSession())
-	if err != nil {
-		log.Fatalln("unable to create scylla session:", err)
-	}
-	return &s
+func createSession() (gocqlx.Session, error) {
+	cluster := gocql.NewCluster(clusterHosts()...)
+	return gocqlx.WrapSession(cluster.CreateSession())
 }
 
-func createCluster() *gocql.ClusterConfig {
-	clusterHosts := getClusterHosts()
-	return gocql.NewCluster(clusterHosts...)
-}
-
-func getClusterHosts() []string {
+func clusterHosts() []string {
 	return strings.Split(*flagCluster, ",")
-}
-
-func camelize(s string) string {
-	buf := []byte(s)
-	out := make([]byte, 0, len(buf))
-	underscoreSeen := false
-
-	l := len(buf)
-	for i := 0; i < l; i++ {
-		if !(allowedBindRune(buf[i]) || buf[i] == '_') {
-			panic(fmt.Sprint("not allowed name ", s))
-		}
-
-		b := rune(buf[i])
-
-		if b == '_' {
-			underscoreSeen = true
-			continue
-		}
-
-		if (i == 0 || underscoreSeen) && unicode.IsLower(b) {
-			b = unicode.ToUpper(b)
-			underscoreSeen = false
-		}
-
-		out = append(out, byte(b))
-	}
-
-	return string(out)
-}
-
-func allowedBindRune(b byte) bool {
-	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
 }

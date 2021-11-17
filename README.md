@@ -141,42 +141,43 @@ package models
 
 import "github.com/scylladb/gocqlx/v2/table"
 
-var PlaylistsMetadata = table.Metadata{
-	Name: "playlists",
-	Columns: []string{
-		"album",
-		"artist",
-		"id",
-		"song_id",
-		"title",
-	},
-	PartKey: []string{
-		"id",
-	},
-	SortKey: []string{
-		"title",
-		"album",
-		"artist",
-	},
-}
-var PlaylistsTable = table.New(PlaylistsMetadata)
+// Table models.
+var (
+	Playlists = table.New(table.Metadata{
+		Name: "playlists",
+		Columns: []string{
+			"album",
+			"artist",
+			"id",
+			"song_id",
+			"title",
+		},
+		PartKey: []string{
+			"id",
+		},
+		SortKey: []string{
+			"title",
+			"album",
+			"artist",
+		},
+	})
 
-var SongsMetadata = table.Metadata{
-	Name: "songs",
-	Columns: []string{
-		"album",
-		"artist",
-		"data",
-		"id",
-		"tags",
-		"title",
-	},
-	PartKey: []string{
-		"id",
-	},
-	SortKey: []string{},
-}
-var SongsTable = table.New(SongsMetadata)
+	Songs = table.New(table.Metadata{
+		Name: "songs",
+		Columns: []string{
+			"album",
+			"artist",
+			"data",
+			"id",
+			"tags",
+			"title",
+		},
+		PartKey: []string{
+			"id",
+		},
+		SortKey: []string{},
+	})
+)
 ```
 
 ## Examples

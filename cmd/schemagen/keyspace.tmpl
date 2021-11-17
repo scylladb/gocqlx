@@ -4,27 +4,29 @@ package {{.PackageName}}
 
 import "github.com/scylladb/gocqlx/v2/table"
 
+// Table models.
+var (
 {{with .Tables}}
-    {{range .}}
-        {{$model_name := .Name | camelize}}
-        var {{$model_name}}Metadata = table.Metadata {
-            Name:    "{{.Name}}",
-            Columns: []string{
-                {{- range .OrderedColumns}}
-                    "{{.}}",
-                {{- end}}
-            },
-            PartKey: []string {
-                {{- range .PartitionKey}}
-                    "{{.Name}}",
-                {{- end}}
-            },
-            SortKey: []string{
-                {{- range .ClusteringColumns}}
-                    "{{.Name}}",
-                {{- end}}
-            },
-        }
-        var {{$model_name}}Table = table.New({{$model_name}}Metadata)
-    {{end}}
+{{range .}}
+	{{$model_name := .Name | camelize}}
+		{{$model_name}} = table.New(table.Metadata {
+			Name:	"{{.Name}}",
+			Columns: []string{
+				{{- range .OrderedColumns}}
+					"{{.}}",
+				{{- end}}
+			},
+			PartKey: []string {
+				{{- range .PartitionKey}}
+					"{{.Name}}",
+				{{- end}}
+			},
+			SortKey: []string{
+				{{- range .ClusteringColumns}}
+					"{{.Name}}",
+				{{- end}}
+			},
+	})
 {{end}}
+{{end}}
+)
