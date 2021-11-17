@@ -33,6 +33,7 @@ test:
 	@$(GOTEST) ./table
 	@$(GOTEST) ./migrate
 	@$(GOTEST) ./dbutil
+	@$(GOTEST) ./cmd/schemagen
 
 .PHONY: bench
 bench:
