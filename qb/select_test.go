@@ -128,11 +128,35 @@ func TestSelectBuilder(t *testing.T) {
 			S: "SELECT * FROM cycling.cyclist_name WHERE id=? LIMIT 10 ",
 			N: []string{"expr"},
 		},
+		// Add named LIMIT
+		{
+			B: Select("cycling.cyclist_name").Where(w).LimitNamed("limit"),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? LIMIT ? ",
+			N: []string{"expr", "limit"},
+		},
 		// Add PER PARTITION LIMIT
 		{
 			B: Select("cycling.cyclist_name").Where(w).LimitPerPartition(10),
 			S: "SELECT * FROM cycling.cyclist_name WHERE id=? PER PARTITION LIMIT 10 ",
 			N: []string{"expr"},
+		},
+		// Add named PER PARTITION LIMIT
+		{
+			B: Select("cycling.cyclist_name").Where(w).LimitPerPartitionNamed("partition_limit"),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? PER PARTITION LIMIT ? ",
+			N: []string{"expr", "partition_limit"},
+		},
+		// Add PER PARTITION LIMIT and LIMIT
+		{
+			B: Select("cycling.cyclist_name").Where(w).LimitPerPartition(2).Limit(10),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? PER PARTITION LIMIT 2 LIMIT 10 ",
+			N: []string{"expr"},
+		},
+		// Add named PER PARTITION LIMIT and LIMIT
+		{
+			B: Select("cycling.cyclist_name").Where(w).LimitPerPartitionNamed("partition_limit").LimitNamed("limit"),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? PER PARTITION LIMIT ? LIMIT ? ",
+			N: []string{"expr", "partition_limit", "limit"},
 		},
 		// Add ALLOW FILTERING
 		{
