@@ -10,7 +10,6 @@ package qb
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/scylladb/gocqlx/v2"
@@ -42,8 +41,8 @@ type SelectBuilder struct {
 	where             where
 	groupBy           columns
 	orderBy           columns
-	limit             uint
-	limitPerPartition uint
+	limit             limit
+	limitPerPartition limit
 	allowFiltering    bool
 	bypassCache       bool
 	json              bool
@@ -100,17 +99,8 @@ func (b *SelectBuilder) ToCql() (stmt string, names []string) {
 		cql.WriteByte(' ')
 	}
 
-	if b.limit != 0 {
-		cql.WriteString("LIMIT ")
-		cql.WriteString(fmt.Sprint(b.limit))
-		cql.WriteByte(' ')
-	}
-
-	if b.limitPerPartition != 0 {
-		cql.WriteString("PER PARTITION LIMIT ")
-		cql.WriteString(fmt.Sprint(b.limitPerPartition))
-		cql.WriteByte(' ')
-	}
+	names = append(names, b.limitPerPartition.writeCql(&cql)...)
+	names = append(names, b.limit.writeCql(&cql)...)
 
 	if b.allowFiltering {
 		cql.WriteString("ALLOW FILTERING ")
@@ -214,13 +204,25 @@ func (b *SelectBuilder) OrderBy(column string, o Order) *SelectBuilder {
 
 // Limit sets a LIMIT clause on the query.
 func (b *SelectBuilder) Limit(limit uint) *SelectBuilder {
-	b.limit = limit
+	b.limit = limitLit(limit, false)
+	return b
+}
+
+// LimitNamed produces LIMIT ? clause with a custom parameter name.
+func (b *SelectBuilder) LimitNamed(name string) *SelectBuilder {
+	b.limit = limitNamed(name, false)
 	return b
 }
 
 // LimitPerPartition sets a PER PARTITION LIMIT clause on the query.
 func (b *SelectBuilder) LimitPerPartition(limit uint) *SelectBuilder {
-	b.limitPerPartition = limit
+	b.limitPerPartition = limitLit(limit, true)
+	return b
+}
+
+// LimitPerPartitionNamed produces PER PARTITION LIMIT ? clause with a custom parameter name.
+func (b *SelectBuilder) LimitPerPartitionNamed(name string) *SelectBuilder {
+	b.limitPerPartition = limitNamed(name, true)
 	return b
 }
 
