@@ -88,6 +88,25 @@ func TestQueryxBindStruct(t *testing.T) {
 		}
 	})
 
+	t.Run("with transformer", func(t *testing.T) {
+		tr := func(name string, val interface{}) interface{} {
+			if name == "age" {
+				return 42
+			}
+			return val
+		}
+
+		names := []string{"name", "age", "first", "last"}
+		args, err := Query(nil, names).WithBindTransformer(tr).bindStructArgs(v, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(args, []interface{}{"name", 42, "first", "last"}); diff != "" {
+			t.Error("args mismatch", diff)
+		}
+	})
+
 	t.Run("error", func(t *testing.T) {
 		names := []string{"name", "age", "first", "not_found"}
 		_, err := Query(nil, names).bindStructArgs(v, nil)
@@ -107,6 +126,28 @@ func TestQueryxBindStruct(t *testing.T) {
 		}
 
 		if diff := cmp.Diff(args, []interface{}{"name", 30, "first", "last"}); diff != "" {
+			t.Error("args mismatch", diff)
+		}
+	})
+
+	t.Run("fallback with transformer", func(t *testing.T) {
+		tr := func(name string, val interface{}) interface{} {
+			if name == "not_found" {
+				return "map_found"
+			}
+			return val
+		}
+
+		names := []string{"name", "age", "first", "not_found"}
+		m := map[string]interface{}{
+			"not_found": "last",
+		}
+		args, err := Query(nil, names).WithBindTransformer(tr).bindStructArgs(v, m)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(args, []interface{}{"name", 30, "first", "map_found"}); diff != "" {
 			t.Error("args mismatch", diff)
 		}
 	})
@@ -139,6 +180,25 @@ func TestQueryxBindMap(t *testing.T) {
 		}
 
 		if diff := cmp.Diff(args, []interface{}{"name", 30, "first", "last"}); diff != "" {
+			t.Error("args mismatch", diff)
+		}
+	})
+
+	t.Run("with transformer", func(t *testing.T) {
+		tr := func(name string, val interface{}) interface{} {
+			if name == "age" {
+				return 42
+			}
+			return val
+		}
+
+		names := []string{"name", "age", "first", "last"}
+		args, err := Query(nil, names).WithBindTransformer(tr).bindMapArgs(v)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(args, []interface{}{"name", 42, "first", "last"}); diff != "" {
 			t.Error("args mismatch", diff)
 		}
 	})

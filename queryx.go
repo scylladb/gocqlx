@@ -93,7 +93,9 @@ type Queryx struct {
 	*gocql.Query
 	Names  []string
 	Mapper *reflectx.Mapper
-	err    error
+
+	tr  Transformer
+	err error
 }
 
 // Query creates a new Queryx from gocql.Query using a default mapper.
@@ -104,7 +106,15 @@ func Query(q *gocql.Query, names []string) *Queryx {
 		Query:  q,
 		Names:  names,
 		Mapper: DefaultMapper,
+		tr:     DefaultBindTransformer,
 	}
+}
+
+// WithBindTransformer sets the query bind transformer.
+// The transformer is called right before binding a value to a named parameter.
+func (q *Queryx) WithBindTransformer(tr Transformer) *Queryx {
+	q.tr = tr
+	return q
 }
 
 // BindStruct binds query named parameters to values from arg using mapper. If
@@ -157,6 +167,10 @@ func (q *Queryx) bindStructArgs(arg0 interface{}, arg1 map[string]interface{}) (
 			arglist = append(arglist, val)
 		}
 
+		if q.tr != nil {
+			arglist[i] = q.tr(q.Names[i], arglist[i])
+		}
+
 		return nil
 	})
 
@@ -183,6 +197,10 @@ func (q *Queryx) bindMapArgs(arg map[string]interface{}) ([]interface{}, error) 
 		val, ok := arg[name]
 		if !ok {
 			return arglist, fmt.Errorf("could not find name %q in %#v", name, arg)
+		}
+
+		if q.tr != nil {
+			val = q.tr(name, val)
 		}
 		arglist = append(arglist, val)
 	}

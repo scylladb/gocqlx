@@ -49,6 +49,7 @@ func (s Session) ContextQuery(ctx context.Context, stmt string, names []string) 
 		Query:  s.Session.Query(stmt).WithContext(ctx),
 		Names:  names,
 		Mapper: s.Mapper,
+		tr:     DefaultBindTransformer,
 	}
 }
 
@@ -62,6 +63,7 @@ func (s Session) Query(stmt string, names []string) *Queryx {
 		Query:  s.Session.Query(stmt),
 		Names:  names,
 		Mapper: s.Mapper,
+		tr:     DefaultBindTransformer,
 	}
 }
 
