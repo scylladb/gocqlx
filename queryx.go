@@ -110,7 +110,7 @@ func Query(q *gocql.Query, names []string) *Queryx {
 // BindStruct binds query named parameters to values from arg using mapper. If
 // value cannot be found error is reported.
 func (q *Queryx) BindStruct(arg interface{}) *Queryx {
-	arglist, err := bindStructArgs(q.Names, arg, nil, q.Mapper)
+	arglist, err := q.bindStructArgs(arg, nil)
 	if err != nil {
 		q.err = fmt.Errorf("bind error: %s", err)
 	} else {
@@ -125,7 +125,7 @@ func (q *Queryx) BindStruct(arg interface{}) *Queryx {
 // using a mapper. If value cannot be found in arg0 it's looked up in arg1
 // before reporting an error.
 func (q *Queryx) BindStructMap(arg0 interface{}, arg1 map[string]interface{}) *Queryx {
-	arglist, err := bindStructArgs(q.Names, arg0, arg1, q.Mapper)
+	arglist, err := q.bindStructArgs(arg0, arg1)
 	if err != nil {
 		q.err = fmt.Errorf("bind error: %s", err)
 	} else {
@@ -136,8 +136,8 @@ func (q *Queryx) BindStructMap(arg0 interface{}, arg1 map[string]interface{}) *Q
 	return q
 }
 
-func bindStructArgs(names []string, arg0 interface{}, arg1 map[string]interface{}, m *reflectx.Mapper) ([]interface{}, error) {
-	arglist := make([]interface{}, 0, len(names))
+func (q *Queryx) bindStructArgs(arg0 interface{}, arg1 map[string]interface{}) ([]interface{}, error) {
+	arglist := make([]interface{}, 0, len(q.Names))
 
 	// grab the indirected value of arg
 	v := reflect.ValueOf(arg0)
@@ -145,14 +145,14 @@ func bindStructArgs(names []string, arg0 interface{}, arg1 map[string]interface{
 		v = v.Elem()
 	}
 
-	err := m.TraversalsByNameFunc(v.Type(), names, func(i int, t []int) error {
+	err := q.Mapper.TraversalsByNameFunc(v.Type(), q.Names, func(i int, t []int) error {
 		if len(t) != 0 {
 			val := reflectx.FieldByIndexesReadOnly(v, t) // nolint:scopelint
 			arglist = append(arglist, val.Interface())
 		} else {
-			val, ok := arg1[names[i]]
+			val, ok := arg1[q.Names[i]]
 			if !ok {
-				return fmt.Errorf("could not find name %q in %#v and %#v", names[i], arg0, arg1)
+				return fmt.Errorf("could not find name %q in %#v and %#v", q.Names[i], arg0, arg1)
 			}
 			arglist = append(arglist, val)
 		}
@@ -165,7 +165,7 @@ func bindStructArgs(names []string, arg0 interface{}, arg1 map[string]interface{
 
 // BindMap binds query named parameters using map.
 func (q *Queryx) BindMap(arg map[string]interface{}) *Queryx {
-	arglist, err := bindMapArgs(q.Names, arg)
+	arglist, err := q.bindMapArgs(arg)
 	if err != nil {
 		q.err = fmt.Errorf("bind error: %s", err)
 	} else {
@@ -176,10 +176,10 @@ func (q *Queryx) BindMap(arg map[string]interface{}) *Queryx {
 	return q
 }
 
-func bindMapArgs(names []string, arg map[string]interface{}) ([]interface{}, error) {
-	arglist := make([]interface{}, 0, len(names))
+func (q *Queryx) bindMapArgs(arg map[string]interface{}) ([]interface{}, error) {
+	arglist := make([]interface{}, 0, len(q.Names))
 
-	for _, name := range names {
+	for _, name := range q.Names {
 		val, ok := arg[name]
 		if !ok {
 			return arglist, fmt.Errorf("could not find name %q in %#v", name, arg)
