@@ -19,6 +19,7 @@ import (
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/gocqlx/v2/table"
 	"golang.org/x/sync/errgroup"
+	"gopkg.in/inf.v0"
 )
 
 // Running examples locally:
@@ -47,6 +48,7 @@ func TestExample(t *testing.T) {
 	pagingEfficientFullTableScan(t, session)
 
 	lwtLock(t, session)
+	unsetEmptyValues(t, session)
 }
 
 // This example shows how to use query builders and table models to build
@@ -702,6 +704,76 @@ func lwtLock(t *testing.T, session gocqlx.Session) {
 	}
 	if acquire(l1) {
 		t.Fatal("unexpectedly l1 acquired lock")
+	}
+}
+
+// This example shows how to reuse the same insert statement with
+// partially filled parameters without generating tombstones for empty columns.
+func unsetEmptyValues(t *testing.T, session gocqlx.Session) {
+	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
+	if err != nil {
+		t.Fatal("create keyspace:", err)
+	}
+
+	type Operation struct {
+		ID        string
+		ClientID  string
+		Type      string
+		PaymentID string
+		Fee       *inf.Dec
+	}
+	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.operations (
+		id text PRIMARY KEY,
+		client_id text,
+		type text,
+		payment_id text,
+		fee decimal)`)
+	if err != nil {
+		t.Fatal("create table:", err)
+	}
+
+	insertOperation := qb.Insert("examples.operations").
+		Columns("id", "client_id", "type", "payment_id", "fee")
+
+	// Insert operation with empty paymentID.
+	insertQuery := insertOperation.Query(session).
+		WithBindTransformer(gocqlx.UnsetEmptyTransformer).
+		BindStruct(Operation{
+			ID:       "1",
+			ClientID: "42",
+			Type:     "Transfer",
+			Fee:      inf.NewDec(1, 1),
+		})
+	if err := insertQuery.ExecRelease(); err != nil {
+		t.Fatal("ExecRelease() failed:", err)
+	}
+
+	// Set default transformer to avoid setting it for each query.
+	gocqlx.DefaultBindTransformer = gocqlx.UnsetEmptyTransformer
+	defer func() {
+		gocqlx.DefaultBindTransformer = nil
+	}()
+
+	// Insert operation with empty fee.
+	insertQuery = insertOperation.Query(session).
+		BindStruct(Operation{
+			ID:        "2",
+			ClientID:  "42",
+			Type:      "Input",
+			PaymentID: "1",
+		})
+	if err := insertQuery.ExecRelease(); err != nil {
+		t.Fatal("ExecRelease() failed:", err)
+	}
+
+	// Query and displays data.
+	var ops []*Operation
+	if err := qb.Select("examples.operations").Query(session).Select(&ops); err != nil {
+		t.Fatal("Select() failed:", err)
+	}
+
+	for _, op := range ops {
+		t.Logf("%+v", *op)
 	}
 }
 

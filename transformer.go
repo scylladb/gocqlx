@@ -4,6 +4,12 @@
 
 package gocqlx
 
+import (
+	"reflect"
+
+	"github.com/gocql/gocql"
+)
+
 // Transformer transforms the value of the named parameter to another value.
 type Transformer func(name string, val interface{}) interface{}
 
@@ -11,3 +17,14 @@ type Transformer func(name string, val interface{}) interface{}
 //
 // A custom transformer can always be set per Query.
 var DefaultBindTransformer Transformer
+
+// UnsetEmptyTransformer unsets all empty parameters.
+// It helps to avoid tombstones when using the same insert/update
+// statement for filled and partially filled named parameters.
+var UnsetEmptyTransformer = func(name string, val interface{}) interface{} {
+	v := reflect.ValueOf(val)
+	if v.IsZero() {
+		return gocql.UnsetValue
+	}
+	return val
+}
