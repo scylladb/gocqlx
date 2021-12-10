@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
-	"go/format"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -72,22 +71,36 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 	t, err := template.
 		New("keyspace.tmpl").
 		Funcs(template.FuncMap{"camelize": camelize}).
+		Funcs(template.FuncMap{"mapScyllaToGoType": mapScyllaToGoType}).
+		Funcs(template.FuncMap{"getNativeTypeSting": getNativeTypeSting}).
 		Parse(keyspaceTmpl)
 
 	if err != nil {
 		log.Fatalln("unable to parse models template:", err)
 	}
 
+	imports := make([]string, 0)
+	for _, t := range md.Tables {
+		for _, c := range t.Columns {
+			if c.Validator == "uuid" && !existsInSlice(imports, "github.com/gocql/gocql") {
+				imports = append(imports, "github.com/gocql/gocql")
+			}
+		}
+	}
+
 	buf := &bytes.Buffer{}
 	data := map[string]interface{}{
 		"PackageName": *flagPkgname,
 		"Tables":      md.Tables,
+		"UserTypes":   md.UserTypes,
+		"Imports":     imports,
 	}
 
 	if err = t.Execute(buf, data); err != nil {
 		return nil, fmt.Errorf("template: %w", err)
 	}
-	return format.Source(buf.Bytes())
+	//return format.Source(buf.Bytes())
+	return buf.Bytes(), nil
 }
 
 func createSession() (gocqlx.Session, error) {
@@ -97,4 +110,14 @@ func createSession() (gocqlx.Session, error) {
 
 func clusterHosts() []string {
 	return strings.Split(*flagCluster, ",")
+}
+
+func existsInSlice(s []string, v string) bool {
+	for _, i := range s {
+		if v == i {
+			return true
+		}
+	}
+
+	return false
 }
