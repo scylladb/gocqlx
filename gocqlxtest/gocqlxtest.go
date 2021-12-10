@@ -18,6 +18,7 @@ import (
 
 var (
 	flagCluster      = flag.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples")
+	flagDatabase     = flag.String("database", "gocqlx_test", "database name")
 	flagProto        = flag.Int("proto", 0, "protcol version")
 	flagCQL          = flag.String("cql", "3.0.0", "CQL version")
 	flagRF           = flag.Int("rf", 1, "replication factor for test keyspace")
@@ -92,15 +93,18 @@ func CreateKeyspace(cluster *gocql.ClusterConfig, keyspace string) error {
 }
 
 func createSessionFromCluster(cluster *gocql.ClusterConfig, tb testing.TB) gocqlx.Session {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
 	// Drop and re-create the keyspace once. Different tests should use their own
 	// individual tables, but can assume that the table does not exist before.
 	initOnce.Do(func() {
-		if err := CreateKeyspace(cluster, "gocqlx_test"); err != nil {
+		if err := CreateKeyspace(cluster, *flagDatabase); err != nil {
 			tb.Fatal(err)
 		}
 	})
 
-	cluster.Keyspace = "gocqlx_test"
+	cluster.Keyspace = *flagDatabase
 	session, err := gocqlx.WrapSession(cluster.CreateSession())
 	if err != nil {
 		tb.Fatal("CreateSession:", err)
