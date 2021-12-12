@@ -2,7 +2,9 @@
 
 package foobar
 
-import "github.com/scylladb/gocqlx/v2/table"
+import (
+	"github.com/scylladb/gocqlx/v2/table"
+)
 
 // Table models.
 var (
@@ -41,3 +43,19 @@ var (
 		SortKey: []string{},
 	})
 )
+
+type PlaylistsStruct struct {
+	Album  string
+	Artist string
+	Id     [16]byte
+	SongId [16]byte
+	Title  string
+}
+type SongsStruct struct {
+	Album  string
+	Artist string
+	Data   []byte
+	Id     [16]byte
+	Tags   []string
+	Title  string
+}

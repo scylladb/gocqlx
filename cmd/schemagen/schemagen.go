@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"go/format"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -84,7 +85,13 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 	imports := make([]string, 0)
 	for _, t := range md.Tables {
 		for _, c := range t.Columns {
-			if c.Validator == "uuid" && !existsInSlice(imports, "github.com/gocql/gocql") {
+			if (c.Validator == "timestamp" || c.Validator == "date" || c.Validator == "duration" || c.Validator == "time") && !existsInSlice(imports, "time") {
+				imports = append(imports, "time")
+			}
+			if c.Validator == "decimal" && !existsInSlice(imports, "gopkg.in/inf.v0") {
+				imports = append(imports, "gopkg.in/inf.v0")
+			}
+			if c.Validator == "duration" && !existsInSlice(imports, "github.com/gocql/gocql") {
 				imports = append(imports, "github.com/gocql/gocql")
 			}
 		}
@@ -101,8 +108,7 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 	if err = t.Execute(buf, data); err != nil {
 		return nil, fmt.Errorf("template: %w", err)
 	}
-	//return format.Source(buf.Bytes())
-	return buf.Bytes(), nil
+	return format.Source(buf.Bytes())
 }
 
 func createSession() (gocqlx.Session, error) {

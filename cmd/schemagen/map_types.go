@@ -14,20 +14,20 @@ var types = map[string]string{
 	"blob":      "[]byte",
 	"boolean":   "bool",
 	"counter":   "int",
-	"date":      "string",
-	"decimal":   "float32",
+	"date":      "time.Time",
+	"decimal":   "inf.Dec",
 	"double":    "float64",
-	"duration":  "unit32",
+	"duration":  "gocql.Duration",
 	"float":     "float32",
 	"inet":      "string",
 	"int":       "int32",
 	"smallint":  "int16",
 	"text":      "string",
-	"time":      "uint32",
-	"timestamp": "uint32",
-	"timeuuid":  "string",
+	"time":      "time.Duration",
+	"timestamp": "time.Time",
+	"timeuuid":  "[16]byte",
 	"tinyint":   "int8",
-	"uuid":      "gocql.UUID",
+	"uuid":      "[16]byte",
 	"varchar":   "string",
 	"varint":    "int64",
 }
@@ -67,7 +67,7 @@ func mapScyllaToGoType(s string) string {
 
 		typeStr := "struct {\n"
 		for i, t := range types {
-			typeStr = typeStr + "\t\tFiled" + strconv.Itoa(i+1) + " " + mapScyllaToGoType(t) + "\n"
+			typeStr = typeStr + "\t\tField" + strconv.Itoa(i+1) + " " + mapScyllaToGoType(t) + "\n"
 		}
 		typeStr = typeStr + "\t}"
 
