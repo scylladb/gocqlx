@@ -37,6 +37,7 @@ func TestExample(t *testing.T) {
 	session.ExecStmt(`DROP KEYSPACE examples`)
 
 	basicCreateAndPopulateKeyspace(t, session)
+	createAndPopulateKeyspaceAllTypes(t, session)
 	basicReadScyllaVersion(t, session)
 
 	datatypesBlob(t, session)
@@ -146,6 +147,170 @@ func basicCreateAndPopulateKeyspace(t *testing.T, session gocqlx.Session) {
 
 	var items []*PlaylistItem
 	if err := queryPlaylist.Select(&items); err != nil {
+		t.Fatal("Select() failed:", err)
+	}
+
+	for _, i := range items {
+		t.Logf("%+v", *i)
+	}
+}
+
+// This example shows how to use query builders and table models to build
+// queries with all types. It uses "BindStruct" function for parameter binding and "Select"
+// function for loading data to a slice.
+func createAndPopulateKeyspaceAllTypes(t *testing.T, session gocqlx.Session) {
+	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
+	if err != nil {
+		t.Fatal("create keyspace:", err)
+	}
+
+	// generated with schemagen
+	type CheckTypesStruct struct {
+		AsciI      string
+		BigInt     int64
+		BloB       []byte
+		BooleaN    bool
+		DatE       time.Time
+		DecimaL    inf.Dec
+		DoublE     float64
+		DuratioN   gocql.Duration
+		FloaT      float32
+		Id         [16]byte
+		InT        int32
+		IneT       string
+		ListInt    []int32
+		MapIntText map[int32]string
+		SetInt     []int32
+		SmallInt   int16
+		TexT       string
+		TimE       time.Duration
+		TimestamP  time.Time
+		TimeuuiD   [16]byte
+		TinyInt    int8
+		VarChar    string
+		VarInt     int64
+	}
+
+	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.check_types (
+		asci_i ascii,
+		big_int bigint,
+		blo_b blob,
+		boolea_n boolean,
+		dat_e date,
+		decima_l decimal,
+		doubl_e double,
+		duratio_n duration,
+		floa_t float,
+		ine_t inet,
+		in_t int,
+		small_int smallint,
+		tex_t text,
+		tim_e time,
+		timestam_p timestamp,
+		timeuui_d timeuuid,
+		tiny_int tinyint,
+		id uuid PRIMARY KEY,
+		var_char varchar,
+		var_int varint,
+		map_int_text map<int, text>,
+		list_int list<int>,
+		set_int set<int>)`)
+	if err != nil {
+		t.Fatal("create table:", err)
+	}
+
+	// generated with schemagen
+	checkTypesTable := table.New(table.Metadata{
+		Name: "examples.check_types",
+		Columns: []string{
+			"asci_i",
+			"big_int",
+			"blo_b",
+			"boolea_n",
+			"dat_e",
+			"decima_l",
+			"doubl_e",
+			"duratio_n",
+			"floa_t",
+			"id",
+			"in_t",
+			"ine_t",
+			"list_int",
+			"map_int_text",
+			"set_int",
+			"small_int",
+			"tex_t",
+			"tim_e",
+			"timestam_p",
+			"timeuui_d",
+			"tiny_int",
+			"var_char",
+			"var_int",
+		},
+		PartKey: []string{"id"},
+		SortKey: []string{},
+	})
+
+	// Insert song using query builder.
+	insertCheckTypes := qb.Insert("examples.check_types").
+		Columns("asci_i", "big_int", "blo_b", "boolea_n", "dat_e", "decima_l", "doubl_e", "duratio_n", "floa_t", "ine_t", "in_t", "small_int", "tex_t", "tim_e", "timestam_p", "timeuui_d", "tiny_int", "id", "var_char", "var_int", "map_int_text", "list_int", "set_int").Query(session)
+
+	var byteId [16]byte
+	id := []byte("756716f7-2e54-4715-9f00-91dcbea6cf50")
+	copy(byteId[:], id)
+
+	date := time.Date(2021, time.December, 11, 10, 23, 0, 0, time.UTC)
+	var double float64 = 1.2
+	var float float32 = 1.3
+	var integer int32 = 123
+	listInt := []int32{1, 2, 3}
+	mapIntStr := map[int32]string{
+		1: "a",
+		2: "b",
+	}
+	setInt := []int32{2, 4, 6}
+	var smallInt int16 = 12
+	var tinyInt int8 = 14
+	var varInt int64 = 20
+
+	insertCheckTypes.BindStruct(CheckTypesStruct{
+		AsciI:      "test qscci",
+		BigInt:     9223372036854775806, //MAXINT64 - 1,
+		BloB:       []byte("this is blob test"),
+		BooleaN:    false,
+		DatE:       date,
+		DecimaL:    *inf.NewDec(1, 1),
+		DoublE:     double,
+		DuratioN:   gocql.Duration{Months: 1, Days: 1, Nanoseconds: 86400},
+		FloaT:      float,
+		Id:         byteId,
+		InT:        integer,
+		IneT:       "127.0.0.1",
+		ListInt:    listInt,
+		MapIntText: mapIntStr,
+		SetInt:     setInt,
+		SmallInt:   smallInt,
+		TexT:       "text example",
+		TimE:       86400000000,
+		TimestamP:  date,
+		TimeuuiD:   gocql.TimeUUID(),
+		TinyInt:    tinyInt,
+		VarChar:    "test varchar",
+		VarInt:     varInt,
+	})
+	if err := insertCheckTypes.ExecRelease(); err != nil {
+		t.Fatal("ExecRelease() failed:", err)
+	}
+
+	// Query and displays data.
+	queryCheckTypes := checkTypesTable.SelectQuery(session)
+
+	queryCheckTypes.BindStruct(&CheckTypesStruct{
+		Id: byteId,
+	})
+
+	var items []*CheckTypesStruct
+	if err := queryCheckTypes.Select(&items); err != nil {
 		t.Fatal("Select() failed:", err)
 	}
 
