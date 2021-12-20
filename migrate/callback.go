@@ -48,6 +48,11 @@ func (r CallbackRegister) Add(ev CallbackEvent, name string, f CallbackFunc) {
 	r[nameEvent{name, ev}] = f
 }
 
+// Find returns the registered handler.
+func (r CallbackRegister) Find(ev CallbackEvent, name string) CallbackFunc {
+	return r[nameEvent{name, ev}]
+}
+
 // Callback is CallbackFunc.
 func (r CallbackRegister) Callback(ctx context.Context, session gocqlx.Session, ev CallbackEvent, name string) error {
 	f, ok := r[nameEvent{name, ev}]
