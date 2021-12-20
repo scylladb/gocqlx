@@ -11,6 +11,7 @@ import (
 
 // RewriteTable rewrites src table to dst table.
 // Rows can be transformed using the transform function.
+// If row map is empty after transformation the row is skipped.
 // Additional options can be passed to modify the insert query.
 func RewriteTable(session gocqlx.Session, dst, src *table.Table, transform func(map[string]interface{}), options ...func(q *gocqlx.Queryx)) error {
 	insert := dst.InsertQuery(session)
@@ -27,6 +28,9 @@ func RewriteTable(session gocqlx.Session, dst, src *table.Table, transform func(
 	for iter.MapScan(m) {
 		if transform != nil {
 			transform(m)
+		}
+		if len(m) == 0 {
+			continue // map is empty - no need to clean
 		}
 		if err := insert.BindMap(m).Exec(); err != nil {
 			return err
