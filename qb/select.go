@@ -22,7 +22,7 @@ const (
 	// ASC is ascending order
 	ASC Order = true
 	// DESC is descending order
-	DESC = false
+	DESC Order = false
 )
 
 func (o Order) String() string {
