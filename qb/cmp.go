@@ -90,6 +90,18 @@ func EqNamed(column, name string) Cmp {
 	}
 }
 
+// EqTupleNamed produces column=(?,?,...) with count number of placeholders and custom name.
+func EqTupleNamed(column string, count int, name string) Cmp {
+	return Cmp{
+		op:     eq,
+		column: column,
+		value: tupleParam{
+			param: param(name),
+			count: count,
+		},
+	}
+}
+
 // EqLit produces column=literal and does not add a parameter to the query.
 func EqLit(column, literal string) Cmp {
 	return Cmp{
@@ -135,6 +147,18 @@ func NeNamed(column, name string) Cmp {
 		op:     ne,
 		column: column,
 		value:  param(name),
+	}
+}
+
+// NeTupleNamed produces column!=(?,?,...) with count number of placeholders and custom name.
+func NeTupleNamed(column string, count int, name string) Cmp {
+	return Cmp{
+		op:     ne,
+		column: column,
+		value: tupleParam{
+			param: param(name),
+			count: count,
+		},
 	}
 }
 
@@ -186,6 +210,18 @@ func LtNamed(column, name string) Cmp {
 	}
 }
 
+// LtTupleNamed produces column<(?,?,...) with count placeholders and custom name.
+func LtTupleNamed(column string, count int, name string) Cmp {
+	return Cmp{
+		op:     lt,
+		column: column,
+		value: tupleParam{
+			param: param(name),
+			count: count,
+		},
+	}
+}
+
 // LtLit produces column<literal and does not add a parameter to the query.
 func LtLit(column, literal string) Cmp {
 	return Cmp{
@@ -231,6 +267,18 @@ func LtOrEqNamed(column, name string) Cmp {
 		op:     leq,
 		column: column,
 		value:  param(name),
+	}
+}
+
+// LtOrEqTupleNamed produces column<=(?,?,...) with count placeholders and custom name.
+func LtOrEqTupleNamed(column string, count int, name string) Cmp {
+	return Cmp{
+		op:     leq,
+		column: column,
+		value: tupleParam{
+			param: param(name),
+			count: count,
+		},
 	}
 }
 
@@ -282,6 +330,18 @@ func GtNamed(column, name string) Cmp {
 	}
 }
 
+// GtTupleNamed produces column>(?,?,...) with count placeholders and custom name.
+func GtTupleNamed(column string, count int, name string) Cmp {
+	return Cmp{
+		op:     gt,
+		column: column,
+		value: tupleParam{
+			param: param(name),
+			count: count,
+		},
+	}
+}
+
 // GtLit produces column>literal and does not add a parameter to the query.
 func GtLit(column, literal string) Cmp {
 	return Cmp{
@@ -330,6 +390,18 @@ func GtOrEqNamed(column, name string) Cmp {
 	}
 }
 
+// GtOrEqTupleNamed produces column>=(?,?,...) with count placeholders and custom name.
+func GtOrEqTupleNamed(column string, count int, name string) Cmp {
+	return Cmp{
+		op:     geq,
+		column: column,
+		value: tupleParam{
+			param: param(name),
+			count: count,
+		},
+	}
+}
+
 // GtOrEqLit produces column>=literal and does not add a parameter to the query.
 func GtOrEqLit(column, literal string) Cmp {
 	return Cmp{
@@ -375,6 +447,18 @@ func InNamed(column, name string) Cmp {
 		op:     in,
 		column: column,
 		value:  param(name),
+	}
+}
+
+// InTupleNamed produces column IN ? with a custom parameter name.
+func InTupleNamed(column string, count int, name string) Cmp {
+	return Cmp{
+		op:     in,
+		column: column,
+		value: tupleParam{
+			param: param(name),
+			count: count,
+		},
 	}
 }
 
@@ -447,6 +531,30 @@ func ContainsKeyNamed(column, name string) Cmp {
 	}
 }
 
+// ContainsTupleNamed produces column CONTAINS (?,?,...) with count placeholders and custom name.
+func ContainsTupleNamed(column string, count int, name string) Cmp {
+	return Cmp{
+		op:     cnt,
+		column: column,
+		value: tupleParam{
+			param: param(name),
+			count: count,
+		},
+	}
+}
+
+// ContainsKeyTupleNamed produces column CONTAINS KEY (?,?,...) with count placehplders and custom name.
+func ContainsKeyTupleNamed(column string, count int, name string) Cmp {
+	return Cmp{
+		op:     cntKey,
+		column: column,
+		value: tupleParam{
+			param: param(name),
+			count: count,
+		},
+	}
+}
+
 // ContainsLit produces column CONTAINS literal and does not add a parameter to the query.
 func ContainsLit(column, literal string) Cmp {
 	return Cmp{
@@ -472,6 +580,18 @@ func LikeTuple(column string, count int) Cmp {
 		column: column,
 		value: tupleParam{
 			param: param(column),
+			count: count,
+		},
+	}
+}
+
+// LikeTupleNamed produces column LIKE (?,?,...) with count placeholders and custom name.
+func LikeTupleNamed(column string, count int, name string) Cmp {
+	return Cmp{
+		op:     like,
+		column: column,
+		value: tupleParam{
+			param: param(name),
 			count: count,
 		},
 	}
