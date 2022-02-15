@@ -69,7 +69,7 @@ func (u *using) TimeoutNamed(name string) *using {
 }
 
 func (u *using) writeCql(cql *bytes.Buffer) (names []string) {
-	writePreamble := u.getWritePreamble()
+	writePreamble := u.preambleWriter()
 
 	if u.ttl != 0 {
 		if u.ttl == -1 {
@@ -104,7 +104,7 @@ func (u *using) writeCql(cql *bytes.Buffer) (names []string) {
 	return
 }
 
-func (u *using) getWritePreamble() func(cql *bytes.Buffer) {
+func (u *using) preambleWriter() func(cql *bytes.Buffer) {
 	var hasPreamble bool
 	return func(cql *bytes.Buffer) {
 		if hasPreamble {
