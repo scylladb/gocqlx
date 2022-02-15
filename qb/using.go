@@ -69,34 +69,34 @@ func (u *using) TimeoutNamed(name string) *using {
 }
 
 func (u *using) writeCql(cql *bytes.Buffer) (names []string) {
-	var preamble bool
+	writePreamble := u.getWritePreamble()
 
 	if u.ttl != 0 {
 		if u.ttl == -1 {
 			u.ttl = 0
 		}
-		preamble = u.writePreamble(cql, preamble)
+		writePreamble(cql)
 		fmt.Fprintf(cql, "TTL %d ", u.ttl)
 	} else if u.ttlName != "" {
-		preamble = u.writePreamble(cql, preamble)
+		writePreamble(cql)
 		cql.WriteString("TTL ? ")
 		names = append(names, u.ttlName)
 	}
 
 	if u.timestamp != 0 {
-		preamble = u.writePreamble(cql, preamble)
+		writePreamble(cql)
 		fmt.Fprintf(cql, "TIMESTAMP %d ", u.timestamp)
 	} else if u.timestampName != "" {
-		preamble = u.writePreamble(cql, preamble)
+		writePreamble(cql)
 		cql.WriteString("TIMESTAMP ? ")
 		names = append(names, u.timestampName)
 	}
 
 	if u.timeout != 0 {
-		preamble = u.writePreamble(cql, preamble)
+		writePreamble(cql)
 		fmt.Fprintf(cql, "TIMEOUT %s ", u.timeout)
 	} else if u.timeoutName != "" {
-		preamble = u.writePreamble(cql, preamble)
+		writePreamble(cql)
 		cql.WriteString("TIMEOUT ? ")
 		names = append(names, u.timeoutName)
 	}
@@ -104,11 +104,14 @@ func (u *using) writeCql(cql *bytes.Buffer) (names []string) {
 	return
 }
 
-func (u *using) writePreamble(cql *bytes.Buffer, hasPreamble bool) bool {
-	if hasPreamble {
-		cql.WriteString("AND ")
-		return true
+func (u *using) getWritePreamble() func(cql *bytes.Buffer) {
+	var hasPreamble bool
+	return func(cql *bytes.Buffer) {
+		if hasPreamble {
+			cql.WriteString("AND ")
+			return
+		}
+		cql.WriteString("USING ")
+		hasPreamble = true
 	}
-	cql.WriteString("USING ")
-	return true
 }
