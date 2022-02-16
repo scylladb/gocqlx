@@ -31,7 +31,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: NeTuple("ne", 3),
 			S: "ne!=(?,?,?)",
-			N: []string{"ne_0", "ne_1", "ne_2"},
+			N: []string{"ne[0]", "ne[1]", "ne[2]"},
 		},
 		{
 			C: Lt("lt"),
@@ -41,7 +41,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: LtTuple("lt", 2),
 			S: "lt<(?,?)",
-			N: []string{"lt_0", "lt_1"},
+			N: []string{"lt[0]", "lt[1]"},
 		},
 		{
 			C: LtOrEq("lt"),
@@ -51,7 +51,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: LtOrEqTuple("lt", 2),
 			S: "lt<=(?,?)",
-			N: []string{"lt_0", "lt_1"},
+			N: []string{"lt[0]", "lt[1]"},
 		},
 		{
 			C: Gt("gt"),
@@ -61,7 +61,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: GtTuple("gt", 2),
 			S: "gt>(?,?)",
-			N: []string{"gt_0", "gt_1"},
+			N: []string{"gt[0]", "gt[1]"},
 		},
 		{
 			C: GtOrEq("gt"),
@@ -71,7 +71,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: GtOrEqTuple("gt", 2),
 			S: "gt>=(?,?)",
-			N: []string{"gt_0", "gt_1"},
+			N: []string{"gt[0]", "gt[1]"},
 		},
 		{
 			C: In("in"),
@@ -81,7 +81,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: InTuple("in", 2),
 			S: "in IN (?,?)",
-			N: []string{"in_0", "in_1"},
+			N: []string{"in[0]", "in[1]"},
 		},
 		{
 			C: Contains("cnt"),
@@ -91,7 +91,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: ContainsTuple("cnt", 2),
 			S: "cnt CONTAINS (?,?)",
-			N: []string{"cnt_0", "cnt_1"},
+			N: []string{"cnt[0]", "cnt[1]"},
 		},
 		{
 			C: ContainsKey("cntKey"),
@@ -101,7 +101,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: ContainsKeyTuple("cntKey", 2),
 			S: "cntKey CONTAINS KEY (?,?)",
-			N: []string{"cntKey_0", "cntKey_1"},
+			N: []string{"cntKey[0]", "cntKey[1]"},
 		},
 		{
 			C: Like("like"),
@@ -111,7 +111,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: LikeTuple("like", 2),
 			S: "like LIKE (?,?)",
-			N: []string{"like_0", "like_1"},
+			N: []string{"like[0]", "like[1]"},
 		},
 
 		// Custom bind names
@@ -163,7 +163,7 @@ func TestCmp(t *testing.T) {
 		{
 			C: LikeTupleNamed("like", 2, "name"),
 			S: "like LIKE (?,?)",
-			N: []string{"name_0", "name_1"},
+			N: []string{"name[0]", "name[1]"},
 		},
 
 
@@ -171,47 +171,47 @@ func TestCmp(t *testing.T) {
 		{
 			C: EqTupleNamed("eq", 2, "name"),
 			S: "eq=(?,?)",
-			N: []string{"name_0", "name_1"},
+			N: []string{"name[0]", "name[1]"},
 		},
 		{
 			C: NeTupleNamed("ne", 3, "name"),
 			S: "ne!=(?,?,?)",
-			N: []string{"name_0", "name_1", "name_2"},
+			N: []string{"name[0]", "name[1]", "name[2]"},
 		},
 		{
 			C: LtTupleNamed("lt", 2, "name"),
 			S: "lt<(?,?)",
-			N: []string{"name_0", "name_1"},
+			N: []string{"name[0]", "name[1]"},
 		},
 		{
 			C: LtOrEqTupleNamed("lt", 2, "name"),
 			S: "lt<=(?,?)",
-			N: []string{"name_0", "name_1"},
+			N: []string{"name[0]", "name[1]"},
 		},
 		{
 			C: GtTupleNamed("gt", 2, "name"),
 			S: "gt>(?,?)",
-			N: []string{"name_0", "name_1"},
+			N: []string{"name[0]", "name[1]"},
 		},
 		{
 			C: GtOrEqTupleNamed("gt", 2, "name"),
 			S: "gt>=(?,?)",
-			N: []string{"name_0", "name_1"},
+			N: []string{"name[0]", "name[1]"},
 		},
 		{
 			C: InTupleNamed("in", 2, "name"),
 			S: "in IN (?,?)",
-			N: []string{"name_0", "name_1"},
+			N: []string{"name[0]", "name[1]"},
 		},
 		{
 			C: ContainsTupleNamed("cnt", 2, "name"),
 			S: "cnt CONTAINS (?,?)",
-			N: []string{"name_0", "name_1"},
+			N: []string{"name[0]", "name[1]"},
 		},
 		{
 			C: ContainsKeyTupleNamed("cntKey", 2, "name"),
 			S: "cntKey CONTAINS KEY (?,?)",
-			N: []string{"name_0", "name_1"},
+			N: []string{"name[0]", "name[1]"},
 		},
 
 		// Literals

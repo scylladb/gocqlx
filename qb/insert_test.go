@@ -113,12 +113,12 @@ func TestInsertBuilder(t *testing.T) {
 		{
 			B: Insert("cycling.cyclist_name").TupleColumn("id", 2),
 			S: "INSERT INTO cycling.cyclist_name (id) VALUES ((?,?)) ",
-			N: []string{"id_0", "id_1"},
+			N: []string{"id[0]", "id[1]"},
 		},
 		{
 			B: Insert("cycling.cyclist_name").TupleColumn("id", 2).Columns("user_uuid"),
 			S: "INSERT INTO cycling.cyclist_name (id,user_uuid) VALUES ((?,?),?) ",
-			N: []string{"id_0", "id_1", "user_uuid"},
+			N: []string{"id[0]", "id[1]", "user_uuid"},
 		},
 		// Add IF NOT EXISTS
 		{
