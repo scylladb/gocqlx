@@ -32,16 +32,16 @@ type tupleParam struct {
 }
 
 func (t tupleParam) writeCql(cql *bytes.Buffer) (names []string) {
-	baseName := string(t.param) + "_"
+	baseName := string(t.param)
 	cql.WriteByte('(')
 	for i := 0; i < t.count-1; i++ {
 		cql.WriteByte('?')
 		cql.WriteByte(',')
-		names = append(names, baseName+strconv.Itoa(i))
+		names = append(names, baseName+"["+strconv.Itoa(i)+"]")
 	}
 	cql.WriteByte('?')
 	cql.WriteByte(')')
-	names = append(names, baseName+strconv.Itoa(t.count-1))
+	names = append(names, baseName+"["+strconv.Itoa(t.count-1)+"]")
 
 	return
 }
