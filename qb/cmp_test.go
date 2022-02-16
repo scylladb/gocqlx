@@ -160,6 +160,59 @@ func TestCmp(t *testing.T) {
 			S: "cntKey CONTAINS KEY ?",
 			N: []string{"name"},
 		},
+		{
+			C: LikeTupleNamed("like", 2, "name"),
+			S: "like LIKE (?,?)",
+			N: []string{"name_0", "name_1"},
+		},
+
+
+		// Custom bind names on tuples
+		{
+			C: EqTupleNamed("eq", 2, "name"),
+			S: "eq=(?,?)",
+			N: []string{"name_0", "name_1"},
+		},
+		{
+			C: NeTupleNamed("ne", 3, "name"),
+			S: "ne!=(?,?,?)",
+			N: []string{"name_0", "name_1", "name_2"},
+		},
+		{
+			C: LtTupleNamed("lt", 2, "name"),
+			S: "lt<(?,?)",
+			N: []string{"name_0", "name_1"},
+		},
+		{
+			C: LtOrEqTupleNamed("lt", 2, "name"),
+			S: "lt<=(?,?)",
+			N: []string{"name_0", "name_1"},
+		},
+		{
+			C: GtTupleNamed("gt", 2, "name"),
+			S: "gt>(?,?)",
+			N: []string{"name_0", "name_1"},
+		},
+		{
+			C: GtOrEqTupleNamed("gt", 2, "name"),
+			S: "gt>=(?,?)",
+			N: []string{"name_0", "name_1"},
+		},
+		{
+			C: InTupleNamed("in", 2, "name"),
+			S: "in IN (?,?)",
+			N: []string{"name_0", "name_1"},
+		},
+		{
+			C: ContainsTupleNamed("cnt", 2, "name"),
+			S: "cnt CONTAINS (?,?)",
+			N: []string{"name_0", "name_1"},
+		},
+		{
+			C: ContainsKeyTupleNamed("cntKey", 2, "name"),
+			S: "cntKey CONTAINS KEY (?,?)",
+			N: []string{"name_0", "name_1"},
+		},
 
 		// Literals
 		{
