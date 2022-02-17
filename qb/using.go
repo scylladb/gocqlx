@@ -27,8 +27,6 @@ type using struct {
 	timestampName string
 	timeout       time.Duration
 	timeoutName   string
-
-	using bool
 }
 
 func (u *using) TTL(d time.Duration) *using {
@@ -71,34 +69,34 @@ func (u *using) TimeoutNamed(name string) *using {
 }
 
 func (u *using) writeCql(cql *bytes.Buffer) (names []string) {
-	u.using = false
+	writePreamble := u.preambleWriter()
 
 	if u.ttl != 0 {
 		if u.ttl == -1 {
 			u.ttl = 0
 		}
-		u.writePreamble(cql)
+		writePreamble(cql)
 		fmt.Fprintf(cql, "TTL %d ", u.ttl)
 	} else if u.ttlName != "" {
-		u.writePreamble(cql)
+		writePreamble(cql)
 		cql.WriteString("TTL ? ")
 		names = append(names, u.ttlName)
 	}
 
 	if u.timestamp != 0 {
-		u.writePreamble(cql)
+		writePreamble(cql)
 		fmt.Fprintf(cql, "TIMESTAMP %d ", u.timestamp)
 	} else if u.timestampName != "" {
-		u.writePreamble(cql)
+		writePreamble(cql)
 		cql.WriteString("TIMESTAMP ? ")
 		names = append(names, u.timestampName)
 	}
 
 	if u.timeout != 0 {
-		u.writePreamble(cql)
+		writePreamble(cql)
 		fmt.Fprintf(cql, "TIMEOUT %s ", u.timeout)
 	} else if u.timeoutName != "" {
-		u.writePreamble(cql)
+		writePreamble(cql)
 		cql.WriteString("TIMEOUT ? ")
 		names = append(names, u.timeoutName)
 	}
@@ -106,11 +104,14 @@ func (u *using) writeCql(cql *bytes.Buffer) (names []string) {
 	return
 }
 
-func (u *using) writePreamble(cql *bytes.Buffer) {
-	if u.using {
-		cql.WriteString("AND ")
-	} else {
+func (u *using) preambleWriter() func(cql *bytes.Buffer) {
+	var hasPreamble bool
+	return func(cql *bytes.Buffer) {
+		if hasPreamble {
+			cql.WriteString("AND ")
+			return
+		}
 		cql.WriteString("USING ")
-		u.using = true
+		hasPreamble = true
 	}
 }
