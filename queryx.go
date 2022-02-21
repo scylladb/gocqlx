@@ -237,6 +237,7 @@ func (q *Queryx) ExecRelease() error {
 // ExecCAS executes the Lightweight Transaction query, returns whether query was applied.
 // See: https://docs.scylladb.com/using-scylla/lwt/ for more details.
 func (q *Queryx) ExecCAS() (applied bool, err error) {
+	q.NoSkipMetadata()
 	iter := q.Iter().StructOnly()
 	if err := iter.Get(&struct{}{}); err != nil {
 		return false, err
@@ -287,6 +288,7 @@ func (q *Queryx) GetCAS(dest interface{}) (applied bool, err error) {
 		return false, q.err
 	}
 
+	q.NoSkipMetadata()
 	iter := q.Iter()
 	if err := iter.Get(dest); err != nil {
 		return false, err
