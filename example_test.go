@@ -481,7 +481,7 @@ func pagingForwardPaging(t *testing.T, session gocqlx.Session) {
 	for i := 1; ; i++ {
 		userVideos, nextPage, err = getUserVideos(1, nextPage)
 		if err != nil {
-			t.Fatalf("oad page %d: %s", i, err)
+			t.Fatalf("load page %d: %s", i, err)
 		}
 
 		t.Logf("Page %d:", i)
