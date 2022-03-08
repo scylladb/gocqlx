@@ -53,11 +53,13 @@ var personTable = table.New(personMetadata)
 
 // Person represents a row in person table.
 // Field names are converted to camel case by default, no need to add special tags.
-// If you want to disable a field add `db:"-"` tag, it will not be persisted.
+// A field will not be persisted by adding the `db:"-"` tag or making it unexported.
 type Person struct {
 	FirstName string
 	LastName  string
 	Email     []string
+	HairColor string `db:"-"`  // exported and skipped
+	eyeColor  string           // unexported also skipped
 }
 ```
 
@@ -68,6 +70,8 @@ p := Person{
 	"Michał",
 	"Matczuk",
 	[]string{"michal@scylladb.com"},
+	"red",    // not persisted
+	"hazel"   // not persisted
 }
 q := session.Query(personTable.Insert()).BindStruct(p)
 if err := q.ExecRelease(); err != nil {
