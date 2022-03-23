@@ -81,13 +81,13 @@ func TestSelectBuilder(t *testing.T) {
 		// Add TIMEOUT
 		{
 			B: Select("cycling.cyclist_name").Where(w, Gt("firstname")).Timeout(time.Second),
-			S: "SELECT * FROM cycling.cyclist_name USING TIMEOUT 1s WHERE id=? AND firstname>? ",
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? AND firstname>? USING TIMEOUT 1s ",
 			N: []string{"expr", "firstname"},
 		},
 		{
 			B: Select("cycling.cyclist_name").Where(w, Gt("firstname")).TimeoutNamed("to"),
-			S: "SELECT * FROM cycling.cyclist_name USING TIMEOUT ? WHERE id=? AND firstname>? ",
-			N: []string{"to", "expr", "firstname"},
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? AND firstname>? USING TIMEOUT ? ",
+			N: []string{"expr", "firstname", "to"},
 		},
 		// Add GROUP BY
 		{

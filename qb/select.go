@@ -84,7 +84,6 @@ func (b *SelectBuilder) ToCql() (stmt string, names []string) {
 	cql.WriteString(b.table)
 	cql.WriteByte(' ')
 
-	names = append(names, b.using.writeCql(&cql)...)
 	names = append(names, b.where.writeCql(&cql)...)
 
 	if len(b.groupBy) > 0 {
@@ -109,6 +108,8 @@ func (b *SelectBuilder) ToCql() (stmt string, names []string) {
 	if b.bypassCache {
 		cql.WriteString("BYPASS CACHE ")
 	}
+
+	names = append(names, b.using.writeCql(&cql)...)
 
 	stmt = cql.String()
 	return
