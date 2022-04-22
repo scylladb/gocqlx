@@ -236,6 +236,10 @@ func (q *Queryx) ExecRelease() error {
 
 // ExecCAS executes the Lightweight Transaction query, returns whether query was applied.
 // See: https://docs.scylladb.com/using-scylla/lwt/ for more details.
+//
+// When using Cassandra it may be necessary to use NoSkipMetadata in order to obtain an
+// accurate "applied" value. See the documentation of NoSkipMetaData method on this page
+// for more details.
 func (q *Queryx) ExecCAS() (applied bool, err error) {
 	q.NoSkipMetadata()
 	iter := q.Iter().StructOnly()
