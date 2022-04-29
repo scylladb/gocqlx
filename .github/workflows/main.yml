@@ -21,7 +21,6 @@ jobs:
           go-version: 1.17
       - uses: actions/cache@v2
         id: gomod-cache
-        if: 
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('go.mod') }}
