@@ -15,11 +15,16 @@ jobs:
       SCYLLA_VERSION: 4.2.0
       GOBIN: ./bin
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - name: Git Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Go 1.17
+        uses: actions/setup-go@v3
         with:
           go-version: 1.17
-      - uses: actions/cache@v2
+
+      - name: Cache Dependencies
+        uses: actions/cache@v3
         id: gomod-cache
         with:
           path: ~/go/pkg/mod
@@ -27,8 +32,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - run: mkdir -p ${GOBIN}
-      - run: make get-deps get-tools
-      - run: make check
-      - run: make run-scylla
-      - run: make test
+      - name: Make Directory for GOBIN
+        run: mkdir -p ${GOBIN}
+
+      - name: Download Dependencies
+        run: make get-deps
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.24.0
+          
+      - name: Run Scylla Container
+        run: make run-scylla
+      
+      - name: Test
+        run: make test
