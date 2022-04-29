@@ -15,12 +15,13 @@ jobs:
       SCYLLA_VERSION: 4.2.0
       GOBIN: ./bin
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
         with:
-          go-version: '^1.17'
+          go-version: 1.17
       - uses: actions/cache@v2
         id: gomod-cache
+        if: 
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('go.mod') }}
