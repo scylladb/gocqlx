@@ -69,4 +69,4 @@ endef
 .PHONY: get-tools
 get-tools:
 	@echo "==> Installing tools at $(GOBIN)..."
-	@$(call dl_tgz,golangci-lint,https://github.com/golangci/golangci-lint/releases/download/v1.24.0/golangci-lint-1.24.0-linux-amd64.tar.gz)
+	@$(call dl_tgz,golangci-lint,https://github.com/golangci/golangci-lint/releases/download/v1.45.2/golangci-lint-v1.45.2-linux-amd64.tar.gz)
