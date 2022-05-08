@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -33,11 +34,17 @@ var types = map[string]string{
 }
 
 func mapScyllaToGoType(s string) string {
+	frozenRegex := regexp.MustCompile(`frozen<([a-z]*)>`)
+	match := frozenRegex.FindAllStringSubmatch(s, -1)
+	if match != nil {
+		s = match[0][1]
+	}
+
 	mapRegex := regexp.MustCompile(`map<([a-z]*), ([a-z]*)>`)
 	setRegex := regexp.MustCompile(`set<([a-z]*)>`)
 	listRegex := regexp.MustCompile(`list<([a-z]*)>`)
 	tupleRegex := regexp.MustCompile(`tuple<(?:([a-z]*),? ?)*>`)
-	match := mapRegex.FindAllStringSubmatch(s, -1)
+	match = mapRegex.FindAllStringSubmatch(s, -1)
 	if match != nil {
 		key := match[0][1]
 		value := match[0][2]
@@ -79,9 +86,20 @@ func mapScyllaToGoType(s string) string {
 		return t
 	}
 
-	return camelize(s) + "Type"
+	return camelize(s) + "UserType"
 }
 
-func getNativeTypeSting(t gocql.NativeType) string {
-	return t.String()
+func typeToString(t interface{}) string {
+	tType := fmt.Sprintf("%T", t)
+	switch tType {
+	case "gocql.NativeType":
+		return t.(gocql.NativeType).String()
+	case "gocql.CollectionType":
+		collectionType := t.(gocql.CollectionType).String()
+		collectionType = strings.Replace(collectionType, "(", "<", -1)
+		collectionType = strings.Replace(collectionType, ")", ">", -1)
+		return collectionType
+	default:
+		panic(fmt.Sprintf("Did not expect %v type in user defined type", tType))
+	}
 }

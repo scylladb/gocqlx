@@ -40,10 +40,10 @@ var (
 {{range .}}
 {{- $type_name := .Name | camelize}}
 {{- $field_types := .FieldTypes}}
-type {{$type_name}}Type struct {
+type {{$type_name}}UserType struct {
 {{- range $index, $element := .FieldNames}}
     {{- $type := index $field_types $index}}
-    {{. | camelize}} {{getNativeTypeSting $type | mapScyllaToGoType}}
+    {{. | camelize}} {{typeToString $type | mapScyllaToGoType}}
 {{- end}}
 }
 {{- end}}
@@ -54,7 +54,9 @@ type {{$type_name}}Type struct {
 {{- $model_name := .Name | camelize}}
 type {{$model_name}}Struct struct {
 {{- range .Columns}}
+	{{- if not (eq .Validator "empty") }}
 	{{.Name | camelize}} {{.Validator | mapScyllaToGoType}}
+	{{- end}}
 {{- end}}
 }
 {{- end}}
