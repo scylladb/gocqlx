@@ -73,7 +73,7 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 		New("keyspace.tmpl").
 		Funcs(template.FuncMap{"camelize": camelize}).
 		Funcs(template.FuncMap{"mapScyllaToGoType": mapScyllaToGoType}).
-		Funcs(template.FuncMap{"getNativeTypeSting": getNativeTypeSting}).
+		Funcs(template.FuncMap{"typeToString": typeToString}).
 		Parse(keyspaceTmpl)
 
 	if err != nil {

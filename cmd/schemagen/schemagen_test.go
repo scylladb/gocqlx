@@ -56,10 +56,17 @@ func createTestSchema(t *testing.T) {
 		t.Fatal("create table:", err)
 	}
 
+	err = session.ExecStmt(`CREATE TYPE IF NOT EXISTS schemagen.album (
+		name text,
+		songwriters set<text>,)`)
+	if err != nil {
+		t.Fatal("create type:", err)
+	}
+
 	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS schemagen.playlists (
 		id uuid,
 		title text,
-		album text, 
+		album frozen<album>, 
 		artist text,
 		song_id uuid,
 		PRIMARY KEY (id, title, album, artist))`)
