@@ -24,6 +24,8 @@ var (
 	flagKeyspace = cmd.String("keyspace", "", "keyspace to inspect")
 	flagPkgname  = cmd.String("pkgname", "models", "the name you wish to assign to your generated package")
 	flagOutput   = cmd.String("output", "models", "the name of the folder to output to")
+	flagUser     = cmd.String("user", "", "user for password authentication")
+	flagPassword = cmd.String("password", "", "password for password authentication")
 )
 
 var (
@@ -92,6 +94,12 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 
 func createSession() (gocqlx.Session, error) {
 	cluster := gocql.NewCluster(clusterHosts()...)
+	if *flagUser != "" {
+		cluster.Authenticator = gocql.PasswordAuthenticator{
+			Username: *flagUser,
+			Password: *flagPassword,
+		}
+	}
 	return gocqlx.WrapSession(cluster.CreateSession())
 }
 
