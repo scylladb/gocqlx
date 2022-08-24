@@ -157,6 +157,9 @@ func (t *Table) InsertBuilder() *qb.InsertBuilder {
 
 // Update returns update by primary key statement.
 func (t *Table) Update(columns ...string) (stmt string, names []string) {
+	if len(columns) == 0 {
+		return t.UpdateBuilder(t.metadata.Columns...).ToCql()
+	}
 	return t.UpdateBuilder(columns...).ToCql()
 }
 
