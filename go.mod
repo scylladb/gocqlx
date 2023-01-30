@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/gocql/gocql v0.0.0-20211015133455-b225f9b53fa1
 	github.com/google/go-cmp v0.5.4
+	github.com/namsral/flag v1.7.4-pre
 	github.com/psanford/memfs v0.0.0-20210214183328-a001468d78ef
 	github.com/scylladb/go-reflectx v1.0.1
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
