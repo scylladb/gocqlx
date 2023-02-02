@@ -152,6 +152,17 @@ func TestTableInsert(t *testing.T) {
 			t.Error(diff, names)
 		}
 	}
+
+	// run InsertBuilder on the same data set
+	for _, test := range table {
+		stmt, names := New(test.M).InsertBuilder(test.C...).ToCql()
+		if diff := cmp.Diff(test.S, stmt); diff != "" {
+			t.Error(diff)
+		}
+		if diff := cmp.Diff(test.N, names); diff != "" {
+			t.Error(diff, names)
+		}
+	}
 }
 
 func TestTableUpdate(t *testing.T) {
