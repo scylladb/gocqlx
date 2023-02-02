@@ -150,8 +150,8 @@ func (t *Table) InsertQuery(session gocqlx.Session, columns ...string) *gocqlx.Q
 }
 
 // InsertQueryContext returns query wrapped with context which inserts columns.
-func (t *Table) InsertQueryContext(ctx context.Context, session gocqlx.Session) *gocqlx.Queryx {
-	return t.InsertQuery(session).WithContext(ctx)
+func (t *Table) InsertQueryContext(ctx context.Context, session gocqlx.Session, columns ...string) *gocqlx.Queryx {
+	return t.InsertQuery(session, columns...).WithContext(ctx)
 }
 
 // InsertBuilder returns a builder initialised with columns.
