@@ -102,6 +102,14 @@ func (t *Table) GetQueryContext(ctx context.Context, session gocqlx.Session, col
 	return t.GetQuery(session, columns...).WithContext(ctx)
 }
 
+func (t *Table) GetBuilder(columns ...string) *qb.SelectBuilder {
+	if len(columns) == 0 {
+		return qb.Select(t.metadata.Name).Where(t.primaryKeyCmp...)
+	}
+
+	return qb.Select(t.metadata.Name).Columns(columns...).Where(t.primaryKeyCmp...)
+}
+
 // Select returns select by partition key statement.
 func (t *Table) Select(columns ...string) (stmt string, names []string) {
 	if len(columns) == 0 {
