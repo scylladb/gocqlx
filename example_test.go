@@ -36,7 +36,7 @@ func TestExample(t *testing.T) {
 
 	session.ExecStmt(`DROP KEYSPACE examples`)
 
-	basicCreateAndPopulateKeyspace(t, session)
+	basicCreateAndPopulateKeyspace(t, session, "examples")
 	createAndPopulateKeyspaceAllTypes(t, session)
 	basicReadScyllaVersion(t, session)
 
@@ -52,56 +52,59 @@ func TestExample(t *testing.T) {
 	unsetEmptyValues(t, session)
 }
 
+type Song struct {
+	ID     gocql.UUID
+	Title  string
+	Album  string
+	Artist string
+	Tags   []string
+	Data   []byte
+}
+
+type PlaylistItem struct {
+	ID     gocql.UUID
+	Title  string
+	Album  string
+	Artist string
+	SongID gocql.UUID
+}
+
 // This example shows how to use query builders and table models to build
 // queries. It uses "BindStruct" function for parameter binding and "Select"
 // function for loading data to a slice.
-func basicCreateAndPopulateKeyspace(t *testing.T, session gocqlx.Session) {
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
+func basicCreateAndPopulateKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
+	err := session.ExecStmt(fmt.Sprintf(
+		`CREATE KEYSPACE IF NOT EXISTS %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`,
+		keyspace,
+	))
 	if err != nil {
 		t.Fatal("create keyspace:", err)
 	}
 
-	type Song struct {
-		ID     gocql.UUID
-		Title  string
-		Album  string
-		Artist string
-		Tags   []string
-		Data   []byte
-	}
-
-	type PlaylistItem struct {
-		ID     gocql.UUID
-		Title  string
-		Album  string
-		Artist string
-		SongID gocql.UUID
-	}
-
-	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.songs (
+	err = session.ExecStmt(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s.songs (
 		id uuid PRIMARY KEY,
 		title text,
 		album text,
 		artist text,
 		tags set<text>,
-		data blob)`)
+		data blob)`, keyspace))
 	if err != nil {
 		t.Fatal("create table:", err)
 	}
 
-	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.playlists (
+	err = session.ExecStmt(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s.playlists (
 		id uuid,
 		title text,
 		album text, 
 		artist text,
 		song_id uuid,
-		PRIMARY KEY (id, title, album, artist))`)
+		PRIMARY KEY (id, title, album, artist))`, keyspace))
 	if err != nil {
 		t.Fatal("create table:", err)
 	}
 
 	playlistMetadata := table.Metadata{
-		Name:    "examples.playlists",
+		Name:    fmt.Sprintf("%s.playlists", keyspace),
 		Columns: []string{"id", "title", "album", "artist", "song_id"},
 		PartKey: []string{"id"},
 		SortKey: []string{"title", "album", "artist", "song_id"},
@@ -109,7 +112,7 @@ func basicCreateAndPopulateKeyspace(t *testing.T, session gocqlx.Session) {
 	playlistTable := table.New(playlistMetadata)
 
 	// Insert song using query builder.
-	insertSong := qb.Insert("examples.songs").
+	insertSong := qb.Insert(fmt.Sprintf("%s.songs", keyspace)).
 		Columns("id", "title", "album", "artist", "tags", "data").Query(session)
 
 	insertSong.BindStruct(Song{
@@ -275,7 +278,7 @@ func createAndPopulateKeyspaceAllTypes(t *testing.T, session gocqlx.Session) {
 
 	insertCheckTypes.BindStruct(CheckTypesStruct{
 		AsciI:      "test qscci",
-		BigInt:     9223372036854775806, //MAXINT64 - 1,
+		BigInt:     9223372036854775806, // MAXINT64 - 1,
 		BloB:       []byte("this is blob test"),
 		BooleaN:    false,
 		DatE:       date,
