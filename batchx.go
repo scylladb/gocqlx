@@ -26,6 +26,17 @@ func (b *Batch) BindStruct(qry *Queryx, arg interface{}) error {
 	return nil
 }
 
+// BindStructMap binds query named parameters to values from arg0 and arg1 using a mapper.
+// If value cannot be found an error is reported.
+func (b *Batch) BindStructMap(qry *Queryx, arg0 interface{}, arg1 map[string]interface{}) error {
+	args, err := qry.bindStructArgs(arg0, arg1)
+	if err != nil {
+		return err
+	}
+	b.Query(qry.Statement(), args...)
+	return nil
+}
+
 // ExecuteBatch executes a batch operation and returns nil if successful
 // otherwise an error describing the failure.
 func (s *Session) ExecuteBatch(batch *Batch) error {
