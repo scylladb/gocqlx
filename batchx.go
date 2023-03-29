@@ -26,6 +26,17 @@ func (b *Batch) BindStruct(qry *Queryx, arg interface{}) error {
 	return nil
 }
 
+// BindMap binds query named parameters to values from arg using a mapper.
+// If value cannot be found an error is reported.
+func (b *Batch) BindMap(qry *Queryx, arg map[string]interface{}) error {
+	args, err := qry.bindMapArgs(arg)
+	if err != nil {
+		return err
+	}
+	b.Query(qry.Statement(), args...)
+	return nil
+}
+
 // BindStructMap binds query named parameters to values from arg0 and arg1 using a mapper.
 // If value cannot be found an error is reported.
 func (b *Batch) BindStructMap(qry *Queryx, arg0 interface{}, arg1 map[string]interface{}) error {
