@@ -3,6 +3,7 @@
 package {{.PackageName}}
 
 import (
+	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/table"
 	{{- range .Imports}}
 	"{{.}}"
@@ -41,6 +42,7 @@ var (
 {{- $type_name := .Name | camelize}}
 {{- $field_types := .FieldTypes}}
 type {{$type_name}}UserType struct {
+    gocqlx.UDT
 {{- range $index, $element := .FieldNames}}
     {{- $type := index $field_types $index}}
     {{. | camelize}} {{typeToString $type | mapScyllaToGoType}}
