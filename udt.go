@@ -18,6 +18,9 @@ type UDT interface {
 	udt()
 }
 
+type UDTList []UDT
+type UDTMap map[string]UDT
+
 var (
 	_ gocql.UDTMarshaler   = udt{}
 	_ gocql.UDTUnmarshaler = udt{}
@@ -62,6 +65,36 @@ func udtWrapValue(value reflect.Value, mapper *reflectx.Mapper, unsafe bool) int
 	}
 	return value.Interface()
 }
+
+// udtWrapSlice adds UDT wrapper if needed.
+func udtWrapSlice(mapper *reflectx.Mapper, unsafe bool, v []interface{}) []interface{} {
+	for i := range v {
+		if _, ok := v[i].(UDT); ok {
+			v[i] = makeUDT(reflect.ValueOf(v[i]), mapper, unsafe)
+		} else if l, ok := v[i].(UDTList); ok {
+			//new array
+			newUdtL := make([]udt, len(l))
+			for i2 := range l {
+				newUdtL[i2] = makeUDT(reflect.ValueOf(l[i2]), mapper, unsafe)
+			}
+
+			v[i] = newUdtL
+		} else if l, ok := v[i].(UDTMap); ok {
+			//new map
+			newUdtL := make(map[string]udt)
+			for i2 := range l {
+				newUdtL[i2] = makeUDT(reflect.ValueOf(l[i2]), mapper, unsafe)
+			}
+
+			v[i] = newUdtL
+		}
+	}
+
+	return v
+}
+
+/*
+"I had to use some reflect methods, and specifically, the '.Interface()' method was significantly slowing down the process. That's why I used UDTList and UDTMap. I left these codes in case I find a way to optimize them in the future."
 
 // udtWrapSlice adds UDT wrapper if needed.
 func udtWrapSlice(mapper *reflectx.Mapper, unsafe bool, v []interface{}) []interface{} {
@@ -137,3 +170,4 @@ func udtWrapSliceArray(mapper *reflectx.Mapper, unsafe bool, v interface{}) inte
 
 	return slice
 }
+*/
