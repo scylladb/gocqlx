@@ -66,9 +66,74 @@ func udtWrapValue(value reflect.Value, mapper *reflectx.Mapper, unsafe bool) int
 // udtWrapSlice adds UDT wrapper if needed.
 func udtWrapSlice(mapper *reflectx.Mapper, unsafe bool, v []interface{}) []interface{} {
 	for i := range v {
-		if _, ok := v[i].(UDT); ok {
-			v[i] = makeUDT(reflect.ValueOf(v[i]), mapper, unsafe)
-		}
+		v[i] = udtWrap(mapper, unsafe, v[i])
 	}
 	return v
+}
+
+func udtWrap(mapper *reflectx.Mapper, unsafe bool, v interface{}) interface{} {
+	t := reflect.TypeOf(v)
+	switch t.Kind() {
+	case reflect.Array:
+	case reflect.Slice:
+		v = udtWrapSliceArray(mapper, unsafe, v)
+	case reflect.Map:
+		v = udtWrapSliceMap(mapper, unsafe, v)
+	default:
+		if _, ok := v.(UDT); ok {
+			v = makeUDT(reflect.ValueOf(v), mapper, unsafe)
+		}
+	}
+
+	return v
+}
+
+func udtWrapSliceMap(mapper *reflectx.Mapper, unsafe bool, v interface{}) interface{} {
+	val := reflect.ValueOf(v)
+	if val.Kind() != reflect.Map {
+		return v
+	}
+
+	keys := val.MapKeys() //MapKeys zaman aliyor!!!
+
+	if val.Len() == 0 {
+		return v
+	} else if val.Type().Key().Kind() != reflect.String {
+		//Unsupported map key type
+		return v
+	} else if k := val.MapIndex(keys[0]).Kind(); k != reflect.Array && k != reflect.Slice && k != reflect.Map {
+		if _, ok := val.MapIndex(keys[0]).Interface().(UDT); !ok { //Eger ki bir deger udt degilse slice olusturmaya gerek yok.
+			return v
+		}
+	}
+
+	m := make(map[string]interface{})
+	for _, key := range keys {
+		m[key.String()] = udtWrap(mapper, unsafe, val.MapIndex(key).Interface())
+	}
+
+	return m
+}
+
+func udtWrapSliceArray(mapper *reflectx.Mapper, unsafe bool, v interface{}) interface{} {
+	val := reflect.ValueOf(v)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	if val.Len() == 0 {
+		return v
+	} else if k := val.Index(0).Kind(); k != reflect.Array && k != reflect.Slice && k != reflect.Map {
+		if _, ok := val.Index(0).Interface().(UDT); !ok { //Eger ki bir deger udt degilse slice olusturmaya gerek yok.
+			return v
+		}
+	}
+
+	slice := make([]interface{}, val.Len())
+
+	for i := 0; i < val.Len(); i++ {
+		slice[i] = udtWrap(mapper, unsafe, val.Index(i).Interface())
+	}
+
+	return slice
 }
