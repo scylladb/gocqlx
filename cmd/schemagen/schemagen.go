@@ -96,6 +96,9 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 			}
 		}
 	}
+	if len(md.UserTypes) != 0 && !existsInSlice(imports, "github.com/scylladb/gocqlx/v2") {
+		imports = append(imports, "github.com/scylladb/gocqlx/v2")
+	}
 
 	buf := &bytes.Buffer{}
 	data := map[string]interface{}{
