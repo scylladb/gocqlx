@@ -38,6 +38,8 @@ func TestMapScyllaToGoType(t *testing.T) {
 		{"list<int>", "[]int32"},
 		{"set<int>", "[]int32"},
 		{"tuple<boolean, int, smallint>", "struct {\n\t\tField1 bool\n\t\tField2 int32\n\t\tField3 int16\n\t}"},
+		{"list<frozen<map<text, frozen<map<int, float>>>>>", "[]map[string]map[int32]float32"},
+		{"frozen<tuple<frozen<map<int, text>>, frozen<list<text>>, frozen<set<int>>>>", "struct {\n\t\tField1 map[int32]string\n\t\tField2 []string\n\t\tField3 []int32\n\t}"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
