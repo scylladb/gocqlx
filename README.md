@@ -52,7 +52,7 @@ var personMetadata = table.Metadata{
 var personTable = table.New(personMetadata)
 
 // Person represents a row in person table.
-// Field names are converted to camel case by default, no need to add special tags.
+// Field names are converted to snake case by default, no need to add special tags.
 // A field will not be persisted by adding the `db:"-"` tag or making it unexported.
 type Person struct {
 	FirstName string
