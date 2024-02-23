@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
+	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/scylladb/gocqlx/v2/gocqlxtest"
 )
@@ -16,6 +18,13 @@ var flagUpdate = flag.Bool("update", false, "update golden file")
 func TestSchemagen(t *testing.T) {
 	flag.Parse()
 	createTestSchema(t)
+
+	// add ignored types and table
+	*flagIgnoreNames = strings.Join([]string{
+		"composers",
+		"composers_by_name",
+		"label",
+	}, ",")
 	b := runSchemagen(t, "foobar")
 
 	const goldenFile = "testdata/models.go.txt"
@@ -32,6 +41,76 @@ func TestSchemagen(t *testing.T) {
 	if diff := cmp.Diff(string(golden), string(b)); diff != "" {
 		t.Fatalf(diff)
 	}
+}
+
+func Test_usedInTables(t *testing.T) {
+	tests := map[string]struct {
+		columnValidator string
+		typeName        string
+	}{
+		"matches given a frozen collection": {
+			columnValidator: "frozen<album>",
+			typeName:        "album",
+		},
+		"matches given a set": {
+			columnValidator: "set<artist>",
+			typeName:        "artist",
+		},
+		"matches given a list": {
+			columnValidator: "list<song>",
+			typeName:        "song",
+		},
+		"matches given a tuple: first of two elements": {
+			columnValidator: "tuple<first, second>",
+			typeName:        "first",
+		},
+		"matches given a tuple: second of two elements": {
+			columnValidator: "tuple<first, second>",
+			typeName:        "second",
+		},
+		"matches given a tuple: first of three elements": {
+			columnValidator: "tuple<first, second, third>",
+			typeName:        "first",
+		},
+		"matches given a tuple: second of three elements": {
+			columnValidator: "tuple<first, second, third>",
+			typeName:        "second",
+		},
+		"matches given a tuple: third of three elements": {
+			columnValidator: "tuple<first, second, third>",
+			typeName:        "third",
+		},
+		"matches given a frozen set": {
+			columnValidator: "set<frozen<album>>",
+			typeName:        "album",
+		},
+		"matches snake_case names given a nested map": {
+			columnValidator: "map<album, tuple<first, map<map_key, map-value>, third>>",
+			typeName:        "map_key",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			tables := map[string]*gocql.TableMetadata{
+				"table": {Columns: map[string]*gocql.ColumnMetadata{
+					"column": {Validator: tt.columnValidator},
+				}},
+			}
+			if !usedInTables(tt.typeName, tables) {
+				t.Fatal()
+			}
+		})
+	}
+
+	t.Run("doesn't panic with empty type name", func(t *testing.T) {
+		tables := map[string]*gocql.TableMetadata{
+			"table": {Columns: map[string]*gocql.ColumnMetadata{
+				"column": {Validator: "map<text, album>"},
+			}},
+		}
+		usedInTables("", tables)
+	})
 }
 
 func createTestSchema(t *testing.T) {
@@ -72,6 +151,29 @@ func createTestSchema(t *testing.T) {
 		PRIMARY KEY (id, title, album, artist))`)
 	if err != nil {
 		t.Fatal("create table:", err)
+	}
+
+	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS schemagen.composers (
+		id uuid PRIMARY KEY,
+		name text)`)
+	if err != nil {
+		t.Fatal("create table:", err)
+	}
+
+	err = session.ExecStmt(`CREATE MATERIALIZED VIEW IF NOT EXISTS schemagen.composers_by_name AS
+    	SELECT id, name
+    	FROM composers
+    	WHERE id IS NOT NULL AND name IS NOT NULL
+    	PRIMARY KEY (id, name)`)
+	if err != nil {
+		t.Fatal("create view:", err)
+	}
+
+	err = session.ExecStmt(`CREATE TYPE IF NOT EXISTS schemagen.label (
+		name text,
+		artists set<text>)`)
+	if err != nil {
+		t.Fatal("create type:", err)
 	}
 }
 

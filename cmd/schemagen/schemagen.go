@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/gocql/gocql"
@@ -19,13 +20,14 @@ import (
 )
 
 var (
-	cmd          = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	flagCluster  = cmd.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples")
-	flagKeyspace = cmd.String("keyspace", "", "keyspace to inspect")
-	flagPkgname  = cmd.String("pkgname", "models", "the name you wish to assign to your generated package")
-	flagOutput   = cmd.String("output", "models", "the name of the folder to output to")
-	flagUser     = cmd.String("user", "", "user for password authentication")
-	flagPassword = cmd.String("password", "", "password for password authentication")
+	cmd             = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	flagCluster     = cmd.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples")
+	flagKeyspace    = cmd.String("keyspace", "", "keyspace to inspect")
+	flagPkgname     = cmd.String("pkgname", "models", "the name you wish to assign to your generated package")
+	flagOutput      = cmd.String("output", "models", "the name of the folder to output to")
+	flagUser        = cmd.String("user", "", "user for password authentication")
+	flagPassword    = cmd.String("password", "", "password for password authentication")
+	flagIgnoreNames = cmd.String("ignore-names", "", "a comma-separated list of table, view or index names to ignore")
 )
 
 var (
@@ -82,6 +84,24 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 		log.Fatalln("unable to parse models template:", err)
 	}
 
+	ignoredNames := make(map[string]struct{})
+	for _, ignoredName := range strings.Split(*flagIgnoreNames, ",") {
+		ignoredNames[ignoredName] = struct{}{}
+	}
+	for name := range ignoredNames {
+		delete(md.Tables, name)
+	}
+
+	orphanedTypes := make(map[string]struct{})
+	for userTypeName := range md.UserTypes {
+		if !usedInTables(userTypeName, md.Tables) {
+			orphanedTypes[userTypeName] = struct{}{}
+		}
+	}
+	for typeName := range orphanedTypes {
+		delete(md.UserTypes, typeName)
+	}
+
 	imports := make([]string, 0)
 	for _, t := range md.Tables {
 		for _, c := range t.Columns {
@@ -133,5 +153,30 @@ func existsInSlice(s []string, v string) bool {
 		}
 	}
 
+	return false
+}
+
+// userTypes finds Cassandra schema types enclosed in angle brackets.
+// Calling FindAllStringSubmatch on it will return a slice of string slices containing two elements.
+// The second element contains the name of the type.
+//
+//	[["<my_type,", "my_type"] ["my_other_type>", "my_other_type"]]
+var userTypes = regexp.MustCompile(`(?:<|\s)(\w+)(?:>|,)`) // match all types contained in set<X>, list<X>, tuple<A, B> etc.
+
+// usedInTables reports whether the typeName is used in any of columns of the provided tables.
+func usedInTables(typeName string, tables map[string]*gocql.TableMetadata) bool {
+	for _, table := range tables {
+		for _, column := range table.Columns {
+			if typeName == column.Validator {
+				return true
+			}
+			matches := userTypes.FindAllStringSubmatch(column.Validator, -1)
+			for _, s := range matches {
+				if s[1] == typeName {
+					return true
+				}
+			}
+		}
+	}
 	return false
 }
