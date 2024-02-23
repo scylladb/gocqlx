@@ -20,14 +20,15 @@ import (
 )
 
 var (
-	cmd             = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	flagCluster     = cmd.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples")
-	flagKeyspace    = cmd.String("keyspace", "", "keyspace to inspect")
-	flagPkgname     = cmd.String("pkgname", "models", "the name you wish to assign to your generated package")
-	flagOutput      = cmd.String("output", "models", "the name of the folder to output to")
-	flagUser        = cmd.String("user", "", "user for password authentication")
-	flagPassword    = cmd.String("password", "", "password for password authentication")
-	flagIgnoreNames = cmd.String("ignore-names", "", "a comma-separated list of table, view or index names to ignore")
+	cmd               = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	flagCluster       = cmd.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples")
+	flagKeyspace      = cmd.String("keyspace", "", "keyspace to inspect")
+	flagPkgname       = cmd.String("pkgname", "models", "the name you wish to assign to your generated package")
+	flagOutput        = cmd.String("output", "models", "the name of the folder to output to")
+	flagUser          = cmd.String("user", "", "user for password authentication")
+	flagPassword      = cmd.String("password", "", "password for password authentication")
+	flagIgnoreNames   = cmd.String("ignore-names", "", "a comma-separated list of table, view or index names to ignore")
+	flagIgnoreIndexes = cmd.Bool("ignore-indexes", false, "don't generate types for indexes")
 )
 
 var (
@@ -87,6 +88,13 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 	ignoredNames := make(map[string]struct{})
 	for _, ignoredName := range strings.Split(*flagIgnoreNames, ",") {
 		ignoredNames[ignoredName] = struct{}{}
+	}
+	if *flagIgnoreIndexes {
+		for name := range md.Tables {
+			if strings.HasSuffix(name, "_index") {
+				ignoredNames[name] = struct{}{}
+			}
+		}
 	}
 	for name := range ignoredNames {
 		delete(md.Tables, name)

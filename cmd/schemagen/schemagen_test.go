@@ -25,6 +25,8 @@ func TestSchemagen(t *testing.T) {
 		"composers_by_name",
 		"label",
 	}, ",")
+	*flagIgnoreIndexes = true
+
 	b := runSchemagen(t, "foobar")
 
 	const goldenFile = "testdata/models.go.txt"
@@ -151,6 +153,11 @@ func createTestSchema(t *testing.T) {
 		PRIMARY KEY (id, title, album, artist))`)
 	if err != nil {
 		t.Fatal("create table:", err)
+	}
+
+	err = session.ExecStmt(`CREATE INDEX IF NOT EXISTS songs_title ON schemagen.songs (title)`)
+	if err != nil {
+		t.Fatal("create index:", err)
 	}
 
 	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS schemagen.composers (
