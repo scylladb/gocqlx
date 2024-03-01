@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx/v2"
@@ -26,6 +27,7 @@ var (
 	flagOutput   = cmd.String("output", "models", "the name of the folder to output to")
 	flagUser     = cmd.String("user", "", "user for password authentication")
 	flagPassword = cmd.String("password", "", "password for password authentication")
+	flagTimeout  = cmd.Int("timeout", 5, "connection timeout for the connection to the database ( in seconds )")
 )
 
 var (
@@ -119,6 +121,8 @@ func createSession() (gocqlx.Session, error) {
 			Password: *flagPassword,
 		}
 	}
+
+	cluster.ConnectTimeout = time.Second * time.Duration(*flagTimeout)
 	return gocqlx.WrapSession(cluster.CreateSession())
 }
 
