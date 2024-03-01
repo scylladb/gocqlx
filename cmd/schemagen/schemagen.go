@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/gocql/gocql"
+
 	"github.com/scylladb/gocqlx/v2"
 	_ "github.com/scylladb/gocqlx/v2/table"
 )
@@ -26,6 +27,7 @@ var (
 	flagOutput   = cmd.String("output", "models", "the name of the folder to output to")
 	flagUser     = cmd.String("user", "", "user for password authentication")
 	flagPassword = cmd.String("password", "", "password for password authentication")
+	flagSslPath  = cmd.String("sslpath", "", "path to a directory containing SSL certificates")
 )
 
 var (
@@ -117,6 +119,13 @@ func createSession() (gocqlx.Session, error) {
 		cluster.Authenticator = gocql.PasswordAuthenticator{
 			Username: *flagUser,
 			Password: *flagPassword,
+		}
+
+	}
+	if *flagSslPath != "" {
+		cluster.SslOpts = &gocql.SslOptions{
+			CaPath:                 *flagSslPath,
+			EnableHostVerification: false,
 		}
 	}
 	return gocqlx.WrapSession(cluster.CreateSession())
