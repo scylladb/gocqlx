@@ -33,60 +33,233 @@ var types = map[string]string{
 	"varint":    "int64",
 }
 
-func mapScyllaToGoType(s string) string {
-	frozenRegex := regexp.MustCompile(`frozen<([a-z]*)>`)
-	match := frozenRegex.FindAllStringSubmatch(s, -1)
-	if match != nil {
-		s = match[0][1]
+type tokenStyle int
+
+const (
+	FrozenToken tokenStyle = iota
+	MapToken
+	SetToken
+	ListToken
+	TupleToken
+	CommaToken
+	AnchorToken
+)
+
+type token struct {
+	style tokenStyle
+	count int
+}
+
+func (ts tokenStyle) String() string {
+	switch ts {
+	case FrozenToken:
+		return "frozen"
+	case MapToken:
+		return "map"
+	case SetToken:
+		return "set"
+	case ListToken:
+		return "list"
+	case TupleToken:
+		return "tuple"
+	case CommaToken:
+		return "comma"
+	case AnchorToken:
+		return "anchor"
+	default:
+		return "unknown"
 	}
+}
 
-	mapRegex := regexp.MustCompile(`map<([a-z]*), ([a-z]*)>`)
-	setRegex := regexp.MustCompile(`set<([a-z]*)>`)
-	listRegex := regexp.MustCompile(`list<([a-z]*)>`)
-	tupleRegex := regexp.MustCompile(`tuple<(?:([a-z]*),? ?)*>`)
-	match = mapRegex.FindAllStringSubmatch(s, -1)
-	if match != nil {
-		key := match[0][1]
-		value := match[0][2]
-
-		return "map[" + types[key] + "]" + types[value]
-	}
-
-	match = setRegex.FindAllStringSubmatch(s, -1)
-	if match != nil {
-		key := match[0][1]
-
-		return "[]" + types[key]
-	}
-
-	match = listRegex.FindAllStringSubmatch(s, -1)
-	if match != nil {
-		key := match[0][1]
-
-		return "[]" + types[key]
-	}
-
-	match = tupleRegex.FindAllStringSubmatch(s, -1)
-	if match != nil {
-		tuple := match[0][0]
-		subStr := tuple[6 : len(tuple)-1]
-		types := strings.Split(subStr, ", ")
-
-		typeStr := "struct {\n"
-		for i, t := range types {
-			typeStr = typeStr + "\t\tField" + strconv.Itoa(i+1) + " " + mapScyllaToGoType(t) + "\n"
+func (ts tokenStyle) format(values ...string) (string, error) {
+	l := len(values)
+	switch ts {
+	case FrozenToken:
+		if l != 1 {
+			return "", fmt.Errorf("Invalid values count=%d for %s", l, ts)
 		}
-		typeStr = typeStr + "\t}"
+		return values[0], nil
+	case MapToken:
+		if l != 2 {
+			return "", fmt.Errorf("Invalid values count=%d for %s", l, ts)
+		}
+		return "map[" + values[0] + "]" + values[1], nil
+	case SetToken:
+		if l != 1 {
+			return "", fmt.Errorf("Invalid values count=%d for %s", l, ts)
+		}
+		return "[]" + values[0], nil
+	case ListToken:
+		if l != 1 {
+			return "", fmt.Errorf("Invalid values count=%d for %s", l, ts)
+		}
+		return "[]" + values[0], nil
+	case TupleToken:
+		if l == 0 {
+			return "", fmt.Errorf("Invalid values count=%d for %s", l, ts)
+		}
+		tupleStr := "struct {\n"
+		for i, v := range values {
+			tupleStr = tupleStr + "\t\tField" + strconv.Itoa(i+1) + " " + v + "\n"
+		}
+		tupleStr = tupleStr + "\t}"
+		return tupleStr, nil
+	default:
+		return "", fmt.Errorf("Invalid token type: %s", ts)
+	}
+}
 
-		return typeStr
+func parseToken(s string) (*token, string) {
+	regexps := make(map[tokenStyle]*regexp.Regexp)
+	regexps[FrozenToken] = regexp.MustCompile(`^frozen<(.*)$`)
+	regexps[MapToken] = regexp.MustCompile(`^map<(.*)$`)
+	regexps[SetToken] = regexp.MustCompile(`^set<(.*)`)
+	regexps[ListToken] = regexp.MustCompile(`^list<(.*)$`)
+	regexps[TupleToken] = regexp.MustCompile(`^tuple<(.*)$`)
+	regexps[CommaToken] = regexp.MustCompile(`^,(.*)$`)
+	regexps[AnchorToken] = regexp.MustCompile(`^>(.*)$`)
+
+	for tokenStyle, tokenRegexp := range regexps {
+		match := tokenRegexp.FindStringSubmatch(s)
+		if match != nil {
+			return &token{tokenStyle, 0}, match[1]
+		}
 	}
 
+	return nil, s
+}
+
+func parsePolishNotation(s string) (*Stack, error) {
+	tokenStack := NewStack()
+	notation := NewStack()
+	left := s
+
+	for {
+		left = strings.TrimSpace(left)
+		if len(left) == 0 {
+			break
+		}
+
+		var t *token
+		t, left = parseToken(left)
+		if t != nil {
+			switch t.style {
+			case CommaToken:
+				top, err := tokenStack.top()
+				if err != nil {
+					return nil, err
+				}
+				v, ok := top.(*token)
+				if !ok {
+					return nil, fmt.Errorf("Invalid type: %T", v)
+				}
+				v.count += 1
+			case AnchorToken:
+				prev, err := tokenStack.pop()
+				if err != nil {
+					return nil, err
+				}
+				v, ok := prev.(*token)
+				if !ok {
+					return nil, fmt.Errorf("Invalid type: %T", v)
+				}
+				v.count += 1
+				notation.push(prev)
+			default:
+				tokenStack.push(t)
+			}
+		} else {
+			itemRegex := regexp.MustCompile(`([^,>]+?)[,>]`)
+			match := itemRegex.FindStringSubmatchIndex(left)
+			if match != nil {
+				item := strings.TrimSpace(left[match[2]:match[3]])
+				notation.push(item)
+
+				left = left[match[3]:]
+			} else {
+				notation.push(strings.TrimSpace(left))
+				left = ""
+			}
+		}
+	}
+
+	for {
+		t, err := tokenStack.pop()
+		if err != nil {
+			break
+		}
+		notation.push(t)
+	}
+
+	return notation, nil
+}
+
+func mapToGoType(s string) string {
 	t, exists := types[s]
 	if exists {
 		return t
 	}
 
 	return camelize(s) + "UserType"
+}
+
+func calcPolishNotation(notation *Stack) (string, error) {
+	outputStack := NewStack()
+	for _, item := range notation.toSlice() {
+		switch v := item.(type) {
+		case string:
+			outputStack.push(mapToGoType(v))
+		case *token:
+			datas, err := outputStack.popSlice(v.count)
+			if err != nil {
+				return "", err
+			}
+			var values []string
+			for _, data := range datas {
+				value, ok := data.(string)
+				if !ok {
+					return "", fmt.Errorf("Invalid output value: %v", value)
+				}
+				values = append(values, value)
+			}
+			fmtStr, err := v.style.format(values...)
+			if err != nil {
+				return "", err
+			}
+			outputStack.push(fmtStr)
+		default:
+			return "", fmt.Errorf("Invalid type: %T", v)
+		}
+	}
+
+	if outputStack.count() != 1 {
+		return "", fmt.Errorf("Invalid polish notation")
+	}
+
+	result, err := outputStack.pop()
+	if err != nil {
+		return "", nil
+	}
+
+	if resultStr, ok := result.(string); !ok {
+		return "", fmt.Errorf("Invalid result value type: %T", result)
+	} else {
+		return resultStr, nil
+	}
+}
+
+func mapScyllaToGoType(s string) string {
+	notation, err := parsePolishNotation(s)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to parse polish notation for %s: %v", s, err))
+	}
+
+	goTypeStr, err := calcPolishNotation(notation)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to calculate polish notation: %v", err))
+	}
+
+	return goTypeStr
 }
 
 func typeToString(t interface{}) string {
