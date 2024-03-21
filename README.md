@@ -195,6 +195,26 @@ make run-scylla
 make run-examples
 ```
 
+## Testing
+
+For the testing purpose you can use `gocqlxtest` package:
+```go
+session := gocqlxtest.CreateSession(t)
+```
+To configure test session connection you can use both command-line
+arguments and environment variables:
+
+| CLI flag      | Environment Variable | Type     | Description                                      | Default     |
+|---------------|:---------------------|:---------|:-------------------------------------------------|:------------|
+| cluster       | CLUSTER              | string   | Comma-separated list of host:port tuples         | 127.0.0.1   |
+| keyspace      | KEYSPACE             | string   | Keyspace name                                    | gocqlx_test |
+| proto         | PROTO                | int      | Protocol version                                 | 0           |
+| cql           | CQL                  | string   | CQL version                                      | 3.0.0       |
+| rf            | RF                   | int      | Replication factor for test keyspace             | 1           |
+| retries       | RETRIES              | int      | Number of times to retry queries                 | 5           |
+| compressor    | COMPRESSOR           | string   | Compressor to use                                |             |
+| gocql.timeout | GOCQL.TIMEOUT        | duration | Sets the connection `timeout` for all operations | 5s          |
+
 ## Performance
 
 GocqlX performance is comparable to the raw `gocql` driver.

@@ -5,7 +5,6 @@
 package gocqlxtest
 
 import (
-	"flag"
 	"fmt"
 	"strings"
 	"sync"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/namsral/flag"
 	"github.com/scylladb/gocqlx/v2"
 )
 
