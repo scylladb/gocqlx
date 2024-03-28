@@ -97,7 +97,7 @@ func (t *Table) GetQuery(session gocqlx.Session, columns ...string) *gocqlx.Quer
 	return session.Query(t.Get(columns...))
 }
 
-// GetQueryContext returns query wrapped with context which gets by partition key.
+// GetQueryContext returns query wrapped with context which gets by primary key.
 func (t *Table) GetQueryContext(ctx context.Context, session gocqlx.Session, columns ...string) *gocqlx.Queryx {
 	return t.GetQuery(session, columns...).WithContext(ctx)
 }
