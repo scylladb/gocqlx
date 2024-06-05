@@ -39,11 +39,17 @@ func makeUDT(value reflect.Value, mapper *reflectx.Mapper, unsafe bool) udt {
 
 func (u udt) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
 	value, ok := u.field[name]
-	if !ok {
-		return nil, fmt.Errorf("missing name %q in %s", name, u.value.Type())
+
+	var data []byte
+	var err error
+	if ok {
+		data, err = gocql.Marshal(info, value.Interface())
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return gocql.Marshal(info, value.Interface())
+	return data, err
 }
 
 func (u udt) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
