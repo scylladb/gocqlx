@@ -19,9 +19,9 @@ import (
 type DeleteBuilder struct {
 	table   string
 	columns columns
-	using   using
 	where   where
 	_if     _if
+	using   using
 	exists  bool
 }
 

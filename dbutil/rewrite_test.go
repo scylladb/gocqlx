@@ -12,13 +12,13 @@ import (
 	"time"
 
 	"github.com/scylladb/gocqlx/v2/dbutil"
-	. "github.com/scylladb/gocqlx/v2/gocqlxtest"
+	"github.com/scylladb/gocqlx/v2/gocqlxtest"
 	"github.com/scylladb/gocqlx/v2/qb"
 	"github.com/scylladb/gocqlx/v2/table"
 )
 
 func TestRewriteTableTTL(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.rewrite_table (testtext text PRIMARY KEY)`); err != nil {
@@ -61,7 +61,7 @@ func TestRewriteTableTTL(t *testing.T) {
 }
 
 func TestRewriteTableClone(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.rewrite_table_clone_src (testtext text PRIMARY KEY, testint int)`); err != nil {

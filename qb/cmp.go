@@ -26,9 +26,9 @@ const (
 
 // Cmp if a filtering comparator that is used in WHERE and IF clauses.
 type Cmp struct {
-	op     op
-	column string
 	value  value
+	column string
+	op     op
 }
 
 func (c Cmp) writeCql(cql *bytes.Buffer) (names []string) {

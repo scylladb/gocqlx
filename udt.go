@@ -24,8 +24,8 @@ var (
 )
 
 type udt struct {
-	value  reflect.Value
 	field  map[string]reflect.Value
+	value  reflect.Value
 	unsafe bool
 }
 

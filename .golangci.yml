@@ -1,8 +1,23 @@
 run:
   deadline: 5m
-  tests: false
+  tests: true
+  allow-parallel-runners: true
+  modules-download-mode: readonly
+  build-tags: [ all, integration ]
 
 linters-settings:
+  revive:
+    rules:
+      - name: package-comments
+        disabled: true
+  goimports:
+    local-prefixes: github.com/scylladb/gocqlx
+  gofumpt:
+    extra-rules: true
+  govet:
+    enable-all: true
+    disable:
+      - shadow
   errcheck:
     check-blank: true
   gocognit:
@@ -23,22 +38,43 @@ linters-settings:
     line-length: 180
 
 linters:
-  enable-all: true
-  disable:
-    - funlen
-    - gas
-    - gochecknoglobals
-    - gochecknoinits
-    - gomnd
-    - interfacer
-    - maligned
-    - nakedret
-    - prealloc
-    - wsl
+  disable-all: true
+  enable:
+    - errcheck
+    - gocritic
+    - gofumpt
+    - goheader
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - predeclared
+    - revive
+    - staticcheck
+    - thelper
+    - tparallel
+    - typecheck
+    - unused
+    - forbidigo
 
 issues:
+  new: true
+  new-from-rev: origin/master
   exclude-use-default: false
   exclude:
     - composite literal uses unkeyed fields
     - Error return value of `.+\.Close` is not checked
     - method Json should be JSON
+  exclude-rules:
+    - path: (.*_test.go|migrate/example|gocqlxtest/)
+      linters:
+        - fieldalignment
+        - govet
+        - errcheck
+    - path: doc_test.go
+      linters:
+        - unused
+        - revive
+

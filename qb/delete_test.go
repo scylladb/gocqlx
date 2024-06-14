@@ -69,7 +69,7 @@ func TestDeleteBuilder(t *testing.T) {
 		},
 		// Add TIMESTAMP
 		{
-			B: Delete("cycling.cyclist_name").Where(w).Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
+			B: Delete("cycling.cyclist_name").Where(w).Timestamp(time.Date(2005, 5, 5, 0, 0, 0, 0, time.UTC)),
 			S: "DELETE FROM cycling.cyclist_name USING TIMESTAMP 1115251200000000 WHERE id=? ",
 			N: []string{"expr"},
 		},

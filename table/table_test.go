@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+
 	"github.com/scylladb/gocqlx/v2/qb"
 )
 

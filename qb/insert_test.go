@@ -17,7 +17,6 @@ func TestInsertBuilder(t *testing.T) {
 		N []string
 		S string
 	}{
-
 		// Basic test for insert
 		{
 			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname"),
@@ -67,7 +66,7 @@ func TestInsertBuilder(t *testing.T) {
 		},
 		// Add TIMESTAMP
 		{
-			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
+			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Timestamp(time.Date(2005, 5, 5, 0, 0, 0, 0, time.UTC)),
 			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) USING TIMESTAMP 1115251200000000 ",
 			N: []string{"id", "user_uuid", "firstname"},
 		},
@@ -78,7 +77,7 @@ func TestInsertBuilder(t *testing.T) {
 		},
 		// Add TIMESTAMP
 		{
-			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
+			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Timestamp(time.Date(2005, 5, 5, 0, 0, 0, 0, time.UTC)),
 			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) USING TIMESTAMP 1115251200000000 ",
 			N: []string{"id", "user_uuid", "firstname"},
 		},
@@ -89,7 +88,7 @@ func TestInsertBuilder(t *testing.T) {
 		},
 		// Add TIMESTAMP
 		{
-			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
+			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Timestamp(time.Date(2005, 5, 5, 0, 0, 0, 0, time.UTC)),
 			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) USING TIMESTAMP 1115251200000000 ",
 			N: []string{"id", "user_uuid", "firstname"},
 		},

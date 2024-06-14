@@ -39,7 +39,8 @@ func TestBatchBuilder(t *testing.T) {
 			B: Batch().
 				AddWithPrefix("a", m).
 				AddWithPrefix("b", m),
-			S: "BEGIN BATCH INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) ; INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) ; APPLY BATCH ",
+			S: "BEGIN BATCH INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) ; " +
+				"INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,?) ; APPLY BATCH ",
 			N: []string{"a.id", "a.user_uuid", "a.firstname", "b.id", "b.user_uuid", "b.firstname"},
 		},
 		// Add UNLOGGED
@@ -64,7 +65,7 @@ func TestBatchBuilder(t *testing.T) {
 		},
 		// Add TIMESTAMP
 		{
-			B: Batch().Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
+			B: Batch().Timestamp(time.Date(2005, 5, 5, 0, 0, 0, 0, time.UTC)),
 			S: "BEGIN BATCH USING TIMESTAMP 1115251200000000 APPLY BATCH ",
 		},
 		{

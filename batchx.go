@@ -4,6 +4,7 @@ import (
 	"github.com/gocql/gocql"
 )
 
+// Batch is a wrapper around gocql.Batch
 type Batch struct {
 	*gocql.Batch
 }

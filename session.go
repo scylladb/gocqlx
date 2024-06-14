@@ -34,7 +34,8 @@ func NewSession(session *gocql.Session) Session {
 // the created session to gocqlx.Session.
 //
 // Example:
-//     session, err := gocqlx.WrapSession(cluster.CreateSession())
+//
+//	session, err := gocqlx.WrapSession(cluster.CreateSession())
 func WrapSession(session *gocql.Session, err error) (Session, error) {
 	return Session{
 		Session: session,

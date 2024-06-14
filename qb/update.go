@@ -32,10 +32,10 @@ func (a assignment) writeCql(cql *bytes.Buffer) (names []string) {
 // UpdateBuilder builds CQL UPDATE statements.
 type UpdateBuilder struct {
 	table       string
-	using       using
 	assignments []assignment
 	where       where
 	_if         _if
+	using       using
 	exists      bool
 }
 

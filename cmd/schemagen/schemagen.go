@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/gocql/gocql"
+
 	"github.com/scylladb/gocqlx/v2"
 	_ "github.com/scylladb/gocqlx/v2/table"
 )
@@ -31,10 +32,8 @@ var (
 	flagIgnoreIndexes = cmd.Bool("ignore-indexes", false, "don't generate types for indexes")
 )
 
-var (
-	//go:embed keyspace.tmpl
-	keyspaceTmpl string
-)
+//go:embed keyspace.tmpl
+var keyspaceTmpl string
 
 func main() {
 	err := cmd.Parse(os.Args[1:])
@@ -80,7 +79,6 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 		Funcs(template.FuncMap{"mapScyllaToGoType": mapScyllaToGoType}).
 		Funcs(template.FuncMap{"typeToString": typeToString}).
 		Parse(keyspaceTmpl)
-
 	if err != nil {
 		log.Fatalln("unable to parse models template:", err)
 	}
@@ -169,7 +167,7 @@ func existsInSlice(s []string, v string) bool {
 // The second element contains the name of the type.
 //
 //	[["<my_type,", "my_type"] ["my_other_type>", "my_other_type"]]
-var userTypes = regexp.MustCompile(`(?:<|\s)(\w+)(?:>|,)`) // match all types contained in set<X>, list<X>, tuple<A, B> etc.
+var userTypes = regexp.MustCompile(`(?:<|\s)(\w+)[>,]`) // match all types contained in set<X>, list<X>, tuple<A, B> etc.
 
 // usedInTables reports whether the typeName is used in any of columns of the provided tables.
 func usedInTables(typeName string, tables map[string]*gocql.TableMetadata) bool {
