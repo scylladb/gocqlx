@@ -42,9 +42,11 @@ jobs:
 #         uses: golangci/golangci-lint-action@v3
 #         with:
 #           version: v1.45.2
-          
+
+      - run: go vet ./...
+
       - name: Run Scylla Container
         run: make run-scylla
-      
+
       - name: Test
         run: make test
