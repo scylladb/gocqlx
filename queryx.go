@@ -215,6 +215,13 @@ func (q *Queryx) Bind(v ...interface{}) *Queryx {
 	return q
 }
 
+// Scan executes the query, copies the columns of the first selected
+// row into the values pointed at by dest and discards the rest. If no rows
+// were selected, ErrNotFound is returned.
+func (q *Queryx) Scan(v ...interface{}) error {
+	return q.Query.Scan(udtWrapSlice(q.Mapper, q.unsafe, v)...)
+}
+
 // Err returns any binding errors.
 func (q *Queryx) Err() error {
 	return q.err
