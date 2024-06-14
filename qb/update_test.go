@@ -117,7 +117,7 @@ func TestUpdateBuilder(t *testing.T) {
 		},
 		// Add TIMESTAMP
 		{
-			B: Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname").Where(w).Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
+			B: Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname").Where(w).Timestamp(time.Date(2005, 5, 5, 0, 0, 0, 0, time.UTC)),
 			S: "UPDATE cycling.cyclist_name USING TIMESTAMP 1115251200000000 SET id=?,user_uuid=?,firstname=? WHERE id=? ",
 			N: []string{"id", "user_uuid", "firstname", "expr"},
 		},

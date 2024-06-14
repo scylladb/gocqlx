@@ -165,8 +165,6 @@ func TestCmp(t *testing.T) {
 			S: "like LIKE (?,?)",
 			N: []string{"name[0]", "name[1]"},
 		},
-
-
 		// Custom bind names on tuples
 		{
 			C: EqTupleNamed("eq", 2, "name"),

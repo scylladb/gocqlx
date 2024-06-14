@@ -15,8 +15,9 @@ import (
 	"testing"
 
 	"github.com/psanford/memfs"
+
 	"github.com/scylladb/gocqlx/v2"
-	. "github.com/scylladb/gocqlx/v2/gocqlxtest"
+	"github.com/scylladb/gocqlx/v2/gocqlxtest"
 	"github.com/scylladb/gocqlx/v2/migrate"
 )
 
@@ -45,7 +46,7 @@ func recreateTables(tb testing.TB, session gocqlx.Session) {
 }
 
 func TestMigration(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 	recreateTables(t, session)
 
@@ -91,7 +92,7 @@ func TestMigration(t *testing.T) {
 }
 
 func TestMigrationNoSemicolon(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 	recreateTables(t, session)
 
@@ -171,11 +172,11 @@ func TestMigrationCallback(t *testing.T) {
 	migrate.Callback = func(ctx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
 		switch ev {
 		case migrate.BeforeMigration:
-			beforeCalled += 1
+			beforeCalled++
 		case migrate.AfterMigration:
-			afterCalled += 1
+			afterCalled++
 		case migrate.CallComment:
-			inCalled += 1
+			inCalled++
 		}
 		return nil
 	}
@@ -191,6 +192,8 @@ func TestMigrationCallback(t *testing.T) {
 	}
 
 	assertCallbacks := func(t *testing.T, before, afer, in int) {
+		t.Helper()
+
 		if beforeCalled != before {
 			t.Fatalf("expected %d before calls got %d", before, beforeCalled)
 		}
@@ -202,7 +205,7 @@ func TestMigrationCallback(t *testing.T) {
 		}
 	}
 
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 	recreateTables(t, session)
 

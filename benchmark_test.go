@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/scylladb/gocqlx/v2"
-	. "github.com/scylladb/gocqlx/v2/gocqlxtest"
+	"github.com/scylladb/gocqlx/v2/gocqlxtest"
 	"github.com/scylladb/gocqlx/v2/qb"
 )
 
@@ -46,7 +46,7 @@ var benchPersonCols = []string{"id", "first_name", "last_name", "email", "gender
 // BenchmarkBaseGocqlInsert performs standard insert.
 func BenchmarkBaseGocqlInsert(b *testing.B) {
 	people := loadFixtures()
-	session := CreateSession(b)
+	session := gocqlxtest.CreateSession(b)
 	defer session.Close()
 
 	if err := session.ExecStmt(benchPersonSchema); err != nil {
@@ -69,7 +69,7 @@ func BenchmarkBaseGocqlInsert(b *testing.B) {
 // BenchmarkGocqlInsert performs insert with struct binding.
 func BenchmarkGocqlxInsert(b *testing.B) {
 	people := loadFixtures()
-	session := CreateSession(b)
+	session := gocqlxtest.CreateSession(b)
 	defer session.Close()
 
 	if err := session.ExecStmt(benchPersonSchema); err != nil {
@@ -96,7 +96,7 @@ func BenchmarkGocqlxInsert(b *testing.B) {
 // BenchmarkBaseGocqlGet performs standard scan.
 func BenchmarkBaseGocqlGet(b *testing.B) {
 	people := loadFixtures()
-	session := CreateSession(b)
+	session := gocqlxtest.CreateSession(b)
 	defer session.Close()
 
 	initTable(b, session, people)
@@ -119,7 +119,7 @@ func BenchmarkBaseGocqlGet(b *testing.B) {
 // BenchmarkGocqlxGet performs get.
 func BenchmarkGocqlxGet(b *testing.B) {
 	people := loadFixtures()
-	session := CreateSession(b)
+	session := gocqlxtest.CreateSession(b)
 	defer session.Close()
 
 	initTable(b, session, people)
@@ -147,7 +147,7 @@ func BenchmarkGocqlxGet(b *testing.B) {
 // pointers.
 func BenchmarkBaseGocqlSelect(b *testing.B) {
 	people := loadFixtures()
-	session := CreateSession(b)
+	session := gocqlxtest.CreateSession(b)
 	defer session.Close()
 
 	initTable(b, session, people)
@@ -162,7 +162,7 @@ func BenchmarkBaseGocqlSelect(b *testing.B) {
 		v := make([]*benchPerson, 100)
 		p := new(benchPerson)
 		for iter.Scan(&p.ID, &p.FirstName, &p.LastName, &p.Email, &p.Gender, &p.IPAddress) {
-			v = append(v, p)
+			v = append(v, p) // nolint:staticcheck
 			p = new(benchPerson)
 		}
 		if err := iter.Close(); err != nil {
@@ -174,7 +174,7 @@ func BenchmarkBaseGocqlSelect(b *testing.B) {
 // BenchmarkGocqlSelect performs select to a slice pointers.
 func BenchmarkGocqlxSelect(b *testing.B) {
 	people := loadFixtures()
-	session := CreateSession(b)
+	session := gocqlxtest.CreateSession(b)
 	defer session.Close()
 
 	initTable(b, session, people)
@@ -212,6 +212,8 @@ func loadFixtures() []*benchPerson {
 }
 
 func initTable(b *testing.B, session gocqlx.Session, people []*benchPerson) {
+	b.Helper()
+
 	if err := session.ExecStmt(benchPersonSchema); err != nil {
 		b.Fatal(err)
 	}

@@ -7,7 +7,6 @@ package migrate
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -20,6 +19,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 )
@@ -58,11 +58,11 @@ const (
 
 // Info contains information on migration applied on a database.
 type Info struct {
+	StartTime time.Time
+	EndTime   time.Time
 	Name      string
 	Checksum  string
 	Done      int
-	StartTime time.Time
-	EndTime   time.Time
 }
 
 // List provides a listing of applied migrations.
@@ -128,8 +128,7 @@ func FromFS(ctx context.Context, session gocqlx.Session, f fs.FS) error {
 
 	for i := 0; i < len(dbm); i++ {
 		if dbm[i].Name != fm[i] {
-			fmt.Println(dbm[i].Name, fm[i], i)
-			return errors.New("inconsistent migrations")
+			return fmt.Errorf("inconsistent migrations found, expected %q got %q at %d", fm[i], dbm[i].Name, i)
 		}
 		c, err := fileChecksum(f, fm[i])
 		if err != nil {

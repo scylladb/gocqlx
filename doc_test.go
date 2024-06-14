@@ -6,6 +6,7 @@ package gocqlx_test
 
 import (
 	"github.com/gocql/gocql"
+
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/qb"
 )

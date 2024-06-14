@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+
 	"github.com/scylladb/gocqlx/v2"
 )
 
@@ -31,8 +32,10 @@ var initOnce sync.Once
 
 // CreateSession creates a new gocqlx session from flags.
 func CreateSession(tb testing.TB) gocqlx.Session {
+	tb.Helper()
+
 	cluster := CreateCluster()
-	return createSessionFromCluster(cluster, tb)
+	return createSessionFromCluster(tb, cluster)
 }
 
 // CreateCluster creates gocql ClusterConfig from flags.
@@ -92,7 +95,8 @@ func CreateKeyspace(cluster *gocql.ClusterConfig, keyspace string) error {
 	return nil
 }
 
-func createSessionFromCluster(cluster *gocql.ClusterConfig, tb testing.TB) gocqlx.Session {
+func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) gocqlx.Session {
+	tb.Helper()
 	if !flag.Parsed() {
 		flag.Parse()
 	}

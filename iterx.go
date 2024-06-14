@@ -19,17 +19,16 @@ var DefaultUnsafe bool
 
 // Iterx is a wrapper around gocql.Iter which adds struct scanning capabilities.
 type Iterx struct {
+	err error
 	*gocql.Iter
 	Mapper *reflectx.Mapper
 
+	// Cache memory for a rows during iteration in structScan.
+	fields     [][]int
+	values     []interface{}
 	unsafe     bool
 	structOnly bool
 	applied    bool
-	err        error
-
-	// Cache memory for a rows during iteration in structScan.
-	fields [][]int
-	values []interface{}
 }
 
 // Unsafe forces the iterator to ignore missing fields. By default when scanning
@@ -206,9 +205,9 @@ func (iter *Iterx) scanAll(dest interface{}) bool {
 
 // isScannable takes the reflect.Type and the actual dest value and returns
 // whether or not it's Scannable. t is scannable if:
-//   * ptr to t implements gocql.Unmarshaler, gocql.UDTUnmarshaler or UDT
-//   * it is not a struct
-//   * it has no exported fields
+//   - ptr to t implements gocql.Unmarshaler, gocql.UDTUnmarshaler or UDT
+//   - it is not a struct
+//   - it has no exported fields
 func (iter *Iterx) isScannable(t reflect.Type) bool {
 	ptr := reflect.PtrTo(t)
 	switch {

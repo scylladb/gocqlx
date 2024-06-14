@@ -90,12 +90,11 @@ func allowedBindRune(b byte) bool {
 
 // Queryx is a wrapper around gocql.Query which adds struct binding capabilities.
 type Queryx struct {
-	*gocql.Query
-	Names  []string
+	err    error
+	tr     Transformer
 	Mapper *reflectx.Mapper
-
-	tr  Transformer
-	err error
+	*gocql.Query
+	Names []string
 }
 
 // Query creates a new Queryx from gocql.Query using a default mapper.
@@ -151,7 +150,7 @@ func (q *Queryx) bindStructArgs(arg0 interface{}, arg1 map[string]interface{}) (
 
 	// grab the indirected value of arg
 	v := reflect.ValueOf(arg0)
-	for v = reflect.ValueOf(arg0); v.Kind() == reflect.Ptr; {
+	for v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
 

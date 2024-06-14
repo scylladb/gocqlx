@@ -16,10 +16,11 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/scylladb/gocqlx/v2"
-	. "github.com/scylladb/gocqlx/v2/gocqlxtest"
-	"github.com/scylladb/gocqlx/v2/qb"
 	"gopkg.in/inf.v0"
+
+	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v2/gocqlxtest"
+	"github.com/scylladb/gocqlx/v2/qb"
 )
 
 type FullName struct {
@@ -48,7 +49,7 @@ type FullNamePtrUDT struct {
 }
 
 func TestIterxStruct(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TYPE gocqlx_test.FullName (first_Name text, last_name text)`); err != nil {
@@ -125,7 +126,10 @@ func TestIterxStruct(t *testing.T) {
 		Testptrudt:    FullNamePtrUDT{FullName: &FullName{FirstName: "John", LastName: "Doe"}},
 	}
 
-	const insertStmt = `INSERT INTO struct_table (testuuid, testtimestamp, testvarchar, testbigint, testblob, testbool, testfloat,testdouble, testint, testdecimal, testlist, testset, testmap, testvarint, testinet, testcustom, testudt, testptrudt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	const insertStmt = `INSERT INTO struct_table (
+                          testuuid, testtimestamp, testvarchar, testbigint, testblob, testbool, testfloat, testdouble, 
+                          testint, testdecimal, testlist, testset, testmap, testvarint, testinet, testcustom, testudt, testptrudt
+                          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	if err := session.Query(insertStmt, nil).Bind(
 		m.Testuuid,
@@ -212,7 +216,7 @@ func TestIterxStruct(t *testing.T) {
 }
 
 func TestIterxScannable(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.scannable_table (testfullname text PRIMARY KEY)`); err != nil {
@@ -265,7 +269,7 @@ func TestIterxScannable(t *testing.T) {
 }
 
 func TestIterxStructOnly(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.struct_only_table (first_name text, last_name text, PRIMARY KEY (first_name, last_name))`); err != nil {
@@ -336,7 +340,7 @@ func TestIterxStructOnly(t *testing.T) {
 }
 
 func TestIterxStructOnlyUDT(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.struct_only_udt_table (first_name text, last_name text, PRIMARY KEY (first_name, last_name))`); err != nil {
@@ -412,7 +416,7 @@ func TestIterxStructOnlyUDT(t *testing.T) {
 }
 
 func TestIterxUnsafe(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.unsafe_table (testtext text PRIMARY KEY, testtextunbound text)`); err != nil {
@@ -499,7 +503,7 @@ func TestIterxUnsafe(t *testing.T) {
 }
 
 func TestIterxNotFound(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.not_found_table (testtext text PRIMARY KEY)`); err != nil {
@@ -547,7 +551,7 @@ func TestIterxNotFound(t *testing.T) {
 }
 
 func TestIterxErrorOnNil(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.nil_table (testtext text PRIMARY KEY)`); err != nil {
@@ -582,7 +586,7 @@ func TestIterxErrorOnNil(t *testing.T) {
 }
 
 func TestIterxPaging(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.paging_table (id int PRIMARY KEY, val int)`); err != nil {
@@ -625,7 +629,7 @@ func TestIterxPaging(t *testing.T) {
 }
 
 func TestIterxCAS(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	const (

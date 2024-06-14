@@ -17,7 +17,8 @@ jobs:
     steps:
       - name: Git Checkout
         uses: actions/checkout@v3
-
+        with:
+          fetch-depth: '0'
       - name: Install Go 1.17
         uses: actions/setup-go@v3
         with:
@@ -33,18 +34,14 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Make Directory for GOBIN
-        run: mkdir -p ${GOBIN}
+        run: mkdir -p "${GOBIN}"
 
       - name: Download Dependencies
-        run: make get-deps
+        run: git --version && make get-deps && make get-tools
 
-#       - name: Lint
-#         uses: golangci/golangci-lint-action@v3
-#         with:
-#           version: v1.45.2
-
-      - run: go vet ./...
-
+      - name: Lint
+        run: make check
+          
       - name: Run Scylla Container
         run: make run-scylla
 

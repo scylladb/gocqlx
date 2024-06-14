@@ -43,7 +43,7 @@ func TestUsing(t *testing.T) {
 		},
 		// Timestamp
 		{
-			B: new(using).Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
+			B: new(using).Timestamp(time.Date(2005, 5, 5, 0, 0, 0, 0, time.UTC)),
 			S: "USING TIMESTAMP 1115251200000000 ",
 		},
 		// TimestampNamed
@@ -65,7 +65,7 @@ func TestUsing(t *testing.T) {
 		},
 		// TTL Timestamp
 		{
-			B: new(using).TTL(time.Second).Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
+			B: new(using).TTL(time.Second).Timestamp(time.Date(2005, 5, 5, 0, 0, 0, 0, time.UTC)),
 			S: "USING TTL 1 AND TIMESTAMP 1115251200000000 ",
 		},
 		// TTL TimestampNamed
@@ -82,7 +82,7 @@ func TestUsing(t *testing.T) {
 		},
 		// TTLNamed Timestamp
 		{
-			B: new(using).TTLNamed("ttl").Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
+			B: new(using).TTLNamed("ttl").Timestamp(time.Date(2005, 5, 5, 0, 0, 0, 0, time.UTC)),
 			S: "USING TTL ? AND TIMESTAMP 1115251200000000 ",
 			N: []string{"ttl"},
 		},
@@ -99,7 +99,7 @@ func TestUsing(t *testing.T) {
 		},
 		// TTL Timestamp Timeout
 		{
-			B: new(using).TTL(time.Second).Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)).Timeout(time.Second),
+			B: new(using).TTL(time.Second).Timestamp(time.Date(2005, 5, 5, 0, 0, 0, 0, time.UTC)).Timeout(time.Second),
 			S: "USING TTL 1 AND TIMESTAMP 1115251200000000 AND TIMEOUT 1s ",
 		},
 		// TTL with no duration
@@ -129,13 +129,13 @@ func TestUsing(t *testing.T) {
 		},
 		// Timestamp TimestampNamed
 		{
-			B: new(using).Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)).TimestampNamed("ts"),
+			B: new(using).Timestamp(time.Date(2005, 5, 5, 0, 0, 0, 0, time.UTC)).TimestampNamed("ts"),
 			S: "USING TIMESTAMP ? ",
 			N: []string{"ts"},
 		},
 		// TimestampNamed Timestamp
 		{
-			B: new(using).TimestampNamed("ts").Timestamp(time.Date(2005, 05, 05, 0, 0, 0, 0, time.UTC)),
+			B: new(using).TimestampNamed("ts").Timestamp(time.Date(2005, 5, 5, 0, 0, 0, 0, time.UTC)),
 			S: "USING TIMESTAMP 1115251200000000 ",
 		},
 	}
