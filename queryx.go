@@ -94,7 +94,8 @@ type Queryx struct {
 	tr     Transformer
 	Mapper *reflectx.Mapper
 	*gocql.Query
-	Names []string
+	Names  []string
+	unsafe bool
 }
 
 // Query creates a new Queryx from gocql.Query using a default mapper.
@@ -106,6 +107,7 @@ func Query(q *gocql.Query, names []string) *Queryx {
 		Names:  names,
 		Mapper: DefaultMapper,
 		tr:     DefaultBindTransformer,
+		unsafe: DefaultUnsafe,
 	}
 }
 
@@ -209,7 +211,7 @@ func (q *Queryx) bindMapArgs(arg map[string]interface{}) ([]interface{}, error) 
 // Bind sets query arguments of query. This can also be used to rebind new query arguments
 // to an existing query instance.
 func (q *Queryx) Bind(v ...interface{}) *Queryx {
-	q.Query.Bind(udtWrapSlice(q.Mapper, DefaultUnsafe, v)...)
+	q.Query.Bind(udtWrapSlice(q.Mapper, q.unsafe, v)...)
 	return q
 }
 
@@ -342,6 +344,14 @@ func (q *Queryx) Iter() *Iterx {
 	return &Iterx{
 		Iter:   q.Query.Iter(),
 		Mapper: q.Mapper,
-		unsafe: DefaultUnsafe,
+		unsafe: q.unsafe,
 	}
+}
+
+// Unsafe forces the query and iterators to ignore missing fields. By default when scanning
+// a struct if result row has a column that cannot be mapped to any destination
+// field an error is reported. With unsafe such columns are ignored.
+func (q *Queryx) Unsafe() *Queryx {
+	q.unsafe = true
+	return q
 }
