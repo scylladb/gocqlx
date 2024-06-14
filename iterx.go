@@ -13,7 +13,7 @@ import (
 	"github.com/scylladb/go-reflectx"
 )
 
-// DefaultUnsafe enables the behavior of forcing the iterator to ignore
+// DefaultUnsafe enables the behavior of forcing queries and iterators to ignore
 // missing fields for all queries. See Unsafe below for more information.
 var DefaultUnsafe bool
 

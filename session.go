@@ -51,6 +51,7 @@ func (s Session) ContextQuery(ctx context.Context, stmt string, names []string) 
 		Names:  names,
 		Mapper: s.Mapper,
 		tr:     DefaultBindTransformer,
+		unsafe: DefaultUnsafe,
 	}
 }
 
@@ -65,6 +66,7 @@ func (s Session) Query(stmt string, names []string) *Queryx {
 		Names:  names,
 		Mapper: s.Mapper,
 		tr:     DefaultBindTransformer,
+		unsafe: DefaultUnsafe,
 	}
 }
 

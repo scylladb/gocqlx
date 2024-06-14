@@ -484,12 +484,8 @@ func TestIterxUnsafe(t *testing.T) {
 	})
 
 	t.Run("select default unsafe", func(t *testing.T) {
-		gocqlx.DefaultUnsafe = true
-		defer func() {
-			gocqlx.DefaultUnsafe = false
-		}()
 		var v []UnsafeTable
-		err := session.Query(stmt, nil).Iter().Select(&v)
+		err := session.Query(stmt, nil).Unsafe().Iter().Select(&v)
 		if err != nil {
 			t.Fatal("Select() failed:", err)
 		}
