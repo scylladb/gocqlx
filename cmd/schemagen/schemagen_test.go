@@ -97,7 +97,7 @@ func Test_usedInTables(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			tables := map[string]*gocql.TableMetadata{
 				"table": {Columns: map[string]*gocql.ColumnMetadata{
-					"column": {Validator: tt.columnValidator},
+					"column": {Type: tt.columnValidator},
 				}},
 			}
 			if !usedInTables(tt.typeName, tables) {
@@ -109,7 +109,7 @@ func Test_usedInTables(t *testing.T) {
 	t.Run("doesn't panic with empty type name", func(t *testing.T) {
 		tables := map[string]*gocql.TableMetadata{
 			"table": {Columns: map[string]*gocql.ColumnMetadata{
-				"column": {Validator: "map<text, album>"},
+				"column": {Type: "map<text, album>"},
 			}},
 		}
 		usedInTables("", tables)
