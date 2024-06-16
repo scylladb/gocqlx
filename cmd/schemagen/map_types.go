@@ -1,12 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/gocql/gocql"
 )
 
 var types = map[string]string{
@@ -87,19 +84,4 @@ func mapScyllaToGoType(s string) string {
 	}
 
 	return camelize(s) + "UserType"
-}
-
-func typeToString(t interface{}) string {
-	tType := fmt.Sprintf("%T", t)
-	switch tType {
-	case "gocql.NativeType":
-		return t.(gocql.NativeType).String()
-	case "gocql.CollectionType":
-		collectionType := t.(gocql.CollectionType).String()
-		collectionType = strings.ReplaceAll(collectionType, "(", "<")
-		collectionType = strings.ReplaceAll(collectionType, ")", ">")
-		return collectionType
-	default:
-		panic(fmt.Sprintf("Did not expect %v type in user defined type", tType))
-	}
 }
