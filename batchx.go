@@ -1,6 +1,8 @@
 package gocqlx
 
 import (
+	"fmt"
+
 	"github.com/gocql/gocql"
 )
 
@@ -20,6 +22,38 @@ func (s *Session) NewBatch(bt gocql.BatchType) *Batch {
 // If value cannot be found an error is reported.
 func (b *Batch) BindStruct(qry *Queryx, arg interface{}) error {
 	args, err := qry.bindStructArgs(arg, nil)
+	if err != nil {
+		return err
+	}
+	b.Query(qry.Statement(), args...)
+	return nil
+}
+
+// Bind binds query parameters to values from args.
+// If value cannot be found an error is reported.
+func (b *Batch) Bind(qry *Queryx, args ...interface{}) error {
+	if len(qry.Names) != len(args) {
+		return fmt.Errorf("query requires %d arguments, but %d provided", len(qry.Names), len(args))
+	}
+	b.Query(qry.Statement(), args...)
+	return nil
+}
+
+// BindMap binds query named parameters to values from arg using a mapper.
+// If value cannot be found an error is reported.
+func (b *Batch) BindMap(qry *Queryx, arg map[string]interface{}) error {
+	args, err := qry.bindMapArgs(arg)
+	if err != nil {
+		return err
+	}
+	b.Query(qry.Statement(), args...)
+	return nil
+}
+
+// BindStructMap binds query named parameters to values from arg0 and arg1 using a mapper.
+// If value cannot be found an error is reported.
+func (b *Batch) BindStructMap(qry *Queryx, arg0 interface{}, arg1 map[string]interface{}) error {
+	args, err := qry.bindStructArgs(arg0, arg1)
 	if err != nil {
 		return err
 	}
