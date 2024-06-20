@@ -60,6 +60,17 @@ func TestTableGet(t *testing.T) {
 			t.Error(diff, names)
 		}
 	}
+
+	// run GetBuilder on the same data set
+	for _, test := range table {
+		stmt, names := New(test.M).GetBuilder(test.C...).ToCql()
+		if diff := cmp.Diff(test.S, stmt); diff != "" {
+			t.Error(diff)
+		}
+		if diff := cmp.Diff(test.N, names); diff != "" {
+			t.Error(diff, names)
+		}
+	}
 }
 
 func TestTableSelect(t *testing.T) {
