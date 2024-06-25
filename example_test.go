@@ -345,8 +345,8 @@ func basicReadScyllaVersion(t *testing.T, session gocqlx.Session) {
 }
 
 // This examples shows how to bind data from a map using "BindMap" function,
-// override field name mapping using the "db" tags, and use "Unsafe" function
-// to handle situations where driver returns more coluns that we are ready to
+// override field name mapping using the "db" tags, with the default mechanism of
+// handling situations where driver returns more coluns that we are ready to
 // consume.
 func datatypesBlob(t *testing.T, session gocqlx.Session) {
 	t.Helper()
@@ -384,9 +384,8 @@ func datatypesBlob(t *testing.T, session gocqlx.Session) {
 	}{}
 	q := qb.Select("examples.blobs").Where(qb.EqLit("k", "1")).Query(session)
 
-	// Unsafe is used here to override validation error that check if all
-	// requested columns are consumed `failed: missing destination name "k" in struct` error
-	if err := q.Iter().Unsafe().Get(row); err != nil {
+	// By default missing UDT fields are treated as null instead of failing
+	if err := q.Iter().Get(row); err != nil {
 		t.Fatal("Get() failed:", err)
 	}
 
