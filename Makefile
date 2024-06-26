@@ -38,12 +38,21 @@ GOTEST := go test -cpu $(GOTEST_CPU) -count=1 -cover -race -tags all
 
 .PHONY: test
 test:
+	echo "==> Running tests..."
+	echo "==> Running tests... in ."
 	@$(GOTEST) .
+	echo "==> Running tests... in ./qb"
 	@$(GOTEST) ./qb
+	echo "==> Running tests... in ./table"
 	@$(GOTEST) ./table
+	echo "==> Running tests... in ./migrate"
 	@$(GOTEST) ./migrate
+	echo "==> Running tests... in ./dbutil"
 	@$(GOTEST) ./dbutil
+	echo "==> Running tests... in ./cmd/schemagen"
 	@$(GOTEST) ./cmd/schemagen
+	echo "==> Running tests... in ./cmd/schemagen/testdata"
+	@cd ./cmd/schemagen/testdata ; go mod tidy ; $(GOTEST) .; cd ../../..
 
 .PHONY: bench
 bench:
