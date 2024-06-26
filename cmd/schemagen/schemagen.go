@@ -109,12 +109,16 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 	}
 
 	imports := make([]string, 0)
+	if len(md.Types) != 0 {
+		imports = append(imports, "github.com/scylladb/gocqlx/v2")
+	}
+
 	for _, t := range md.Tables {
 		// Ensure ordered columns are sorted alphabetically
 		sort.Strings(t.OrderedColumns)
 
 		for _, c := range t.Columns {
-			if (c.Type == "timestamp" || c.Type == "date" || c.Type == "duration" || c.Type == "time") && !existsInSlice(imports, "time") {
+			if (c.Type == "timestamp" || c.Type == "date" || c.Type == "time") && !existsInSlice(imports, "time") {
 				imports = append(imports, "time")
 			}
 			if c.Type == "decimal" && !existsInSlice(imports, "gopkg.in/inf.v0") {
