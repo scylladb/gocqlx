@@ -1,7 +1,7 @@
 all: check test
 
-ifndef SCYLLA_VERSION
-SCYLLA_VERSION := latest
+ifndef SCYLLA_IMAGE
+SCYLLA_IMAGE := scylladb/scylla:6.0.0
 endif
 
 ifndef SCYLLA_CPU
@@ -55,9 +55,9 @@ run-examples:
 
 .PHONY: run-scylla
 run-scylla:
-	@echo "==> Running test instance of Scylla $(SCYLLA_VERSION)"
-	@docker pull scylladb/scylla:$(SCYLLA_VERSION)
-	@docker run --name gocqlx-scylla -p 9042:9042 --cpuset-cpus=$(SCYLLA_CPU) --memory 1G --rm -d scylladb/scylla:$(SCYLLA_VERSION)
+	@echo "==> Running test instance of Scylla $(SCYLLA_IMAGE)"
+	@docker pull $(SCYLLA_IMAGE)
+	@docker run --name gocqlx-scylla -p 9042:9042 --cpuset-cpus=$(SCYLLA_CPU) --memory 1G --rm -d $(SCYLLA_IMAGE)
 	@until docker exec gocqlx-scylla cqlsh -e "DESCRIBE SCHEMA"; do sleep 2; done
 
 .PHONY: stop-scylla
