@@ -112,12 +112,12 @@ t.Log(people)
 Installation
 
 ```bash
-go get -u "github.com/scylladb/gocqlx/v2/cmd/schemagen"
+go install github.com/scylladb/gocqlx/v2/cmd/schemagen@latest
 ```
 
 Usage:
 ```bash
-$GOBIN/schemagen [flags]
+schemagen [flags]
 
 Flags:
   -cluster string
@@ -134,7 +134,12 @@ Example:
 
 Running the following command for `examples` keyspace: 
 ```bash
-$GOBIN/schemagen -cluster="127.0.0.1:9042" -keyspace="examples" -output="models" -pkgname="models"
+schemagen -cluster=127.0.0.1:9042 -keyspace=examples -output=models -pkgname=models
+```
+
+Or using a go generate comment:
+```go
+//go:generate schemagen -cluster=127.0.0.1:9042 -keyspace=examples -output=models -pkgname=models
 ```
 
 Generates `models/models.go` as follows:
