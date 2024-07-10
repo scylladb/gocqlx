@@ -4,8 +4,8 @@ package schemagentest
 
 import (
 	"github.com/gocql/gocql"
-	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/gocqlx/v2/table"
+	"github.com/scylladb/gocqlx/v3"
+	"github.com/scylladb/gocqlx/v3/table"
 )
 
 // Table models.

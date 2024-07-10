@@ -17,10 +17,10 @@ import (
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/inf.v0"
 
-	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/gocqlx/v2/gocqlxtest"
-	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/gocqlx/v2/table"
+	"github.com/scylladb/gocqlx/v3"
+	"github.com/scylladb/gocqlx/v3/gocqlxtest"
+	"github.com/scylladb/gocqlx/v3/qb"
+	"github.com/scylladb/gocqlx/v3/table"
 )
 
 // Running examples locally:

@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v3"
 )
 
 // BATCH reference:

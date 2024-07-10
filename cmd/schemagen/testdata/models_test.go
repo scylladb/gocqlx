@@ -2,14 +2,15 @@ package schemagentest
 
 import (
 	"flag"
-	"github.com/google/go-cmp/cmp"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/gocql/gocql"
-	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/google/go-cmp/cmp"
+
+	"github.com/scylladb/gocqlx/v3"
+	"github.com/scylladb/gocqlx/v3/qb"
 )
 
 var flagCluster = flag.String("cluster", "127.0.0.1", "a comma-separated list of host:port or host tuples")
