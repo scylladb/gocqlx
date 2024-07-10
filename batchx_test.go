@@ -13,9 +13,9 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/gocqlx/v2/gocqlxtest"
-	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/gocqlx/v3"
+	"github.com/scylladb/gocqlx/v3/gocqlxtest"
+	"github.com/scylladb/gocqlx/v3/qb"
 )
 
 func TestBatch(t *testing.T) {

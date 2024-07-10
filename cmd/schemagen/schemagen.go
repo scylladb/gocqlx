@@ -17,8 +17,8 @@ import (
 
 	"github.com/gocql/gocql"
 
-	"github.com/scylladb/gocqlx/v2"
-	_ "github.com/scylladb/gocqlx/v2/table"
+	"github.com/scylladb/gocqlx/v3"
+	_ "github.com/scylladb/gocqlx/v3/table"
 )
 
 var (
@@ -110,7 +110,7 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 
 	imports := make([]string, 0)
 	if len(md.Types) != 0 {
-		imports = append(imports, "github.com/scylladb/gocqlx/v2")
+		imports = append(imports, "github.com/scylladb/gocqlx/v3")
 	}
 
 	for _, t := range md.Tables {

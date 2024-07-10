@@ -19,9 +19,9 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"gopkg.in/inf.v0"
 
-	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/gocqlx/v2/gocqlxtest"
-	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/gocqlx/v3"
+	"github.com/scylladb/gocqlx/v3/gocqlxtest"
+	"github.com/scylladb/gocqlx/v3/qb"
 )
 
 type FullName struct {

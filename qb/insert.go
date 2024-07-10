@@ -12,7 +12,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v3"
 )
 
 // initializer specifies an value for a column in an insert operation.
