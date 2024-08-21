@@ -10,7 +10,8 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
-	"github.com/scylladb/gocqlx/v2/gocqlxtest"
+
+	"github.com/scylladb/gocqlx/v3/gocqlxtest"
 )
 
 var flagUpdate = flag.Bool("update", false, "update golden file")
@@ -27,9 +28,9 @@ func TestSchemagen(t *testing.T) {
 	}, ",")
 	*flagIgnoreIndexes = true
 
-	b := runSchemagen(t, "foobar")
+	b := runSchemagen(t, "schemagentest")
 
-	const goldenFile = "testdata/models.go.txt"
+	const goldenFile = "testdata/models.go"
 	if *flagUpdate {
 		if err := ioutil.WriteFile(goldenFile, b, os.ModePerm); err != nil {
 			t.Fatal(err)
@@ -96,7 +97,7 @@ func Test_usedInTables(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			tables := map[string]*gocql.TableMetadata{
 				"table": {Columns: map[string]*gocql.ColumnMetadata{
-					"column": {Validator: tt.columnValidator},
+					"column": {Type: tt.columnValidator},
 				}},
 			}
 			if !usedInTables(tt.typeName, tables) {
@@ -108,7 +109,7 @@ func Test_usedInTables(t *testing.T) {
 	t.Run("doesn't panic with empty type name", func(t *testing.T) {
 		tables := map[string]*gocql.TableMetadata{
 			"table": {Columns: map[string]*gocql.ColumnMetadata{
-				"column": {Validator: "map<text, album>"},
+				"column": {Type: "map<text, album>"},
 			}},
 		}
 		usedInTables("", tables)
@@ -131,6 +132,7 @@ func createTestSchema(t *testing.T) {
 		title text,
 		album text,
 		artist text,
+		duration duration,
 		tags set<text>,
 		data blob)`)
 	if err != nil {
@@ -192,7 +194,9 @@ func runSchemagen(t *testing.T, pkgname string) []byte {
 		t.Fatal(err)
 	}
 	keyspace := "schemagen"
+	cl := "127.0.1.1"
 
+	flagCluster = &cl
 	flagKeyspace = &keyspace
 	flagPkgname = &pkgname
 	flagOutput = &dir

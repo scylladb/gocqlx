@@ -7,7 +7,7 @@ package gocqlx_test
 import (
 	"testing"
 
-	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v3"
 )
 
 func BenchmarkCompileNamedQuery(b *testing.B) {

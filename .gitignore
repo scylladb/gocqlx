@@ -16,3 +16,4 @@ vendor
 .idea/
 
 cmd/schemagen/schemagen
+cmd/schemagen/testdata/go.sum

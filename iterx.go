@@ -13,30 +13,29 @@ import (
 	"github.com/scylladb/go-reflectx"
 )
 
-// DefaultUnsafe enables the behavior of forcing the iterator to ignore
-// missing fields for all queries. See Unsafe below for more information.
-var DefaultUnsafe bool
+// DefaultStrict disables the behavior of forcing queries and iterators to ignore
+// missing fields for all queries. See Strict below for more information.
+var DefaultStrict bool
 
 // Iterx is a wrapper around gocql.Iter which adds struct scanning capabilities.
 type Iterx struct {
+	err error
 	*gocql.Iter
 	Mapper *reflectx.Mapper
 
-	unsafe     bool
+	// Cache memory for a rows during iteration in structScan.
+	fields     [][]int
+	values     []interface{}
+	strict     bool
 	structOnly bool
 	applied    bool
-	err        error
-
-	// Cache memory for a rows during iteration in structScan.
-	fields [][]int
-	values []interface{}
 }
 
-// Unsafe forces the iterator to ignore missing fields. By default when scanning
-// a struct if result row has a column that cannot be mapped to any destination
-// field an error is reported. With unsafe such columns are ignored.
-func (iter *Iterx) Unsafe() *Iterx {
-	iter.unsafe = true
+// Strict forces the iterator to disable ignoring missing fields. In Strict mode
+// when scanning a struct if result row has a column that cannot be mapped to any
+// destination field an error is reported. By default such columns are ignored.
+func (iter *Iterx) Strict() *Iterx {
+	iter.strict = true
 	return iter
 }
 
@@ -206,9 +205,9 @@ func (iter *Iterx) scanAll(dest interface{}) bool {
 
 // isScannable takes the reflect.Type and the actual dest value and returns
 // whether or not it's Scannable. t is scannable if:
-//   * ptr to t implements gocql.Unmarshaler, gocql.UDTUnmarshaler or UDT
-//   * it is not a struct
-//   * it has no exported fields
+//   - ptr to t implements gocql.Unmarshaler, gocql.UDTUnmarshaler or UDT
+//   - it is not a struct
+//   - it has no exported fields
 func (iter *Iterx) isScannable(t reflect.Type) bool {
 	ptr := reflect.PtrTo(t)
 	switch {
@@ -229,7 +228,7 @@ func (iter *Iterx) scan(value reflect.Value) bool {
 	if value.Kind() != reflect.Ptr {
 		panic("value must be a pointer")
 	}
-	return iter.Iter.Scan(udtWrapValue(value, iter.Mapper, iter.unsafe))
+	return iter.Iter.Scan(udtWrapValue(value, iter.Mapper, iter.strict))
 }
 
 // StructScan is like gocql.Iter.Scan, but scans a single row into a single
@@ -265,8 +264,8 @@ func (iter *Iterx) structScan(value reflect.Value) bool {
 		cas := len(columns) > 0 && columns[0] == appliedColumn
 
 		iter.fields = iter.Mapper.TraversalsByName(value.Type(), columns)
-		// if we are not unsafe and it's not CAS query and are missing fields, return an error
-		if !iter.unsafe && !cas {
+		// if we are strict and it's not CAS query and are missing fields, return an error
+		if iter.strict && !cas {
 			if f, err := missingFields(iter.fields); err != nil {
 				iter.err = fmt.Errorf("missing destination name %q in %s", columns[f], reflect.Indirect(value).Type())
 				return false
@@ -303,7 +302,7 @@ func (iter *Iterx) fieldsByTraversal(value reflect.Value, traversals [][]int, va
 			continue
 		}
 		f := reflectx.FieldByIndexes(value, traversal).Addr()
-		values[i] = udtWrapValue(f, iter.Mapper, iter.unsafe)
+		values[i] = udtWrapValue(f, iter.Mapper, iter.strict)
 	}
 
 	return nil
@@ -326,7 +325,7 @@ func columnNames(ci []gocql.ColumnInfo) []string {
 // end of the result set was reached or if an error occurred. Close should
 // be called afterwards to retrieve any potential errors.
 func (iter *Iterx) Scan(dest ...interface{}) bool {
-	return iter.Iter.Scan(udtWrapSlice(iter.Mapper, iter.unsafe, dest)...)
+	return iter.Iter.Scan(udtWrapSlice(iter.Mapper, iter.strict, dest)...)
 }
 
 // Close closes the iterator and returns any errors that happened during

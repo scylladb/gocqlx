@@ -12,7 +12,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v3"
 )
 
 // Order specifies sorting order.
@@ -34,15 +34,15 @@ func (o Order) String() string {
 
 // SelectBuilder builds CQL SELECT statements.
 type SelectBuilder struct {
+	limit             limit
+	limitPerPartition limit
 	table             string
-	columns           columns
-	distinct          columns
-	using             using
 	where             where
 	groupBy           columns
 	orderBy           columns
-	limit             limit
-	limitPerPartition limit
+	columns           columns
+	distinct          columns
+	using             using
 	allowFiltering    bool
 	bypassCache       bool
 	json              bool
@@ -132,7 +132,7 @@ func (b *SelectBuilder) From(table string) *SelectBuilder {
 }
 
 // Json sets the clause of the query.
-func (b *SelectBuilder) Json() *SelectBuilder {
+func (b *SelectBuilder) Json() *SelectBuilder { // nolint: revive
 	b.json = true
 	return b
 }

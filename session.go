@@ -34,7 +34,8 @@ func NewSession(session *gocql.Session) Session {
 // the created session to gocqlx.Session.
 //
 // Example:
-//     session, err := gocqlx.WrapSession(cluster.CreateSession())
+//
+//	session, err := gocqlx.WrapSession(cluster.CreateSession())
 func WrapSession(session *gocql.Session, err error) (Session, error) {
 	return Session{
 		Session: session,
@@ -50,6 +51,7 @@ func (s Session) ContextQuery(ctx context.Context, stmt string, names []string) 
 		Names:  names,
 		Mapper: s.Mapper,
 		tr:     DefaultBindTransformer,
+		strict: DefaultStrict,
 	}
 }
 
@@ -64,6 +66,7 @@ func (s Session) Query(stmt string, names []string) *Queryx {
 		Names:  names,
 		Mapper: s.Mapper,
 		tr:     DefaultBindTransformer,
+		strict: DefaultStrict,
 	}
 }
 

@@ -9,6 +9,7 @@ package gocqlx_test
 
 import (
 	"math/big"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -16,10 +17,11 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/scylladb/gocqlx/v2"
-	. "github.com/scylladb/gocqlx/v2/gocqlxtest"
-	"github.com/scylladb/gocqlx/v2/qb"
 	"gopkg.in/inf.v0"
+
+	"github.com/scylladb/gocqlx/v3"
+	"github.com/scylladb/gocqlx/v3/gocqlxtest"
+	"github.com/scylladb/gocqlx/v3/qb"
 )
 
 type FullName struct {
@@ -47,8 +49,330 @@ type FullNamePtrUDT struct {
 	*FullName
 }
 
+func diff(t *testing.T, expected, got interface{}) {
+	t.Helper()
+
+	if d := cmp.Diff(expected, got, diffOpts); d != "" {
+		t.Errorf("got %+v expected %+v, diff: %s", got, expected, d)
+	}
+}
+
+var diffOpts = cmpopts.IgnoreUnexported(big.Int{}, inf.Dec{})
+
+func TestIterxUDT(t *testing.T) {
+	session := gocqlxtest.CreateSession(t)
+	t.Cleanup(func() {
+		session.Close()
+	})
+
+	if err := session.ExecStmt(`CREATE TYPE gocqlx_test.UDTTest_Full (first text, second text)`); err != nil {
+		t.Fatal("create type:", err)
+	}
+
+	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.udt_table (
+			testuuid       timeuuid PRIMARY KEY,
+			testudt        gocqlx_test.UDTTest_Full
+		)`); err != nil {
+		t.Fatal("create table:", err)
+	}
+
+	type Full struct {
+		First  string
+		Second string
+	}
+
+	type Part struct {
+		First string
+	}
+
+	type Extra struct {
+		First  string
+		Second string
+		Third  string
+	}
+
+	type FullUDT struct {
+		gocqlx.UDT
+		Full
+	}
+
+	type PartUDT struct {
+		gocqlx.UDT
+		Part
+	}
+
+	type ExtraUDT struct {
+		gocqlx.UDT
+		Extra
+	}
+
+	type FullUDTPtr struct {
+		gocqlx.UDT
+		*Full
+	}
+
+	type PartUDTPtr struct {
+		gocqlx.UDT
+		*Part
+	}
+
+	type ExtraUDTPtr struct {
+		gocqlx.UDT
+		*Extra
+	}
+
+	full := FullUDT{
+		Full: Full{
+			First:  "John",
+			Second: "Doe",
+		},
+	}
+
+	makeStruct := func(testuuid gocql.UUID, insert interface{}) interface{} {
+		b := reflect.New(reflect.StructOf([]reflect.StructField{
+			{
+				Name: "TestUUID",
+				Type: reflect.TypeOf(gocql.UUID{}),
+			},
+			{
+				Name: "TestUDT",
+				Type: reflect.TypeOf(insert),
+			},
+		})).Interface()
+		reflect.ValueOf(b).Elem().FieldByName("TestUUID").Set(reflect.ValueOf(testuuid))
+		reflect.ValueOf(b).Elem().FieldByName("TestUDT").Set(reflect.ValueOf(insert))
+		return b
+	}
+
+	tcases := []struct {
+		name         string
+		insert       interface{}
+		expected     interface{}
+		expectedOnDB FullUDT
+	}{
+		{
+			name:         "exact-match",
+			insert:       full,
+			expectedOnDB: full,
+			expected:     full,
+		},
+		{
+			name: "exact-match-ptr",
+			insert: FullUDTPtr{
+				Full: &Full{
+					First:  "John",
+					Second: "Doe",
+				},
+			},
+			expectedOnDB: full,
+			expected: FullUDTPtr{
+				Full: &Full{
+					First:  "John",
+					Second: "Doe",
+				},
+			},
+		},
+		{
+			name: "extra-field",
+			insert: ExtraUDT{
+				Extra: Extra{
+					First:  "John",
+					Second: "Doe",
+					Third:  "Smith",
+				},
+			},
+			expectedOnDB: full,
+			expected: ExtraUDT{
+				Extra: Extra{
+					First:  "John",
+					Second: "Doe",
+					Third:  "", // Since the UDT has only 2 fields, the third field should be empty
+				},
+			},
+		},
+		{
+			name: "extra-field-ptr",
+			insert: ExtraUDTPtr{
+				Extra: &Extra{
+					First:  "John",
+					Second: "Doe",
+					Third:  "Smith",
+				},
+			},
+			expectedOnDB: full,
+			expected: ExtraUDTPtr{
+				Extra: &Extra{
+					First:  "John",
+					Second: "Doe",
+					Third:  "", // Since the UDT has only 2 fields, the third field should be empty
+				},
+			},
+		},
+		{
+			name: "absent-field",
+			insert: PartUDT{
+				Part: Part{
+					First: "John",
+				},
+			},
+			expectedOnDB: FullUDT{
+				Full: Full{
+					First:  "John",
+					Second: "",
+				},
+			},
+			expected: PartUDT{
+				Part: Part{
+					First: "John",
+				},
+			},
+		},
+		{
+			name: "absent-field-ptr",
+			insert: PartUDTPtr{
+				Part: &Part{
+					First: "John",
+				},
+			},
+			expectedOnDB: FullUDT{
+				Full: Full{
+					First:  "John",
+					Second: "",
+				},
+			},
+			expected: PartUDTPtr{
+				Part: &Part{
+					First: "John",
+				},
+			},
+		},
+	}
+
+	const insertStmt = `INSERT INTO udt_table (testuuid, testudt) VALUES (?, ?)`
+	const deleteStmt = `DELETE FROM udt_table WHERE testuuid = ?`
+
+	for _, tc := range tcases {
+		t.Run(tc.name, func(t *testing.T) {
+			testuuid := gocql.TimeUUID()
+
+			if reflect.TypeOf(tc.insert) != reflect.TypeOf(tc.expected) {
+				t.Fatalf("insert and expectedOnDB must have the same type")
+			}
+
+			t.Cleanup(func() {
+				session.Query(deleteStmt, nil).Bind(testuuid).ExecRelease() // nolint:errcheck
+			})
+
+			t.Run("insert-bind", func(t *testing.T) {
+				if err := session.Query(insertStmt, nil).Bind(
+					testuuid,
+					tc.insert,
+				).ExecRelease(); err != nil {
+					t.Fatal(err.Error())
+				}
+
+				// Make sure the UDT was inserted correctly
+				v := FullUDT{}
+				if err := session.Query(`SELECT testudt FROM udt_table where testuuid = ?`, nil).Bind(testuuid).Get(&v); err != nil {
+					t.Fatal(err.Error())
+				}
+				diff(t, tc.expectedOnDB, v)
+			})
+
+			t.Run("scan", func(t *testing.T) {
+				v := reflect.New(reflect.TypeOf(tc.expected)).Interface()
+				if err := session.Query(`SELECT testudt FROM udt_table where testuuid = ?`, nil).Bind(testuuid).Scan(v); err != nil {
+					t.Fatal(err.Error())
+				}
+				diff(t, tc.expected, reflect.ValueOf(v).Elem().Interface())
+			})
+
+			t.Run("get", func(t *testing.T) {
+				v := reflect.New(reflect.TypeOf(tc.expected)).Interface()
+				if err := session.Query(`SELECT testudt FROM udt_table where testuuid = ?`, nil).Bind(testuuid).Get(v); err != nil {
+					t.Fatal(err.Error())
+				}
+				diff(t, tc.expected, reflect.ValueOf(v).Elem().Interface())
+			})
+
+			t.Run("delete", func(t *testing.T) {
+				if err := session.Query(deleteStmt, nil).Bind(
+					testuuid,
+				).ExecRelease(); err != nil {
+					t.Fatal(err.Error())
+				}
+			})
+
+			t.Run("insert-bind-struct", func(t *testing.T) {
+				b := makeStruct(testuuid, tc.insert)
+				if err := session.Query(insertStmt, []string{"test_uuid", "test_udt"}).BindStruct(b).ExecRelease(); err != nil {
+					t.Fatal(err.Error())
+				}
+
+				// Make sure the UDT was inserted correctly
+				v := reflect.New(reflect.TypeOf(tc.expectedOnDB)).Interface()
+				if err := session.Query(`SELECT testudt FROM udt_table where testuuid = ?`, nil).Bind(testuuid).Get(v); err != nil {
+					t.Fatal(err.Error())
+				}
+				diff(t, &tc.expectedOnDB, v)
+			})
+
+			t.Run("insert-bind-struct-map", func(t *testing.T) {
+				t.Run("empty-map", func(t *testing.T) {
+					b := makeStruct(testuuid, tc.insert)
+					if err := session.Query(insertStmt, []string{"test_uuid", "test_udt"}).
+						BindStructMap(b, nil).ExecRelease(); err != nil {
+						t.Fatal(err.Error())
+					}
+
+					// Make sure the UDT was inserted correctly
+					v := reflect.New(reflect.TypeOf(tc.expectedOnDB)).Interface()
+					if err := session.Query(`SELECT testudt FROM udt_table where testuuid = ?`, nil).Bind(testuuid).Get(v); err != nil {
+						t.Fatal(err.Error())
+					}
+					diff(t, &tc.expectedOnDB, v)
+				})
+
+				t.Run("empty-struct", func(t *testing.T) {
+					if err := session.Query(insertStmt, []string{"test_uuid", "test_udt"}).
+						BindStructMap(struct{}{}, map[string]interface{}{
+							"test_uuid": testuuid,
+							"test_udt":  tc.insert,
+						}).ExecRelease(); err != nil {
+						t.Fatal(err.Error())
+					}
+
+					// Make sure the UDT was inserted correctly
+					v := reflect.New(reflect.TypeOf(tc.expectedOnDB)).Interface()
+					if err := session.Query(`SELECT testudt FROM udt_table where testuuid = ?`, nil).Bind(testuuid).Get(v); err != nil {
+						t.Fatal(err.Error())
+					}
+					diff(t, &tc.expectedOnDB, v)
+				})
+			})
+
+			t.Run("insert-bind-map", func(t *testing.T) {
+				if err := session.Query(insertStmt, []string{"test_uuid", "test_udt"}).
+					BindMap(map[string]interface{}{
+						"test_uuid": testuuid,
+						"test_udt":  tc.insert,
+					}).ExecRelease(); err != nil {
+					t.Fatal(err.Error())
+				}
+
+				// Make sure the UDT was inserted correctly
+				v := reflect.New(reflect.TypeOf(tc.expectedOnDB)).Interface()
+				if err := session.Query(`SELECT testudt FROM udt_table where testuuid = ?`, nil).Bind(testuuid).Get(v); err != nil {
+					t.Fatal(err.Error())
+				}
+				diff(t, &tc.expectedOnDB, v)
+			})
+		})
+	}
+}
+
 func TestIterxStruct(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TYPE gocqlx_test.FullName (first_Name text, last_name text)`); err != nil {
@@ -125,7 +449,10 @@ func TestIterxStruct(t *testing.T) {
 		Testptrudt:    FullNamePtrUDT{FullName: &FullName{FirstName: "John", LastName: "Doe"}},
 	}
 
-	const insertStmt = `INSERT INTO struct_table (testuuid, testtimestamp, testvarchar, testbigint, testblob, testbool, testfloat,testdouble, testint, testdecimal, testlist, testset, testmap, testvarint, testinet, testcustom, testudt, testptrudt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	const insertStmt = `INSERT INTO struct_table (
+                          testuuid, testtimestamp, testvarchar, testbigint, testblob, testbool, testfloat, testdouble, 
+                          testint, testdecimal, testlist, testset, testmap, testvarint, testinet, testcustom, testudt, testptrudt
+                          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	if err := session.Query(insertStmt, nil).Bind(
 		m.Testuuid,
@@ -148,8 +475,6 @@ func TestIterxStruct(t *testing.T) {
 		m.Testptrudt).ExecRelease(); err != nil {
 		t.Fatal("insert:", err)
 	}
-
-	diffOpts := cmpopts.IgnoreUnexported(big.Int{}, inf.Dec{})
 
 	const stmt = `SELECT * FROM struct_table`
 
@@ -212,7 +537,7 @@ func TestIterxStruct(t *testing.T) {
 }
 
 func TestIterxScannable(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.scannable_table (testfullname text PRIMARY KEY)`); err != nil {
@@ -265,7 +590,7 @@ func TestIterxScannable(t *testing.T) {
 }
 
 func TestIterxStructOnly(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.struct_only_table (first_name text, last_name text, PRIMARY KEY (first_name, last_name))`); err != nil {
@@ -336,7 +661,7 @@ func TestIterxStructOnly(t *testing.T) {
 }
 
 func TestIterxStructOnlyUDT(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.struct_only_udt_table (first_name text, last_name text, PRIMARY KEY (first_name, last_name))`); err != nil {
@@ -411,41 +736,41 @@ func TestIterxStructOnlyUDT(t *testing.T) {
 	})
 }
 
-func TestIterxUnsafe(t *testing.T) {
-	session := CreateSession(t)
+func TestIterxStrict(t *testing.T) {
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
-	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.unsafe_table (testtext text PRIMARY KEY, testtextunbound text)`); err != nil {
+	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.strict_table (testtext text PRIMARY KEY, testtextunbound text)`); err != nil {
 		t.Fatal("create table:", err)
 	}
-	if err := session.Query(`INSERT INTO unsafe_table (testtext, testtextunbound) values (?, ?)`, nil).Bind("test", "test").Exec(); err != nil {
+	if err := session.Query(`INSERT INTO strict_table (testtext, testtextunbound) values (?, ?)`, nil).Bind("test", "test").Exec(); err != nil {
 		t.Fatal("insert:", err)
 	}
 
-	type UnsafeTable struct {
+	type StrictTable struct {
 		Testtext string
 	}
 
-	m := UnsafeTable{
+	m := StrictTable{
 		Testtext: "test",
 	}
 
 	const (
-		stmt   = `SELECT * FROM unsafe_table`
-		golden = "missing destination name \"testtextunbound\" in gocqlx_test.UnsafeTable"
+		stmt   = `SELECT * FROM strict_table`
+		golden = "missing destination name \"testtextunbound\" in gocqlx_test.StrictTable"
 	)
 
-	t.Run("get", func(t *testing.T) {
-		var v UnsafeTable
-		err := session.Query(stmt, nil).Get(&v)
+	t.Run("get strict", func(t *testing.T) {
+		var v StrictTable
+		err := session.Query(stmt, nil).Strict().Get(&v)
 		if err == nil || !strings.HasPrefix(err.Error(), golden) {
 			t.Fatalf("Get() error=%q expected %s", err, golden)
 		}
 	})
 
-	t.Run("select", func(t *testing.T) {
-		var v []UnsafeTable
-		err := session.Query(stmt, nil).Select(&v)
+	t.Run("select strict", func(t *testing.T) {
+		var v []StrictTable
+		err := session.Query(stmt, nil).Strict().Select(&v)
 		if err == nil || !strings.HasPrefix(err.Error(), golden) {
 			t.Fatalf("Select() error=%q expected %s", err, golden)
 		}
@@ -454,9 +779,9 @@ func TestIterxUnsafe(t *testing.T) {
 		}
 	})
 
-	t.Run("get unsafe", func(t *testing.T) {
-		var v UnsafeTable
-		err := session.Query(stmt, nil).Iter().Unsafe().Get(&v)
+	t.Run("get", func(t *testing.T) {
+		var v StrictTable
+		err := session.Query(stmt, nil).Get(&v)
 		if err != nil {
 			t.Fatal("Get() failed:", err)
 		}
@@ -465,9 +790,9 @@ func TestIterxUnsafe(t *testing.T) {
 		}
 	})
 
-	t.Run("select unsafe", func(t *testing.T) {
-		var v []UnsafeTable
-		err := session.Query(stmt, nil).Iter().Unsafe().Select(&v)
+	t.Run("select", func(t *testing.T) {
+		var v []StrictTable
+		err := session.Query(stmt, nil).Select(&v)
 		if err != nil {
 			t.Fatal("Select() failed:", err)
 		}
@@ -479,12 +804,8 @@ func TestIterxUnsafe(t *testing.T) {
 		}
 	})
 
-	t.Run("select default unsafe", func(t *testing.T) {
-		gocqlx.DefaultUnsafe = true
-		defer func() {
-			gocqlx.DefaultUnsafe = false
-		}()
-		var v []UnsafeTable
+	t.Run("select default", func(t *testing.T) {
+		var v []StrictTable
 		err := session.Query(stmt, nil).Iter().Select(&v)
 		if err != nil {
 			t.Fatal("Select() failed:", err)
@@ -499,7 +820,7 @@ func TestIterxUnsafe(t *testing.T) {
 }
 
 func TestIterxNotFound(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.not_found_table (testtext text PRIMARY KEY)`); err != nil {
@@ -547,7 +868,7 @@ func TestIterxNotFound(t *testing.T) {
 }
 
 func TestIterxErrorOnNil(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.nil_table (testtext text PRIMARY KEY)`); err != nil {
@@ -582,7 +903,7 @@ func TestIterxErrorOnNil(t *testing.T) {
 }
 
 func TestIterxPaging(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.paging_table (id int PRIMARY KEY, val int)`); err != nil {
@@ -625,7 +946,7 @@ func TestIterxPaging(t *testing.T) {
 }
 
 func TestIterxCAS(t *testing.T) {
-	session := CreateSession(t)
+	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
 
 	const (

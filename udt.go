@@ -24,50 +24,54 @@ var (
 )
 
 type udt struct {
-	value  reflect.Value
 	field  map[string]reflect.Value
-	unsafe bool
+	value  reflect.Value
+	strict bool
 }
 
-func makeUDT(value reflect.Value, mapper *reflectx.Mapper, unsafe bool) udt {
+func makeUDT(value reflect.Value, mapper *reflectx.Mapper, strict bool) udt {
 	return udt{
 		value:  value,
 		field:  mapper.FieldMap(value),
-		unsafe: unsafe,
+		strict: strict,
 	}
 }
 
 func (u udt) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
 	value, ok := u.field[name]
-	if !ok {
-		return nil, fmt.Errorf("missing name %q in %s", name, u.value.Type())
+	if ok {
+		return gocql.Marshal(info, value.Interface())
 	}
-
-	return gocql.Marshal(info, value.Interface())
+	if !u.strict {
+		return nil, nil
+	}
+	return nil, fmt.Errorf("missing name %q in %s", name, u.value.Type())
 }
 
 func (u udt) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
 	value, ok := u.field[name]
-	if !ok && !u.unsafe {
-		return fmt.Errorf("missing name %q in %s", name, u.value.Type())
+	if ok {
+		return gocql.Unmarshal(info, data, value.Addr().Interface())
 	}
-
-	return gocql.Unmarshal(info, data, value.Addr().Interface())
+	if !u.strict {
+		return nil
+	}
+	return fmt.Errorf("missing name %q in %s", name, u.value.Type())
 }
 
 // udtWrapValue adds UDT wrapper if needed.
-func udtWrapValue(value reflect.Value, mapper *reflectx.Mapper, unsafe bool) interface{} {
+func udtWrapValue(value reflect.Value, mapper *reflectx.Mapper, strict bool) interface{} {
 	if value.Type().Implements(autoUDTInterface) {
-		return makeUDT(value, mapper, unsafe)
+		return makeUDT(value, mapper, strict)
 	}
 	return value.Interface()
 }
 
 // udtWrapSlice adds UDT wrapper if needed.
-func udtWrapSlice(mapper *reflectx.Mapper, unsafe bool, v []interface{}) []interface{} {
+func udtWrapSlice(mapper *reflectx.Mapper, strict bool, v []interface{}) []interface{} {
 	for i := range v {
 		if _, ok := v[i].(UDT); ok {
-			v[i] = makeUDT(reflect.ValueOf(v[i]), mapper, unsafe)
+			v[i] = makeUDT(reflect.ValueOf(v[i]), mapper, strict)
 		}
 	}
 	return v

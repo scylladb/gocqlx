@@ -14,12 +14,13 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
-	"github.com/scylladb/gocqlx/v2"
-	"github.com/scylladb/gocqlx/v2/gocqlxtest"
-	"github.com/scylladb/gocqlx/v2/qb"
-	"github.com/scylladb/gocqlx/v2/table"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/inf.v0"
+
+	"github.com/scylladb/gocqlx/v3"
+	"github.com/scylladb/gocqlx/v3/gocqlxtest"
+	"github.com/scylladb/gocqlx/v3/qb"
+	"github.com/scylladb/gocqlx/v3/table"
 )
 
 // Running examples locally:
@@ -43,7 +44,7 @@ func TestExample(t *testing.T) {
 	datatypesBlob(t, session)
 	datatypesUserDefinedType(t, session)
 	datatypesUserDefinedTypeWrapper(t, session)
-	datatypesJson(t, session)
+	datatypesJSON(t, session)
 
 	pagingForwardPaging(t, session)
 	pagingEfficientFullTableScan(t, session)
@@ -73,6 +74,8 @@ type PlaylistItem struct {
 // queries. It uses "BindStruct" function for parameter binding and "Select"
 // function for loading data to a slice.
 func basicCreateAndPopulateKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
+	t.Helper()
+
 	err := session.ExecStmt(fmt.Sprintf(
 		`CREATE KEYSPACE IF NOT EXISTS %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`,
 		keyspace,
@@ -162,6 +165,8 @@ func basicCreateAndPopulateKeyspace(t *testing.T, session gocqlx.Session, keyspa
 // queries with all types. It uses "BindStruct" function for parameter binding and "Select"
 // function for loading data to a slice.
 func createAndPopulateKeyspaceAllTypes(t *testing.T, session gocqlx.Session) {
+	t.Helper()
+
 	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
 	if err != nil {
 		t.Fatal("create keyspace:", err)
@@ -178,7 +183,7 @@ func createAndPopulateKeyspaceAllTypes(t *testing.T, session gocqlx.Session) {
 		DoublE     float64
 		DuratioN   gocql.Duration
 		FloaT      float32
-		Id         [16]byte
+		ID         [16]byte
 		InT        int32
 		IneT       string
 		ListInt    []int32
@@ -256,14 +261,16 @@ func createAndPopulateKeyspaceAllTypes(t *testing.T, session gocqlx.Session) {
 
 	// Insert song using query builder.
 	insertCheckTypes := qb.Insert("examples.check_types").
-		Columns("asci_i", "big_int", "blo_b", "boolea_n", "dat_e", "decima_l", "doubl_e", "duratio_n", "floa_t", "ine_t", "in_t", "small_int", "tex_t", "tim_e", "timestam_p", "timeuui_d", "tiny_int", "id", "var_char", "var_int", "map_int_text", "list_int", "set_int").Query(session)
+		Columns("asci_i", "big_int", "blo_b", "boolea_n", "dat_e", "decima_l", "doubl_e", "duratio_n", "floa_t",
+			"ine_t", "in_t", "small_int", "tex_t", "tim_e", "timestam_p", "timeuui_d", "tiny_int", "id", "var_char",
+			"var_int", "map_int_text", "list_int", "set_int").Query(session)
 
-	var byteId [16]byte
+	var byteID [16]byte
 	id := []byte("756716f7-2e54-4715-9f00-91dcbea6cf50")
-	copy(byteId[:], id)
+	copy(byteID[:], id)
 
 	date := time.Date(2021, time.December, 11, 10, 23, 0, 0, time.UTC)
-	var double float64 = 1.2
+	var double float64 = 1.2 // nolint:revive
 	var float float32 = 1.3
 	var integer int32 = 123
 	listInt := []int32{1, 2, 3}
@@ -286,7 +293,7 @@ func createAndPopulateKeyspaceAllTypes(t *testing.T, session gocqlx.Session) {
 		DoublE:     double,
 		DuratioN:   gocql.Duration{Months: 1, Days: 1, Nanoseconds: 86400},
 		FloaT:      float,
-		Id:         byteId,
+		ID:         byteID,
 		InT:        integer,
 		IneT:       "127.0.0.1",
 		ListInt:    listInt,
@@ -309,7 +316,7 @@ func createAndPopulateKeyspaceAllTypes(t *testing.T, session gocqlx.Session) {
 	queryCheckTypes := checkTypesTable.SelectQuery(session)
 
 	queryCheckTypes.BindStruct(&CheckTypesStruct{
-		Id: byteId,
+		ID: byteID,
 	})
 
 	var items []*CheckTypesStruct
@@ -325,6 +332,8 @@ func createAndPopulateKeyspaceAllTypes(t *testing.T, session gocqlx.Session) {
 // This example shows how to load a single value using "Get" function.
 // Get can also work with UDTs and types that implement gocql marshalling functions.
 func basicReadScyllaVersion(t *testing.T, session gocqlx.Session) {
+	t.Helper()
+
 	var releaseVersion string
 
 	err := session.Query("SELECT release_version FROM system.local", nil).Get(&releaseVersion)
@@ -336,10 +345,12 @@ func basicReadScyllaVersion(t *testing.T, session gocqlx.Session) {
 }
 
 // This examples shows how to bind data from a map using "BindMap" function,
-// override field name mapping using the "db" tags, and use "Unsafe" function
-// to handle situations where driver returns more coluns that we are ready to
+// override field name mapping using the "db" tags, with the default mechanism of
+// handling situations where driver returns more coluns that we are ready to
 // consume.
 func datatypesBlob(t *testing.T, session gocqlx.Session) {
+	t.Helper()
+
 	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
 	if err != nil {
 		t.Fatal("create keyspace:", err)
@@ -373,9 +384,8 @@ func datatypesBlob(t *testing.T, session gocqlx.Session) {
 	}{}
 	q := qb.Select("examples.blobs").Where(qb.EqLit("k", "1")).Query(session)
 
-	// Unsafe is used here to override validation error that check if all
-	// requested columns are consumed `failed: missing destination name "k" in struct` error
-	if err := q.Iter().Unsafe().Get(row); err != nil {
+	// By default missing UDT fields are treated as null instead of failing
+	if err := q.Iter().Get(row); err != nil {
 		t.Fatal("Get() failed:", err)
 	}
 
@@ -392,6 +402,8 @@ type Coordinates struct {
 // This example shows how to add User Defined Type marshalling capabilities by
 // adding a single line - embedding gocqlx.UDT.
 func datatypesUserDefinedType(t *testing.T, session gocqlx.Session) {
+	t.Helper()
+
 	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
 	if err != nil {
 		t.Fatal("create keyspace:", err)
@@ -446,6 +458,8 @@ type coordinates struct {
 // types that we cannot modify, like library or transfer objects, without
 // rewriting them in runtime.
 func datatypesUserDefinedTypeWrapper(t *testing.T, session gocqlx.Session) {
+	t.Helper()
+
 	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
 	if err != nil {
 		t.Fatal("create keyspace:", err)
@@ -501,7 +515,9 @@ func datatypesUserDefinedTypeWrapper(t *testing.T, session gocqlx.Session) {
 }
 
 // This example shows how to use query builder to work with
-func datatypesJson(t *testing.T, session gocqlx.Session) {
+func datatypesJSON(t *testing.T, session gocqlx.Session) {
+	t.Helper()
+
 	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
 	if err != nil {
 		t.Fatal("create keyspace:", err)
@@ -524,17 +540,17 @@ func datatypesJson(t *testing.T, session gocqlx.Session) {
 	}
 
 	// fromJson lets you provide individual columns as JSON:
-	insertFromJson := qb.Insert("examples.querybuilder_json").
+	insertFromJSON := qb.Insert("examples.querybuilder_json").
 		Columns("id", "name").
 		FuncColumn("specs", qb.Fn("fromJson", "json")).
 		Query(session)
 
-	insertFromJson.BindMap(qb.M{
+	insertFromJSON.BindMap(qb.M{
 		"id":   3,
 		"name": "Screen",
 		"json": `{ "size": "24-inch" }`,
 	})
-	if err := insertFromJson.Exec(); err != nil {
+	if err := insertFromJSON.Exec(); err != nil {
 		t.Fatal("Exec() failed:", err)
 	}
 
@@ -559,12 +575,12 @@ func datatypesJson(t *testing.T, session gocqlx.Session) {
 
 	row := &struct {
 		ID        int
-		JsonSpecs string
+		JSONSpecs string
 	}{}
 	if err := q.Get(row); err != nil {
 		t.Fatal("Get() failed:", err)
 	}
-	t.Logf("Entry #%d's specs as JSON: %s", row.ID, row.JsonSpecs)
+	t.Logf("Entry #%d's specs as JSON: %s", row.ID, row.JSONSpecs)
 }
 
 type Video struct {
@@ -600,6 +616,8 @@ func pagingFillTable(t *testing.T, insert *gocqlx.Queryx) {
 // This example shows how to use stateful paging and how "Select" function
 // can be used to fetch single page only.
 func pagingForwardPaging(t *testing.T, session gocqlx.Session) {
+	t.Helper()
+
 	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
 	if err != nil {
 		t.Fatal("create keyspace:", err)
@@ -669,6 +687,8 @@ func pagingForwardPaging(t *testing.T, session gocqlx.Session) {
 //
 // [1] https://www.scylladb.com/2017/02/13/efficient-full-table-scans-with-scylla-1-6/.
 func pagingEfficientFullTableScan(t *testing.T, session gocqlx.Session) {
+	t.Helper()
+
 	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
 	if err != nil {
 		t.Fatal("create keyspace:", err)
@@ -779,6 +799,8 @@ func pagingEfficientFullTableScan(t *testing.T, session gocqlx.Session) {
 // Compare-And-Set (CAS) functions.
 // See: https://docs.scylladb.com/using-scylla/lwt/ for more details.
 func lwtLock(t *testing.T, session gocqlx.Session) {
+	t.Helper()
+
 	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
 	if err != nil {
 		t.Fatal("create keyspace:", err)
@@ -878,6 +900,8 @@ func lwtLock(t *testing.T, session gocqlx.Session) {
 // This example shows how to reuse the same insert statement with
 // partially filled parameters without generating tombstones for empty columns.
 func unsetEmptyValues(t *testing.T, session gocqlx.Session) {
+	t.Helper()
+
 	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
 	if err != nil {
 		t.Fatal("create keyspace:", err)

@@ -1,4 +1,4 @@
-# 🚀 GocqlX [![GoDoc](https://pkg.go.dev/badge/github.com/scylladb/gocqlx/v2.svg)](https://pkg.go.dev/github.com/scylladb/gocqlx/v2) [![Go Report Card](https://goreportcard.com/badge/github.com/scylladb/gocqlx)](https://goreportcard.com/report/github.com/scylladb/gocqlx) [![Build Status](https://travis-ci.org/scylladb/gocqlx.svg?branch=master)](https://travis-ci.org/scylladb/gocqlx)
+# 🚀 GocqlX [![GoDoc](https://pkg.go.dev/badge/github.com/scylladb/gocqlx/v3.svg)](https://pkg.go.dev/github.com/scylladb/gocqlx/v3) [![Go Report Card](https://goreportcard.com/badge/github.com/scylladb/gocqlx)](https://goreportcard.com/report/github.com/scylladb/gocqlx) [![Build Status](https://travis-ci.org/scylladb/gocqlx.svg?branch=master)](https://travis-ci.org/scylladb/gocqlx)
 
 GocqlX makes working with Scylla easy and less error-prone.
 It’s inspired by [Sqlx](https://github.com/jmoiron/sqlx), a tool for working with SQL databases, but it goes beyond what Sqlx provides.
@@ -20,7 +20,7 @@ Subpackages provide additional functionality:
 ## Installation
 
 ```bash
-    go get -u github.com/scylladb/gocqlx/v2
+    go get -u github.com/scylladb/gocqlx/v3
 ```
 
 ## Getting started
@@ -148,7 +148,7 @@ Generates `models/models.go` as follows:
 
 package models
 
-import "github.com/scylladb/gocqlx/v2/table"
+import "github.com/scylladb/gocqlx/v3/table"
 
 // Table models.
 var (

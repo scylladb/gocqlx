@@ -90,12 +90,12 @@ func allowedBindRune(b byte) bool {
 
 // Queryx is a wrapper around gocql.Query which adds struct binding capabilities.
 type Queryx struct {
+	err    error
+	tr     Transformer
+	Mapper *reflectx.Mapper
 	*gocql.Query
 	Names  []string
-	Mapper *reflectx.Mapper
-
-	tr  Transformer
-	err error
+	strict bool
 }
 
 // Query creates a new Queryx from gocql.Query using a default mapper.
@@ -107,6 +107,7 @@ func Query(q *gocql.Query, names []string) *Queryx {
 		Names:  names,
 		Mapper: DefaultMapper,
 		tr:     DefaultBindTransformer,
+		strict: DefaultStrict,
 	}
 }
 
@@ -151,7 +152,7 @@ func (q *Queryx) bindStructArgs(arg0 interface{}, arg1 map[string]interface{}) (
 
 	// grab the indirected value of arg
 	v := reflect.ValueOf(arg0)
-	for v = reflect.ValueOf(arg0); v.Kind() == reflect.Ptr; {
+	for v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
 
@@ -210,8 +211,15 @@ func (q *Queryx) bindMapArgs(arg map[string]interface{}) ([]interface{}, error) 
 // Bind sets query arguments of query. This can also be used to rebind new query arguments
 // to an existing query instance.
 func (q *Queryx) Bind(v ...interface{}) *Queryx {
-	q.Query.Bind(udtWrapSlice(q.Mapper, DefaultUnsafe, v)...)
+	q.Query.Bind(udtWrapSlice(q.Mapper, q.strict, v)...)
 	return q
+}
+
+// Scan executes the query, copies the columns of the first selected
+// row into the values pointed at by dest and discards the rest. If no rows
+// were selected, ErrNotFound is returned.
+func (q *Queryx) Scan(v ...interface{}) error {
+	return q.Query.Scan(udtWrapSlice(q.Mapper, q.strict, v)...)
 }
 
 // Err returns any binding errors.
@@ -343,6 +351,14 @@ func (q *Queryx) Iter() *Iterx {
 	return &Iterx{
 		Iter:   q.Query.Iter(),
 		Mapper: q.Mapper,
-		unsafe: DefaultUnsafe,
+		strict: q.strict,
 	}
+}
+
+// Strict forces the query and iterators to report an error if there are missing fields.
+// By default when scanning a struct if result row has a column that cannot be mapped to
+// any destination it is ignored. With strict error is reported.
+func (q *Queryx) Strict() *Queryx {
+	q.strict = true
+	return q
 }

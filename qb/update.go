@@ -12,7 +12,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v3"
 )
 
 // assignment specifies an assignment in a set operation.
@@ -32,10 +32,10 @@ func (a assignment) writeCql(cql *bytes.Buffer) (names []string) {
 // UpdateBuilder builds CQL UPDATE statements.
 type UpdateBuilder struct {
 	table       string
-	using       using
 	assignments []assignment
 	where       where
 	_if         _if
+	using       using
 	exists      bool
 }
 

@@ -12,21 +12,21 @@ import (
 	"context"
 	"time"
 
-	"github.com/scylladb/gocqlx/v2"
+	"github.com/scylladb/gocqlx/v3"
 )
 
 // initializer specifies an value for a column in an insert operation.
 type initializer struct {
-	column string
 	value  value
+	column string
 }
 
 // InsertBuilder builds CQL INSERT statements.
 type InsertBuilder struct {
 	table   string
 	columns []initializer
-	unique  bool
 	using   using
+	unique  bool
 	json    bool
 }
 

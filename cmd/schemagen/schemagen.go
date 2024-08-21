@@ -12,11 +12,13 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/gocql/gocql"
-	"github.com/scylladb/gocqlx/v2"
-	_ "github.com/scylladb/gocqlx/v2/table"
+
+	"github.com/scylladb/gocqlx/v3"
+	_ "github.com/scylladb/gocqlx/v3/table"
 )
 
 var (
@@ -31,10 +33,8 @@ var (
 	flagIgnoreIndexes = cmd.Bool("ignore-indexes", false, "don't generate types for indexes")
 )
 
-var (
-	//go:embed keyspace.tmpl
-	keyspaceTmpl string
-)
+//go:embed keyspace.tmpl
+var keyspaceTmpl string
 
 func main() {
 	err := cmd.Parse(os.Args[1:])
@@ -78,9 +78,7 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 		New("keyspace.tmpl").
 		Funcs(template.FuncMap{"camelize": camelize}).
 		Funcs(template.FuncMap{"mapScyllaToGoType": mapScyllaToGoType}).
-		Funcs(template.FuncMap{"typeToString": typeToString}).
 		Parse(keyspaceTmpl)
-
 	if err != nil {
 		log.Fatalln("unable to parse models template:", err)
 	}
@@ -101,25 +99,32 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 	}
 
 	orphanedTypes := make(map[string]struct{})
-	for userTypeName := range md.UserTypes {
+	for userTypeName := range md.Types {
 		if !usedInTables(userTypeName, md.Tables) {
 			orphanedTypes[userTypeName] = struct{}{}
 		}
 	}
 	for typeName := range orphanedTypes {
-		delete(md.UserTypes, typeName)
+		delete(md.Types, typeName)
 	}
 
 	imports := make([]string, 0)
+	if len(md.Types) != 0 {
+		imports = append(imports, "github.com/scylladb/gocqlx/v3")
+	}
+
 	for _, t := range md.Tables {
+		// Ensure ordered columns are sorted alphabetically
+		sort.Strings(t.OrderedColumns)
+
 		for _, c := range t.Columns {
-			if (c.Validator == "timestamp" || c.Validator == "date" || c.Validator == "duration" || c.Validator == "time") && !existsInSlice(imports, "time") {
+			if (c.Type == "timestamp" || c.Type == "date" || c.Type == "time") && !existsInSlice(imports, "time") {
 				imports = append(imports, "time")
 			}
-			if c.Validator == "decimal" && !existsInSlice(imports, "gopkg.in/inf.v0") {
+			if c.Type == "decimal" && !existsInSlice(imports, "gopkg.in/inf.v0") {
 				imports = append(imports, "gopkg.in/inf.v0")
 			}
-			if c.Validator == "duration" && !existsInSlice(imports, "github.com/gocql/gocql") {
+			if c.Type == "duration" && !existsInSlice(imports, "github.com/gocql/gocql") {
 				imports = append(imports, "github.com/gocql/gocql")
 			}
 		}
@@ -129,7 +134,7 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 	data := map[string]interface{}{
 		"PackageName": *flagPkgname,
 		"Tables":      md.Tables,
-		"UserTypes":   md.UserTypes,
+		"UserTypes":   md.Types,
 		"Imports":     imports,
 	}
 
@@ -169,16 +174,16 @@ func existsInSlice(s []string, v string) bool {
 // The second element contains the name of the type.
 //
 //	[["<my_type,", "my_type"] ["my_other_type>", "my_other_type"]]
-var userTypes = regexp.MustCompile(`(?:<|\s)(\w+)(?:>|,)`) // match all types contained in set<X>, list<X>, tuple<A, B> etc.
+var userTypes = regexp.MustCompile(`(?:<|\s)(\w+)[>,]`) // match all types contained in set<X>, list<X>, tuple<A, B> etc.
 
 // usedInTables reports whether the typeName is used in any of columns of the provided tables.
 func usedInTables(typeName string, tables map[string]*gocql.TableMetadata) bool {
 	for _, table := range tables {
 		for _, column := range table.Columns {
-			if typeName == column.Validator {
+			if typeName == column.Type {
 				return true
 			}
-			matches := userTypes.FindAllStringSubmatch(column.Validator, -1)
+			matches := userTypes.FindAllStringSubmatch(column.Type, -1)
 			for _, s := range matches {
 				if s[1] == typeName {
 					return true
