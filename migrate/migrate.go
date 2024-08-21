@@ -135,7 +135,7 @@ func FromFS(ctx context.Context, session gocqlx.Session, f fs.FS) error {
 			return fmt.Errorf("calculate checksum for %q: %s", fm[i], err)
 		}
 		if dbm[i].Checksum != c {
-			return fmt.Errorf("file %q was tempered with, expected md5 %s", fm[i], dbm[i].Checksum)
+			return fmt.Errorf("file %q was tampered with, expected md5 %s", fm[i], dbm[i].Checksum)
 		}
 	}
 
