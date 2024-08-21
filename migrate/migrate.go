@@ -128,7 +128,7 @@ func FromFS(ctx context.Context, session gocqlx.Session, f fs.FS) error {
 
 	for i := 0; i < len(dbm); i++ {
 		if dbm[i].Name != fm[i] {
-			return fmt.Errorf("inconsistent migrations found, expected %q got %q at %d", fm[i], dbm[i].Name, i)
+			return fmt.Errorf("inconsistent migrations found, expected %q got %q at %d", dbm[i].Name, fm[i], i)
 		}
 		c, err := fileChecksum(f, fm[i])
 		if err != nil {
