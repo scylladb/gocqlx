@@ -83,7 +83,7 @@ func TestMigration(t *testing.T) {
 		f := makeTestFS(4)
 		writeFile(f, 3, "SELECT * FROM bla;")
 
-		if err := migrate.FromFS(ctx, session, f); err == nil || !strings.Contains(err.Error(), "tempered") {
+		if err := migrate.FromFS(ctx, session, f); err == nil || !strings.Contains(err.Error(), "tampered") {
 			t.Fatal("expected error")
 		} else {
 			t.Log(err)
