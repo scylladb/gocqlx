@@ -50,6 +50,12 @@ func TestExample(t *testing.T) {
 	reg.Add(migrate.CallComment, "3", log)
 	migrate.Callback = reg.Callback
 
+	pending, err := migrate.Pending(context.Background(), session, cql.Files)
+	if err != nil {
+		t.Fatal("Pending:", err)
+	}
+	t.Log("Pending migrations:", len(pending))
+
 	// First run prints data
 	if err := migrate.FromFS(context.Background(), session, cql.Files); err != nil {
 		t.Fatal("Migrate:", err)

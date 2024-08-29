@@ -87,6 +87,48 @@ func List(ctx context.Context, session gocqlx.Session) ([]*Info, error) {
 	return v, nil
 }
 
+// Pending provides a listing of pending migrations.
+func Pending(ctx context.Context, session gocqlx.Session, f fs.FS) ([]*Info, error) {
+	applied, err := List(ctx, session)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a set of applied migration names
+	appliedNames := make(map[string]struct{}, len(applied))
+	for _, migration := range applied {
+		appliedNames[migration.Name] = struct{}{}
+	}
+
+	fm, err := fs.Glob(f, "*.cql")
+	if err != nil {
+		return nil, fmt.Errorf("list migrations: %w", err)
+	}
+
+	pending := make([]*Info, 0)
+
+	for _, name := range fm {
+		baseName := filepath.Base(name)
+		// Check if the migration is not in the applied set
+		if _, exists := appliedNames[baseName]; !exists {
+			c, err := fileChecksum(f, name)
+			if err != nil {
+				return nil, fmt.Errorf("calculate checksum for %q: %w", name, err)
+			}
+
+			info := &Info{
+				Name:      baseName,
+				StartTime: time.Now(),
+				Checksum:  c,
+			}
+
+			pending = append(pending, info)
+		}
+	}
+
+	return pending, nil
+}
+
 func ensureInfoTable(ctx context.Context, session gocqlx.Session) error {
 	return session.ContextQuery(ctx, infoSchema, nil).ExecRelease()
 }

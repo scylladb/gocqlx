@@ -45,6 +45,54 @@ func recreateTables(tb testing.TB, session gocqlx.Session) {
 	}
 }
 
+func TestPending(t *testing.T) {
+	session := gocqlxtest.CreateSession(t)
+	defer session.Close()
+	recreateTables(t, session)
+
+	ctx := context.Background()
+
+	t.Run("pending", func(t *testing.T) {
+		defer recreateTables(t, session)
+
+		f := memfs.New()
+		writeFile(f, 0, fmt.Sprintf(insertMigrate, 0)+";")
+
+		pending, err := migrate.Pending(ctx, session, f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(pending) != 1 {
+			t.Fatal("expected 2 pending migrations got", len(pending))
+		}
+
+		err = migrate.FromFS(ctx, session, f)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		pending, err = migrate.Pending(ctx, session, f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(pending) != 0 {
+			t.Fatal("expected no pending migrations got", len(pending))
+		}
+
+		for i := 1; i < 3; i++ {
+			writeFile(f, i, fmt.Sprintf(insertMigrate, i)+";")
+		}
+
+		pending, err = migrate.Pending(ctx, session, f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(pending) != 2 {
+			t.Fatal("expected 2 pending migrations got", len(pending))
+		}
+	})
+}
+
 func TestMigration(t *testing.T) {
 	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
