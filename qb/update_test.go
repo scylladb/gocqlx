@@ -161,6 +161,12 @@ func TestUpdateBuilder(t *testing.T) {
 			S: "UPDATE cycling.cyclist_name SET timestamp=timestamp-now() ",
 			N: nil,
 		},
+		// Add ALLOW FILTERING
+		{
+			B: Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname").Where(w).AllowFiltering(),
+			S: "UPDATE cycling.cyclist_name SET id=?,user_uuid=?,firstname=? WHERE id=? ALLOW FILTERING ",
+			N: []string{"id", "user_uuid", "firstname", "expr"},
+		},
 	}
 
 	for _, test := range table {
