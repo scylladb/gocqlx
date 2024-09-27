@@ -112,7 +112,7 @@ t.Log(people)
 Installation
 
 ```bash
-go install github.com/scylladb/gocqlx/v2/cmd/schemagen@latest
+go install github.com/scylladb/gocqlx/v3/cmd/schemagen@latest
 ```
 
 Usage:
