@@ -21,16 +21,25 @@ import (
 	_ "github.com/scylladb/gocqlx/v3/table"
 )
 
+var defaultClusterConfig = gocql.NewCluster()
+
 var (
-	cmd               = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	flagCluster       = cmd.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples")
-	flagKeyspace      = cmd.String("keyspace", "", "keyspace to inspect")
-	flagPkgname       = cmd.String("pkgname", "models", "the name you wish to assign to your generated package")
-	flagOutput        = cmd.String("output", "models", "the name of the folder to output to")
-	flagUser          = cmd.String("user", "", "user for password authentication")
-	flagPassword      = cmd.String("password", "", "password for password authentication")
-	flagIgnoreNames   = cmd.String("ignore-names", "", "a comma-separated list of table, view or index names to ignore")
-	flagIgnoreIndexes = cmd.Bool("ignore-indexes", false, "don't generate types for indexes")
+	defaultQueryTimeout      = defaultClusterConfig.Timeout
+	defaultConnectionTimeout = defaultClusterConfig.ConnectTimeout
+)
+
+var (
+	cmd                   = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	flagCluster           = cmd.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples")
+	flagKeyspace          = cmd.String("keyspace", "", "keyspace to inspect")
+	flagPkgname           = cmd.String("pkgname", "models", "the name you wish to assign to your generated package")
+	flagOutput            = cmd.String("output", "models", "the name of the folder to output to")
+	flagUser              = cmd.String("user", "", "user for password authentication")
+	flagPassword          = cmd.String("password", "", "password for password authentication")
+	flagIgnoreNames       = cmd.String("ignore-names", "", "a comma-separated list of table, view or index names to ignore")
+	flagIgnoreIndexes     = cmd.Bool("ignore-indexes", false, "don't generate types for indexes")
+	flagQueryTimeout      = cmd.Duration("query-timeout", defaultQueryTimeout, "query timeout ( in seconds )")
+	flagConnectionTimeout = cmd.Duration("connection-timeout", defaultConnectionTimeout, "connection timeout ( in seconds )")
 )
 
 //go:embed keyspace.tmpl
@@ -151,6 +160,12 @@ func createSession() (gocqlx.Session, error) {
 			Username: *flagUser,
 			Password: *flagPassword,
 		}
+	}
+	if *flagQueryTimeout >= 0 {
+		cluster.Timeout = *flagQueryTimeout
+	}
+	if *flagConnectionTimeout >= 0 {
+		cluster.ConnectTimeout = *flagConnectionTimeout
 	}
 	return gocqlx.WrapSession(cluster.CreateSession())
 }
