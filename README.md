@@ -20,7 +20,9 @@ Subpackages provide additional functionality:
 ## Installation
 
 ```bash
-    go get -u github.com/scylladb/gocqlx/v3
+git clone git@github.com:scylladb/gocqlx.git
+cd gocqlx/cmd/schemagen/
+go install .
 ```
 
 ## Getting started
@@ -117,7 +119,7 @@ go get -u "github.com/scylladb/gocqlx/v3/cmd/schemagen"
 
 Usage:
 ```bash
-$GOBIN/schemagen [flags]
+schemagen [flags]
 
 Flags:
   -cluster string
@@ -134,7 +136,7 @@ Example:
 
 Running the following command for `examples` keyspace: 
 ```bash
-$GOBIN/schemagen -cluster="127.0.0.1:9042" -keyspace="examples" -output="models" -pkgname="models"
+schemagen -cluster="127.0.0.1:9042" -keyspace="examples" -output="models" -pkgname="models"
 ```
 
 Generates `models/models.go` as follows:
