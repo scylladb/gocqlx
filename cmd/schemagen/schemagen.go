@@ -29,17 +29,21 @@ var (
 )
 
 var (
-	cmd                   = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	flagCluster           = cmd.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples")
-	flagKeyspace          = cmd.String("keyspace", "", "keyspace to inspect")
-	flagPkgname           = cmd.String("pkgname", "models", "the name you wish to assign to your generated package")
-	flagOutput            = cmd.String("output", "models", "the name of the folder to output to")
-	flagUser              = cmd.String("user", "", "user for password authentication")
-	flagPassword          = cmd.String("password", "", "password for password authentication")
-	flagIgnoreNames       = cmd.String("ignore-names", "", "a comma-separated list of table, view or index names to ignore")
-	flagIgnoreIndexes     = cmd.Bool("ignore-indexes", false, "don't generate types for indexes")
-	flagQueryTimeout      = cmd.Duration("query-timeout", defaultQueryTimeout, "query timeout ( in seconds )")
-	flagConnectionTimeout = cmd.Duration("connection-timeout", defaultConnectionTimeout, "connection timeout ( in seconds )")
+	cmd                           = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	flagCluster                   = cmd.String("cluster", "127.0.0.1", "a comma-separated list of host:port tuples")
+	flagKeyspace                  = cmd.String("keyspace", "", "keyspace to inspect")
+	flagPkgname                   = cmd.String("pkgname", "models", "the name you wish to assign to your generated package")
+	flagOutput                    = cmd.String("output", "models", "the name of the folder to output to")
+	flagUser                      = cmd.String("user", "", "user for password authentication")
+	flagPassword                  = cmd.String("password", "", "password for password authentication")
+	flagIgnoreNames               = cmd.String("ignore-names", "", "a comma-separated list of table, view or index names to ignore")
+	flagIgnoreIndexes             = cmd.Bool("ignore-indexes", false, "don't generate types for indexes")
+	flagQueryTimeout              = cmd.Duration("query-timeout", defaultQueryTimeout, "query timeout ( in seconds )")
+	flagConnectionTimeout         = cmd.Duration("connection-timeout", defaultConnectionTimeout, "connection timeout ( in seconds )")
+	flagSSLEnableHostVerification = cmd.Bool("ssl-enable-host-verification", false, "don't check server ssl certificate")
+	flagSSLCAPath                 = cmd.String("ssl-ca-path", "", "path to ssl CA certificates")
+	flagSSLCertPath               = cmd.String("ssl-cert-path", "", "path to ssl certificate")
+	flagSSLKeyPath                = cmd.String("ssl-key-path", "", "path to ssl key")
 )
 
 //go:embed keyspace.tmpl
@@ -155,18 +159,30 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 
 func createSession() (gocqlx.Session, error) {
 	cluster := gocql.NewCluster(clusterHosts()...)
+
 	if *flagUser != "" {
 		cluster.Authenticator = gocql.PasswordAuthenticator{
 			Username: *flagUser,
 			Password: *flagPassword,
 		}
 	}
+
 	if *flagQueryTimeout >= 0 {
 		cluster.Timeout = *flagQueryTimeout
 	}
 	if *flagConnectionTimeout >= 0 {
 		cluster.ConnectTimeout = *flagConnectionTimeout
 	}
+
+	if *flagSSLCAPath != "" || *flagSSLCertPath != "" || *flagSSLKeyPath != "" {
+		cluster.SslOpts = &gocql.SslOptions{
+			EnableHostVerification: *flagSSLEnableHostVerification,
+			CaPath:                 *flagSSLCAPath,
+			CertPath:               *flagSSLCertPath,
+			KeyPath:                *flagSSLKeyPath,
+		}
+	}
+
 	return gocqlx.WrapSession(cluster.CreateSession())
 }
 
