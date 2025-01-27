@@ -57,6 +57,11 @@ func TestUsing(t *testing.T) {
 			B: new(using).Timeout(time.Second),
 			S: "USING TIMEOUT 1s ",
 		},
+		// Timeout faction
+		{
+			B: new(using).Timeout(time.Second + 100*time.Millisecond),
+			S: "USING TIMEOUT 1s100ms ",
+		},
 		// TimeoutNamed
 		{
 			B: new(using).TimeoutNamed("to"),
