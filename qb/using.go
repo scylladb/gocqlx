@@ -94,7 +94,7 @@ func (u *using) writeCql(cql *bytes.Buffer) (names []string) {
 
 	if u.timeout != 0 {
 		writePreamble(cql)
-		fmt.Fprintf(cql, "TIMEOUT %s ", u.timeout)
+		fmt.Fprintf(cql, "TIMEOUT %s ", formatDuration(u.timeout))
 	} else if u.timeoutName != "" {
 		writePreamble(cql)
 		cql.WriteString("TIMEOUT ? ")
