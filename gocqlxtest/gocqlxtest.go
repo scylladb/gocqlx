@@ -51,6 +51,10 @@ func CreateCluster() *gocql.ClusterConfig {
 	cluster.Timeout = *flagTimeout
 	cluster.Consistency = gocql.Quorum
 	cluster.MaxWaitSchemaAgreement = 2 * time.Minute // travis might be slow
+	cluster.ReconnectionPolicy = &gocql.ConstantReconnectionPolicy{
+		MaxRetries: 10,
+		Interval:   3 * time.Second,
+	}
 	if *flagRetry > 0 {
 		cluster.RetryPolicy = &gocql.SimpleRetryPolicy{NumRetries: *flagRetry}
 	}
