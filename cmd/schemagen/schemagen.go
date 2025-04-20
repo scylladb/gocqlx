@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"go/format"
 	"html/template"
-	"io/ioutil"
+	"io/fs"
 	"log"
 	"os"
 	"path"
@@ -34,6 +34,8 @@ var (
 	flagKeyspace                  = cmd.String("keyspace", "", "keyspace to inspect")
 	flagPkgname                   = cmd.String("pkgname", "models", "the name you wish to assign to your generated package")
 	flagOutput                    = cmd.String("output", "models", "the name of the folder to output to")
+	flagOutputDirPerm             = cmd.Uint64("output-dir-perm", 0o755, "output directory permissions")
+	flagOutputFilePerm            = cmd.Uint64("output-file-perm", 0o644, "output file permissions")
 	flagUser                      = cmd.String("user", "", "user for password authentication")
 	flagPassword                  = cmd.String("password", "", "password for password authentication")
 	flagIgnoreNames               = cmd.String("ignore-names", "", "a comma-separated list of table, view or index names to ignore")
@@ -65,7 +67,7 @@ func main() {
 }
 
 func schemagen() error {
-	if err := os.MkdirAll(*flagOutput, os.ModePerm); err != nil {
+	if err := os.MkdirAll(*flagOutput, os.FileMode(*flagOutputDirPerm)); err != nil {
 		return fmt.Errorf("create output directory: %w", err)
 	}
 
@@ -83,7 +85,7 @@ func schemagen() error {
 	}
 	outputPath := path.Join(*flagOutput, *flagPkgname+".go")
 
-	return ioutil.WriteFile(outputPath, b, os.ModePerm)
+	return os.WriteFile(outputPath, b, fs.FileMode(*flagOutputFilePerm))
 }
 
 func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
