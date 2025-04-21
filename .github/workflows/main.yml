@@ -42,8 +42,5 @@ jobs:
       - name: Lint
         run: make check
           
-      - name: Run Scylla Container
-        run: make run-scylla
-
       - name: Test
         run: make test

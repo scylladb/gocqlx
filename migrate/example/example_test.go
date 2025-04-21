@@ -18,7 +18,7 @@ import (
 )
 
 // Running examples locally:
-// make run-scylla
+// make start-scylla
 // make run-examples
 func TestExample(t *testing.T) {
 	const ks = "migrate_example"
