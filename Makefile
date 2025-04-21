@@ -1,7 +1,7 @@
 all: check test
 
 ifndef SCYLLA_IMAGE
-SCYLLA_IMAGE := scylladb/scylla:6.0.0
+SCYLLA_IMAGE := scylladb/scylla
 endif
 
 ifndef SCYLLA_CPU
