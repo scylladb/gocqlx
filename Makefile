@@ -37,7 +37,7 @@ fix:
 GOTEST := go test -cpu $(GOTEST_CPU) -count=1 -cover -race -tags all
 
 .PHONY: test
-test:
+test: start-scylla
 	echo "==> Running tests..."
 	echo "==> Running tests... in ."
 	@$(GOTEST) .
@@ -62,8 +62,8 @@ bench:
 run-examples:
 	@go test -tags all -v -run=Example ./...
 
-.PHONY: run-scylla
-run-scylla:
+.PHONY: start-scylla
+start-scylla:
 	@echo "==> Running test instance of Scylla $(SCYLLA_IMAGE)"
 	@docker pull $(SCYLLA_IMAGE)
 	@docker run --name gocqlx-scylla -p 9042:9042 --cpuset-cpus=$(SCYLLA_CPU) --memory 1G --rm -d $(SCYLLA_IMAGE)
