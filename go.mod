@@ -1,6 +1,6 @@
 module github.com/scylladb/gocqlx/v3
 
-go 1.17
+go 1.20
 
 require (
 	github.com/gocql/gocql v1.7.0

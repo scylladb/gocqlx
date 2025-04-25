@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -32,17 +31,17 @@ func TestSchemagen(t *testing.T) {
 
 	const goldenFile = "testdata/models.go"
 	if *flagUpdate {
-		if err := ioutil.WriteFile(goldenFile, b, os.ModePerm); err != nil {
+		if err := os.WriteFile(goldenFile, b, os.ModePerm); err != nil {
 			t.Fatal(err)
 		}
 	}
-	golden, err := ioutil.ReadFile(goldenFile)
+	golden, err := os.ReadFile(goldenFile)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if diff := cmp.Diff(string(golden), string(b)); diff != "" {
-		t.Fatalf(diff)
+		t.Fatal(diff)
 	}
 }
 
