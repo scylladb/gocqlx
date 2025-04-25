@@ -7,30 +7,39 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+env:
+  # On CICD following error shows up:
+  #   go: github.com/gocql/gocql@v1.7.0: GOPROXY list is not the empty string, but contains no entries
+  # This env variable is set to make it go away
+  # If at some point you see no error, feel free to remove it
+  GOPROXY: direct
+  # On CICD following error shows up:
+  #   go: golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@v0.24.0: golang.org/x/tools@v0.24.0: verifying module: missing GOSUMDB
+  # This env variable makes it go away
+  # If at some point you see no error, feel free to remove it
+  GOSUMDB: off
+
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    env:
-      SCYLLA_IMAGE: scylladb/scylla
     steps:
       - name: Git Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: '0'
+
       - name: Install Go 1.20
         uses: actions/setup-go@v5
         with:
-          go-version: 1.20
+          go-version: "1.20"
 
       - name: Cache Dependencies
         uses: actions/cache@v4
         id: gomod-cache
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('go.mod') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+          key: ${{ runner.os }}-go-${{ hashFiles('go.mod', 'cmd/schemagen/testdata/go.mod') }}
 
       - name: Download Dependencies
         run: git --version && make get-deps && make get-tools
