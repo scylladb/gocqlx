@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SCYLLA_IMAGE: scylladb/scylla
-      GOBIN: ./bin
     steps:
       - name: Git Checkout
         uses: actions/checkout@v4
@@ -32,9 +31,6 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('go.mod') }}
           restore-keys: |
             ${{ runner.os }}-go-
-
-      - name: Make Directory for GOBIN
-        run: mkdir -p "${GOBIN}"
 
       - name: Download Dependencies
         run: git --version && make get-deps && make get-tools

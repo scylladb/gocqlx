@@ -31,13 +31,13 @@ func (a assignment) writeCql(cql *bytes.Buffer) (names []string) {
 
 // UpdateBuilder builds CQL UPDATE statements.
 type UpdateBuilder struct {
-	table       string
-	assignments []assignment
-	where       where
-	_if         _if
-	using       using
-	exists      bool
-	allowFiltering    bool
+	table          string
+	assignments    []assignment
+	where          where
+	_if            _if
+	using          using
+	exists         bool
+	allowFiltering bool
 }
 
 // Update returns a new UpdateBuilder with the given table name.
