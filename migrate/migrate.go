@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -208,7 +207,7 @@ func applyMigration(ctx context.Context, session gocqlx.Session, f fs.FS, path s
 		return err
 	}
 
-	b, err := ioutil.ReadAll(file)
+	b, err := io.ReadAll(file)
 	file.Close()
 	if err != nil {
 		return err
