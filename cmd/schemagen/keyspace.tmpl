@@ -36,6 +36,33 @@ var (
 {{end}}
 )
 
+// Materialized view models.
+var (
+{{with .Views}}
+{{range .}}
+	{{$model_name := .ViewName | camelize}}
+		{{$model_name}} = table.New(table.Metadata {
+			Name:	"{{.ViewName}}",
+			Columns: []string{
+				{{- range .OrderedColumns}}
+					"{{.}}",
+				{{- end}}
+			},
+			PartKey: []string {
+				{{- range .PartitionKey}}
+					"{{.Name}}",
+				{{- end}}
+			},
+			SortKey: []string{
+				{{- range .ClusteringColumns}}
+					"{{.Name}}",
+				{{- end}}
+			},
+	})
+{{end}}
+{{end}}
+)
+
 {{with .UserTypes}}
 {{range .}}
 {{- $type_name := .Name | camelize}}
@@ -52,6 +79,19 @@ type {{$type_name}}UserType struct {
 {{with .Tables}}
 {{range .}}
 {{- $model_name := .Name | camelize}}
+type {{$model_name}}Struct struct {
+{{- range .Columns}}
+	{{- if not (eq .Type "empty") }}
+	{{.Name | camelize}} {{.Type | mapScyllaToGoType}}
+	{{- end}}
+{{- end}}
+}
+{{- end}}
+{{- end}}
+
+{{with .Views}}
+{{range .}}
+{{- $model_name := .ViewName | camelize}}
 type {{$model_name}}Struct struct {
 {{- range .Columns}}
 	{{- if not (eq .Type "empty") }}
