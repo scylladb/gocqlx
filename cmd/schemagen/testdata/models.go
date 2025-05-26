@@ -47,6 +47,23 @@ var (
 	})
 )
 
+// Materialized view models.
+var (
+	ComposersByName = table.New(table.Metadata{
+		Name: "composers_by_name",
+		Columns: []string{
+			"id",
+			"name",
+		},
+		PartKey: []string{
+			"id",
+		},
+		SortKey: []string{
+			"name",
+		},
+	})
+)
+
 type AlbumUserType struct {
 	gocqlx.UDT
 	Name        string
@@ -68,4 +85,9 @@ type SongsStruct struct {
 	Id       [16]byte
 	Tags     []string
 	Title    string
+}
+
+type ComposersByNameStruct struct {
+	Id   [16]byte
+	Name string
 }
