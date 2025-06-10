@@ -18,6 +18,15 @@ func (s *Session) NewBatch(bt gocql.BatchType) *Batch {
 	}
 }
 
+// SetHostID allows to define the host the query should be executed against. If the
+// host was filtered or otherwise unavailable, then the query will error. If an empty
+// string is sent, the default behavior, using the configured HostSelectionPolicy will
+// be used. A hostID can be obtained from HostInfo.HostID() after calling GetHosts().
+func (b *Batch) SetHostID(hostID string) *Batch {
+	b.Batch.SetHostID(hostID)
+	return b
+}
+
 // BindStruct binds query named parameters to values from arg using a mapper.
 // If value cannot be found an error is reported.
 func (b *Batch) BindStruct(qry *Queryx, arg interface{}) error {
