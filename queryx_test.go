@@ -224,8 +224,6 @@ func TestQyeryxAllWrapped(t *testing.T) {
 			t.Fatalf("Queryx missing method %s", gocqlQueryPtr.Method(i).Name)
 		}
 
-		t.Log(m.Name)
-
 		for j := 0; j < m.Type.NumOut(); j++ {
 			if m.Type.Out(j) == gocqlQueryPtr {
 				t.Errorf("Queryx method %s not wrapped", m.Name)

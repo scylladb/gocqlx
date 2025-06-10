@@ -147,6 +147,15 @@ func (q *Queryx) BindStructMap(arg0 interface{}, arg1 map[string]interface{}) *Q
 	return q
 }
 
+// SetHostID allows to define the host the query should be executed against. If the
+// host was filtered or otherwise unavailable, then the query will error. If an empty
+// string is sent, the default behavior, using the configured HostSelectionPolicy will
+// be used. A hostID can be obtained from HostInfo.HostID() after calling GetHosts().
+func (q *Queryx) SetHostID(hostID string) *Queryx {
+	q.Query.SetHostID(hostID)
+	return q
+}
+
 func (q *Queryx) bindStructArgs(arg0 interface{}, arg1 map[string]interface{}) ([]interface{}, error) {
 	arglist := make([]interface{}, 0, len(q.Names))
 
