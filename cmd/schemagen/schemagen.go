@@ -128,11 +128,8 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 		imports = append(imports, "github.com/scylladb/gocqlx/v3")
 	}
 
-	for _, t := range md.Tables {
-		// Ensure ordered columns are sorted alphabetically
-		sort.Strings(t.OrderedColumns)
-
-		for _, c := range t.Columns {
+	updateImports := func(columns map[string]*gocql.ColumnMetadata) {
+		for _, c := range columns {
 			if (c.Type == "timestamp" || c.Type == "date" || c.Type == "time") && !existsInSlice(imports, "time") {
 				imports = append(imports, "time")
 			}
@@ -145,10 +142,24 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 		}
 	}
 
+	// Ensure that for each table and materialized view
+	//
+	// 1. ordered columns are sorted alphabetically;
+	// 2. imports are resolves for column types.
+	for _, t := range md.Tables {
+		sort.Strings(t.OrderedColumns)
+		updateImports(t.Columns)
+	}
+	for _, v := range md.Views {
+		sort.Strings(v.OrderedColumns)
+		updateImports(v.Columns)
+	}
+
 	buf := &bytes.Buffer{}
 	data := map[string]interface{}{
 		"PackageName": *flagPkgname,
 		"Tables":      md.Tables,
+		"Views":       md.Views,
 		"UserTypes":   md.Types,
 		"Imports":     imports,
 	}
