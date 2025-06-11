@@ -34,7 +34,7 @@ type BatchBuilder struct {
 //   - gocql.Batch prepares the included statements separately, which is more efficient.
 //     In contrast, gocqlx.qb.BatchBuilder, which is based on gocql.Query, prepares the whole batch statements as one ordinary query.
 //
-// Deprecated: Please use gocql.Session.NewBatch() instead.
+// Deprecated: please use gocql.Session.Batch() instead.
 func Batch() *BatchBuilder {
 	return &BatchBuilder{}
 }
