@@ -3,7 +3,6 @@ package gocqlx
 import (
 	"context"
 	"fmt"
-
 	"github.com/gocql/gocql"
 )
 
@@ -13,9 +12,25 @@ type Batch struct {
 }
 
 // NewBatch creates a new batch operation using defaults defined in the cluster.
+//
+// Deprecated: use session.Batch instead
 func (s *Session) NewBatch(bt gocql.BatchType) *Batch {
 	return &Batch{
-		Batch: s.Session.NewBatch(bt),
+		Batch: s.Session.Batch(bt),
+	}
+}
+
+// Batch creates a new batch operation using defaults defined in the cluster.
+func (s *Session) Batch(bt gocql.BatchType) *Batch {
+	return &Batch{
+		Batch: s.Session.Batch(bt),
+	}
+}
+
+// ContextBatch creates a new batch operation using defaults defined in the cluster with attached context.
+func (s *Session) ContextBatch(ctx context.Context, bt gocql.BatchType) *Batch {
+	return &Batch{
+		Batch: s.Session.Batch(bt).WithContext(ctx),
 	}
 }
 
