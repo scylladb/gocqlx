@@ -47,6 +47,25 @@ var (
 	})
 )
 
+// Index models.
+var (
+	SongsTitleIndex = table.New(table.Metadata{
+		Name: "songs_title_index",
+		Columns: []string{
+			"id",
+			"idx_token",
+			"title",
+		},
+		PartKey: []string{
+			"title",
+		},
+		SortKey: []string{
+			"idx_token",
+			"id",
+		},
+	})
+)
+
 // User-defined types (UDT) structs.
 type AlbumUserType struct {
 	gocqlx.UDT
@@ -69,5 +88,12 @@ type SongsStruct struct {
 	Duration gocql.Duration
 	Id       [16]byte
 	Tags     []string
+	Title    string
+}
+
+// Index structs.
+type SongsTitleIndexStruct struct {
+	Id       [16]byte
+	IdxToken int64
 	Title    string
 }

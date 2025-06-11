@@ -25,24 +25,19 @@ func TestSchemagen(t *testing.T) {
 		"composers_by_name",
 		"label",
 	}, ",")
-	*flagIgnoreIndexes = true
 
-	b := runSchemagen(t, "schemagentest")
+	// NOTE Only this generated models is used in real tests.
+	t.Run("IgnoreIndexes", func(t *testing.T) {
+		*flagIgnoreIndexes = true
+		b := runSchemagen(t, "schemagentest")
+		assertDiff(t, b, "testdata/models.go")
+	})
 
-	const goldenFile = "testdata/models.go"
-	if *flagUpdate {
-		if err := os.WriteFile(goldenFile, b, os.ModePerm); err != nil {
-			t.Fatal(err)
-		}
-	}
-	golden, err := os.ReadFile(goldenFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if diff := cmp.Diff(string(golden), string(b)); diff != "" {
-		t.Fatal(diff)
-	}
+	t.Run("NoIgnoreIndexes", func(t *testing.T) {
+		*flagIgnoreIndexes = false
+		b := runSchemagen(t, "schemagentest")
+		assertDiff(t, b, "testdata/no_ignore_indexes/models.go")
+	})
 }
 
 func Test_usedInTables(t *testing.T) {
@@ -113,6 +108,24 @@ func Test_usedInTables(t *testing.T) {
 		}
 		usedInTables("", tables)
 	})
+}
+
+func assertDiff(t *testing.T, actual []byte, goldenFile string) {
+	t.Helper()
+
+	if *flagUpdate {
+		if err := os.WriteFile(goldenFile, actual, os.ModePerm); err != nil {
+			t.Fatal(err)
+		}
+	}
+	golden, err := os.ReadFile(goldenFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(string(golden), string(actual)); diff != "" {
+		t.Fatal(diff)
+	}
 }
 
 func createTestSchema(t *testing.T) {

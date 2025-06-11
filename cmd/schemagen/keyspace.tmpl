@@ -9,9 +9,9 @@ import (
 	{{- end}}
 )
 
+{{with .Tables}}
 // Table models.
 var (
-{{with .Tables}}
 {{range .}}
 	{{$model_name := .Name | camelize}}
 		{{$model_name}} = table.New(table.Metadata {
@@ -33,13 +33,13 @@ var (
 			},
 	})
 {{end}}
-{{end}}
 )
+{{end}}
 
+{{with .Views}}
 // Materialized view models.
 var (
-{{with .Views}}
-{{range .}}
+{{- range .}}
 	{{$model_name := .ViewName | camelize}}
 		{{$model_name}} = table.New(table.Metadata {
 			Name:	"{{.ViewName}}",
@@ -60,11 +60,39 @@ var (
 			},
 	})
 {{end}}
+)
+{{end}}
+
+{{with .Indexes}}
+// Index models.
+var (
+{{range .}}
+	{{$model_name := .Name | camelize}}
+		{{$model_name}}Index = table.New(table.Metadata {
+			Name:	"{{.Name}}_index",
+			Columns: []string{
+				{{- range .OrderedColumns}}
+					"{{.}}",
+				{{- end}}
+			},
+			PartKey: []string {
+				{{- range .PartitionKey}}
+					"{{.Name}}",
+				{{- end}}
+			},
+			SortKey: []string{
+				{{- range .ClusteringColumns}}
+					"{{.Name}}",
+				{{- end}}
+			},
+	})
 {{end}}
 )
+{{end}}
 
 {{with .UserTypes}}
-{{range .}}
+// User-defined types (UDT) structs.
+{{- range .}}
 {{- $type_name := .Name | camelize}}
 {{- $field_types := .FieldTypes}}
 type {{$type_name}}UserType struct {
@@ -77,7 +105,8 @@ type {{$type_name}}UserType struct {
 {{- end}}
 
 {{with .Tables}}
-{{range .}}
+// Table structs.
+{{- range .}}
 {{- $model_name := .Name | camelize}}
 type {{$model_name}}Struct struct {
 {{- range .Columns}}
@@ -90,9 +119,24 @@ type {{$model_name}}Struct struct {
 {{- end}}
 
 {{with .Views}}
-{{range .}}
+// View structs.
+{{- range .}}
 {{- $model_name := .ViewName | camelize}}
 type {{$model_name}}Struct struct {
+{{- range .Columns}}
+	{{- if not (eq .Type "empty") }}
+	{{.Name | camelize}} {{.Type | mapScyllaToGoType}}
+	{{- end}}
+{{- end}}
+}
+{{- end}}
+{{- end}}
+
+{{with .Indexes}}
+// Index structs.
+{{- range .}}
+{{- $model_name := .Name | camelize}}
+type {{$model_name}}IndexStruct struct {
 {{- range .Columns}}
 	{{- if not (eq .Type "empty") }}
 	{{.Name | camelize}} {{.Type | mapScyllaToGoType}}
