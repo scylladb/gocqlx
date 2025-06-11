@@ -8,6 +8,7 @@
 package gocqlx_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/gocql/gocql"
@@ -188,4 +189,24 @@ func TestBatch(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestBatchAllWrapped(t *testing.T) {
+	var (
+		gocqlType  = reflect.TypeOf((*gocql.Batch)(nil))
+		gocqlxType = reflect.TypeOf((*gocqlx.Batch)(nil))
+	)
+
+	for i := 0; i < gocqlType.NumMethod(); i++ {
+		m, ok := gocqlxType.MethodByName(gocqlType.Method(i).Name)
+		if !ok {
+			t.Fatalf("Batch missing method %s", gocqlType.Method(i).Name)
+		}
+
+		for j := 0; j < m.Type.NumOut(); j++ {
+			if m.Type.Out(j) == gocqlType {
+				t.Errorf("Batch method %s not wrapped", m.Name)
+			}
+		}
+	}
 }

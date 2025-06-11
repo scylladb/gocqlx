@@ -212,7 +212,7 @@ func TestQueryxBindMap(t *testing.T) {
 	})
 }
 
-func TestQyeryxAllWrapped(t *testing.T) {
+func TestQueryxAllWrapped(t *testing.T) {
 	var (
 		gocqlQueryPtr = reflect.TypeOf((*gocql.Query)(nil))
 		queryxPtr     = reflect.TypeOf((*Queryx)(nil))

@@ -1,6 +1,7 @@
 package gocqlx
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gocql/gocql"
@@ -68,6 +69,84 @@ func (b *Batch) BindStructMap(qry *Queryx, arg0 interface{}, arg1 map[string]int
 	}
 	b.Query(qry.Statement(), args...)
 	return nil
+}
+
+// DefaultTimestamp will enable the with default timestamp flag on the query.
+// If enabled, this will replace the server side assigned
+// timestamp as default timestamp. Note that a timestamp in the query itself
+// will still override this timestamp. This is entirely optional.
+//
+// Only available on protocol >= 3
+func (b *Batch) DefaultTimestamp(enable bool) *Batch {
+	b.Batch.DefaultTimestamp(enable)
+	return b
+}
+
+// Observer enables batch-level observer on this batch.
+// The provided observer will be called every time this batched query is executed.
+func (b *Batch) Observer(observer gocql.BatchObserver) *Batch {
+	b.Batch.Observer(observer)
+	return b
+}
+
+// RetryPolicy sets the retry policy to use when executing the batch operation
+func (b *Batch) RetryPolicy(policy gocql.RetryPolicy) *Batch {
+	b.Batch.RetryPolicy(policy)
+	return b
+}
+
+// SerialConsistency sets the consistency level for the
+// serial phase of conditional updates. That consistency can only be
+// either SERIAL or LOCAL_SERIAL and if not present, it defaults to
+// SERIAL. This option will be ignored for anything else that a
+// conditional update/insert.
+//
+// Only available for protocol 3 and above
+func (b *Batch) SerialConsistency(cons gocql.Consistency) *Batch {
+	b.Batch.SerialConsistency(cons)
+	return b
+}
+
+// SpeculativeExecutionPolicy sets the speculative execution policy to use when executing the batch operation
+func (b *Batch) SpeculativeExecutionPolicy(policy gocql.SpeculativeExecutionPolicy) *Batch {
+	b.Batch.SpeculativeExecutionPolicy(policy)
+	return b
+}
+
+// Trace enables tracing of this batch. Look at the documentation of the
+// gocql.Tracer interface to learn more about tracing.
+func (b *Batch) Trace(trace gocql.Tracer) *Batch {
+	b.Batch.Trace(trace)
+	return b
+}
+
+// WithContext returns a shallow copy of b with its context
+// set to ctx.
+//
+// The provided context controls the entire lifetime of executing a
+// query, queries will be canceled and return once the context is
+// canceled.
+func (b *Batch) WithContext(ctx context.Context) *Batch {
+	return &Batch{
+		Batch: b.Batch.WithContext(ctx),
+	}
+}
+
+// WithTimestamp will enable the with default timestamp flag on the query
+// like DefaultTimestamp does. But also allows to define value for timestamp.
+// It works the same way as USING TIMESTAMP in the query itself, but
+// should not break prepared query optimization.
+//
+// Only available on protocol >= 3
+func (b *Batch) WithTimestamp(timestamp int64) *Batch {
+	b.Batch.WithTimestamp(timestamp)
+	return b
+}
+
+// Query adds the query to the batch operation
+func (b *Batch) Query(stmt string, args ...interface{}) *Batch {
+	b.Batch.Query(stmt, args...)
+	return b
 }
 
 // ExecuteBatch executes a batch operation and returns nil if successful
