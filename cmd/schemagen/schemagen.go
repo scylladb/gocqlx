@@ -98,24 +98,31 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 		log.Fatalln("unable to parse models template:", err)
 	}
 
+	// First of all, drop all indicies in metadata if option `-ignore-indexes`
+	// is specified.
+	if *flagIgnoreIndexes {
+		md.Indexes = nil
+	}
+
+	// Then remove all tables, views, and indices if their names match the
+	// filter.
 	ignoredNames := make(map[string]struct{})
 	for _, ignoredName := range strings.Split(*flagIgnoreNames, ",") {
 		ignoredNames[ignoredName] = struct{}{}
 	}
-	if *flagIgnoreIndexes {
-		for name := range md.Tables {
-			if strings.HasSuffix(name, "_index") {
-				ignoredNames[name] = struct{}{}
-			}
-		}
-	}
 	for name := range ignoredNames {
 		delete(md.Tables, name)
+		delete(md.Views, name)
+		delete(md.Indexes, name)
 	}
 
+	// Delete a user-defined type (UDT) if it is not used any column (i.e.
+	// table, view, or index).
 	orphanedTypes := make(map[string]struct{})
 	for userTypeName := range md.Types {
-		if !usedInTables(userTypeName, md.Tables) {
+		if !usedInTables(userTypeName, md.Tables) &&
+			!usedInViews(userTypeName, md.Views) &&
+			!usedInIndices(userTypeName, md.Indexes) {
 			orphanedTypes[userTypeName] = struct{}{}
 		}
 	}
@@ -142,7 +149,7 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 		}
 	}
 
-	// Ensure that for each table and materialized view
+	// Ensure that for each table, view, and index
 	//
 	// 1. ordered columns are sorted alphabetically;
 	// 2. imports are resolves for column types.
@@ -154,12 +161,17 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 		sort.Strings(v.OrderedColumns)
 		updateImports(v.Columns)
 	}
+	for _, i := range md.Indexes {
+		sort.Strings(i.OrderedColumns)
+		updateImports(i.Columns)
+	}
 
 	buf := &bytes.Buffer{}
 	data := map[string]interface{}{
 		"PackageName": *flagPkgname,
 		"Tables":      md.Tables,
 		"Views":       md.Views,
+		"Indexes":     md.Indexes,
 		"UserTypes":   md.Types,
 		"Imports":     imports,
 	}
@@ -220,19 +232,51 @@ func existsInSlice(s []string, v string) bool {
 //	[["<my_type,", "my_type"] ["my_other_type>", "my_other_type"]]
 var userTypes = regexp.MustCompile(`(?:<|\s)(\w+)[>,]`) // match all types contained in set<X>, list<X>, tuple<A, B> etc.
 
-// usedInTables reports whether the typeName is used in any of columns of the provided tables.
-func usedInTables(typeName string, tables map[string]*gocql.TableMetadata) bool {
-	for _, table := range tables {
-		for _, column := range table.Columns {
-			if typeName == column.Type {
+// usedInColumns tests whether the typeName is used in any of columns of the
+// provided tables.
+func usedInColumns(typeName string, columns map[string]*gocql.ColumnMetadata) bool {
+	for _, column := range columns {
+		if typeName == column.Type {
+			return true
+		}
+		matches := userTypes.FindAllStringSubmatch(column.Type, -1)
+		for _, s := range matches {
+			if s[1] == typeName {
 				return true
 			}
-			matches := userTypes.FindAllStringSubmatch(column.Type, -1)
-			for _, s := range matches {
-				if s[1] == typeName {
-					return true
-				}
-			}
+		}
+	}
+	return false
+}
+
+// usedInTables tests whether the typeName is used in any of columns of the
+// provided tables.
+func usedInTables(typeName string, tables map[string]*gocql.TableMetadata) bool {
+	for _, table := range tables {
+		if usedInColumns(typeName, table.Columns) {
+			return true
+		}
+	}
+	return false
+}
+
+// usedInViews tests whether the typeName is used in any of columns of the
+// provided views.
+func usedInViews(typeName string, tables map[string]*gocql.ViewMetadata) bool {
+	for _, table := range tables {
+		if usedInColumns(typeName, table.Columns) {
+			return true
+		}
+	}
+	return false
+}
+
+// usedInIndices tests whether the typeName is used in any of columns of the
+// provided indices.
+func usedInIndices(typeName string, tables map[string]*gocql.IndexMetadata) bool {
+	for _, table := range tables {
+		if usedInColumns(typeName, table.Columns) {
+			return true
 		}
 	}
 	return false
