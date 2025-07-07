@@ -3,7 +3,7 @@ module schemagentest
 go 1.20
 
 require (
-	github.com/gocql/gocql v1.7.0
+	github.com/gocql/gocql v1.15.1
 	github.com/google/go-cmp v0.7.0
 	github.com/scylladb/gocqlx/v3 v3.0.0
 )
