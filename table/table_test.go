@@ -128,6 +128,7 @@ func TestTableSelect(t *testing.T) {
 func TestTableInsert(t *testing.T) {
 	table := []struct {
 		M Metadata
+		C []string
 		N []string
 		S string
 	}{
@@ -141,10 +142,32 @@ func TestTableInsert(t *testing.T) {
 			N: []string{"a", "b", "c", "d"},
 			S: "INSERT INTO table (a,b,c,d) VALUES (?,?,?,?) ",
 		},
+		{
+			M: Metadata{
+				Name:    "table",
+				Columns: []string{"a", "b", "c", "d"},
+				PartKey: []string{"a"},
+				SortKey: []string{"b"},
+			},
+			C: []string{"a", "b", "c"},
+			N: []string{"a", "b", "c"},
+			S: "INSERT INTO table (a,b,c) VALUES (?,?,?) ",
+		},
 	}
 
 	for _, test := range table {
-		stmt, names := New(test.M).Insert()
+		stmt, names := New(test.M).Insert(test.C...)
+		if diff := cmp.Diff(test.S, stmt); diff != "" {
+			t.Error(diff)
+		}
+		if diff := cmp.Diff(test.N, names); diff != "" {
+			t.Error(diff, names)
+		}
+	}
+
+	// run InsertBuilder on the same data set
+	for _, test := range table {
+		stmt, names := New(test.M).InsertBuilder(test.C...).ToCql()
 		if diff := cmp.Diff(test.S, stmt); diff != "" {
 			t.Error(diff)
 		}
