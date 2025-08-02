@@ -1,6 +1,8 @@
 module schemagentest
 
-go 1.20
+go 1.21
+
+toolchain go1.24.5
 
 require (
 	github.com/gocql/gocql v1.7.0
@@ -16,6 +18,6 @@ require (
 )
 
 replace (
-	github.com/gocql/gocql => github.com/scylladb/gocql v1.15.1
+	github.com/gocql/gocql => github.com/scylladb/gocql v1.15.2
 	github.com/scylladb/gocqlx/v3 => ../../..
 )
