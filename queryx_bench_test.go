@@ -7,6 +7,8 @@ package gocqlx_test
 import (
 	"testing"
 
+	"github.com/gocql/gocql"
+
 	"github.com/scylladb/gocqlx/v3"
 )
 
@@ -20,7 +22,9 @@ func BenchmarkCompileNamedQuery(b *testing.B) {
 
 func BenchmarkQueryxBindStruct(b *testing.B) {
 	q := gocqlx.Queryx{
-		Names: []string{"name", "age", "first", "last"},
+		Names:  []string{"name", "age", "first", "last"},
+		Mapper: gocqlx.DefaultMapper,
+		Query:  &gocql.Query{},
 	}
 	type t struct {
 		Name  string
@@ -37,7 +41,9 @@ func BenchmarkQueryxBindStruct(b *testing.B) {
 
 func BenchmarkBindMap(b *testing.B) {
 	q := gocqlx.Queryx{
-		Names: []string{"name", "age", "first", "last"},
+		Names:  []string{"name", "age", "first", "last"},
+		Mapper: gocqlx.DefaultMapper,
+		Query:  &gocql.Query{},
 	}
 	am := map[string]interface{}{
 		"name":  "Jason Moiron",
