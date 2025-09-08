@@ -3,6 +3,8 @@ package gocqlx
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/gocql/gocql"
 )
 
@@ -32,6 +34,19 @@ func (s *Session) ContextBatch(ctx context.Context, bt gocql.BatchType) *Batch {
 	return &Batch{
 		Batch: s.Session.Batch(bt).WithContext(ctx),
 	}
+}
+
+// GetRequestTimeout returns time driver waits for single server response
+// This timeout is applied to preparing statement request and for query execution requests
+func (b *Batch) GetRequestTimeout() time.Duration {
+	return b.Batch.GetRequestTimeout()
+}
+
+// SetRequestTimeout sets time driver waits for server to respond
+// This timeout is applied to preparing statement request and for query execution requests
+func (b *Batch) SetRequestTimeout(timeout time.Duration) *Batch {
+	b.Batch.SetRequestTimeout(timeout)
+	return b
 }
 
 // SetHostID allows to define the host the query should be executed against. If the

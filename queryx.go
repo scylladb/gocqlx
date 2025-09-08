@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/go-reflectx"
@@ -144,6 +145,19 @@ func (q *Queryx) BindStructMap(arg0 interface{}, arg1 map[string]interface{}) *Q
 		q.Bind(arglist...)
 	}
 
+	return q
+}
+
+// GetRequestTimeout returns time driver waits for single server response
+// This timeout is applied to preparing statement request and for query execution requests
+func (q *Queryx) GetRequestTimeout() time.Duration {
+	return q.Query.GetRequestTimeout()
+}
+
+// SetRequestTimeout sets time driver waits for server to respond
+// This timeout is applied to preparing statement request and for query execution requests
+func (q *Queryx) SetRequestTimeout(timeout time.Duration) *Queryx {
+	q.Query.SetRequestTimeout(timeout)
 	return q
 }
 
