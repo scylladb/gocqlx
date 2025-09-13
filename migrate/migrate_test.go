@@ -160,6 +160,29 @@ func TestMigrationNoSemicolon(t *testing.T) {
 	}
 }
 
+func TestMigrationWithTrailingComment(t *testing.T) {
+	session := gocqlxtest.CreateSession(t)
+	defer session.Close()
+	recreateTables(t, session)
+
+	if err := session.ExecStmt(migrateSchema); err != nil {
+		t.Fatal(err)
+	}
+
+	f := makeTestFS(0)
+	// Create a migration with a trailing comment (this should reproduce the issue)
+	migrationContent := fmt.Sprintf(insertMigrate, 0) + "; -- ttl 1 hour"
+	f.WriteFile("0.cql", []byte(migrationContent), fs.ModePerm)
+
+	ctx := context.Background()
+	if err := migrate.FromFS(ctx, session, f); err != nil {
+		t.Fatal("Migration should succeed with trailing comment, but got error:", err)
+	}
+	if c := countMigrations(t, session); c != 1 {
+		t.Fatal("expected 1 migration got", c)
+	}
+}
+
 func TestIsCallback(t *testing.T) {
 	table := []struct {
 		Name string
@@ -206,6 +229,60 @@ func TestIsCallback(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			if migrate.IsCallback(test.Stmt) != test.Cb {
 				t.Errorf("IsCallback(%s)=%s, expected %s", test.Stmt, migrate.IsCallback(test.Stmt), test.Cb)
+			}
+		})
+	}
+}
+
+func TestIsComment(t *testing.T) {
+	table := []struct {
+		Name      string
+		Stmt      string
+		IsComment bool
+	}{
+		{
+			Name:      "CQL statement",
+			Stmt:      "SELECT * from X;",
+			IsComment: false,
+		},
+		{
+			Name:      "Regular comment",
+			Stmt:      "-- This is a comment",
+			IsComment: true,
+		},
+		{
+			Name:      "Comment with additional text",
+			Stmt:      "-- ttl 1 hour",
+			IsComment: true,
+		},
+		{
+			Name:      "Callback command (not a regular comment)",
+			Stmt:      "-- CALL Foo;",
+			IsComment: false,
+		},
+		{
+			Name:      "Callback with spaces (not a regular comment)",
+			Stmt:      "--   CALL Bar;",
+			IsComment: false,
+		},
+		{
+			Name:      "Empty statement",
+			Stmt:      "",
+			IsComment: false,
+		},
+		{
+			Name:      "Whitespace only",
+			Stmt:      "   ",
+			IsComment: false,
+		},
+	}
+
+	for i := range table {
+		test := table[i]
+		t.Run(test.Name, func(t *testing.T) {
+			result := migrate.IsComment(test.Stmt)
+			if result != test.IsComment {
+				t.Errorf("IsComment(%q) = %v, expected %v", test.Stmt, result, test.IsComment)
 			}
 		})
 	}

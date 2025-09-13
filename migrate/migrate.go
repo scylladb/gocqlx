@@ -201,6 +201,23 @@ func FromFS(ctx context.Context, session gocqlx.Session, f fs.FS) error {
 	return nil
 }
 
+// applyMigration executes a single migration file by parsing and applying its statements.
+// It handles three types of content in migration files:
+//   - SQL statements: executed against the database
+//   - Callback commands: processed via registered callback handlers (format: -- CALL function_name;)
+//   - Regular comments: silently skipped (format: -- any comment text)
+//
+// The function maintains migration state by tracking the number of completed statements,
+// allowing for resumption of partially completed migrations.
+//
+// Parameters:
+//   - ctx: context for cancellation and timeouts
+//   - session: database session for executing statements
+//   - f: filesystem containing the migration file
+//   - path: path to the migration file within the filesystem
+//   - done: number of statements already completed (for resuming partial migrations)
+//
+// Returns an error if the migration fails at any point.
 func applyMigration(ctx context.Context, session gocqlx.Session, f fs.FS, path string, done int) error {
 	file, err := f.Open(path)
 	if err != nil {
@@ -272,19 +289,23 @@ func applyMigration(ctx context.Context, session gocqlx.Session, f fs.FS, path s
 		// trim new lines and all whitespace characters
 		stmt = strings.TrimSpace(stmt)
 
+		// Process statement based on its type
 		if cb := isCallback(stmt); cb != "" {
+			// Handle callback commands (e.g., "-- CALL function_name;")
 			if Callback == nil {
 				return fmt.Errorf("statement %d: missing callback handler while trying to call %s", i, cb)
 			}
 			if err := Callback(ctx, session, CallComment, cb); err != nil {
 				return fmt.Errorf("callback %s: %s", cb, err)
 			}
-		} else {
+		} else if stmt != "" && !isComment(stmt) {
+			// Execute SQL statements (skip empty statements and comments)
 			q := session.ContextQuery(ctx, stmt, nil).RetryPolicy(nil)
 			if err := q.ExecRelease(); err != nil {
 				return fmt.Errorf("statement %d: %s", i, err)
 			}
 		}
+		// Regular comments and empty statements are silently skipped
 
 		// update info
 		info.Done = i
@@ -314,4 +335,11 @@ func isCallback(stmt string) (name string) {
 		return ""
 	}
 	return s[1]
+}
+
+// isComment returns true if the statement is a SQL comment that should be ignored.
+// It distinguishes between regular comments (which should be skipped) and
+// callback commands (which should be processed).
+func isComment(stmt string) bool {
+	return strings.HasPrefix(stmt, "--") && isCallback(stmt) == ""
 }
