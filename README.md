@@ -40,7 +40,7 @@ go get github.com/scylladb/gocqlx/v3
 
 ## Installation schemagen
 
-Unfortunately you can install it via `go install`, since `go.mod` contains `replace` directive.
+Unfortunately you can't install it via `go install`, since `go.mod` contains `replace` directive.
 So, you have to check it out and install manually:
 ```bash
 git clone git@github.com:scylladb/gocqlx.git
