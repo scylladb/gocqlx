@@ -17,3 +17,7 @@ vendor
 
 cmd/schemagen/schemagen
 cmd/schemagen/testdata/go.sum
+
+# Claude / AI assistant metadata
+CLAUDE.md
+.claude/
