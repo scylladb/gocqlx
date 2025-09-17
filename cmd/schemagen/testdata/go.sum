@@ -22,6 +22,7 @@ github.com/scylladb/gocql v1.15.1 h1:t75NkDFys0XxipPsnTrSEbwx8B8R/jTUt5OAY9W7i+c
 github.com/scylladb/gocql v1.15.1/go.mod h1:+rInt+HjERaMEYC4N8LocQQEAdREhYKU4QPkE00K5dA=
 github.com/scylladb/gocql v1.15.2 h1:Vv7iaIyTMMjMtux1INQMi0waH8j8O/ppKS6JcM1vh14=
 github.com/scylladb/gocql v1.15.2/go.mod h1:+rInt+HjERaMEYC4N8LocQQEAdREhYKU4QPkE00K5dA=
+github.com/scylladb/gocql v1.15.3 h1:0vJT5pm7g5v8/pCs3tuXuRAfSRWvc1kib8J846Z+Z4g=
 github.com/scylladb/gocql v1.15.3/go.mod h1:+rInt+HjERaMEYC4N8LocQQEAdREhYKU4QPkE00K5dA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
