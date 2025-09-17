@@ -30,8 +30,18 @@ Subpackages provide additional functionality:
 * CRUD operations based on table model ([package table](https://github.com/scylladb/gocqlx/blob/master/table))
 * Database migrations ([package migrate](https://github.com/scylladb/gocqlx/blob/master/migrate))
 
-## Installation
+## Installation GocqlX
 
+Add GocqlX to your Go module:
+
+```bash
+go get github.com/scylladb/gocqlx/v3
+```
+
+## Installation schemagen
+
+Unfortunately you can't install it via `go install`, since `go.mod` contains `replace` directive.
+So, you have to check it out and install manually:
 ```bash
 git clone git@github.com:scylladb/gocqlx.git
 cd gocqlx/cmd/schemagen/
@@ -40,16 +50,31 @@ go install .
 
 ## Getting started
 
+First, import the required packages:
+
+```go
+import (
+	"fmt"
+	"log"
+
+	"github.com/gocql/gocql"
+	"github.com/scylladb/gocqlx/v3"
+	"github.com/scylladb/gocqlx/v3/qb"
+	"github.com/scylladb/gocqlx/v3/table"
+)
+```
+
 Wrap gocql Session:
 
 ```go
 // Create gocql cluster.
 cluster := gocql.NewCluster(hosts...)
-// Wrap session on creation, gocqlx session embeds gocql.Session pointer. 
+// Wrap session on creation, gocqlx session embeds gocql.Session pointer.
 session, err := gocqlx.WrapSession(cluster.CreateSession())
 if err != nil {
-	t.Fatal(err)
+	log.Fatal(err)
 }
+defer session.Close()
 ```
 
 Specify table model:
@@ -90,7 +115,7 @@ p := Person{
 }
 q := session.Query(personTable.Insert()).BindStruct(p)
 if err := q.ExecRelease(); err != nil {
-	t.Fatal(err)
+	log.Fatal(err)
 }
 ```
 
@@ -104,9 +129,9 @@ p := Person{
 }
 q := session.Query(personTable.Get()).BindStruct(p)
 if err := q.GetRelease(&p); err != nil {
-	t.Fatal(err)
+	log.Fatal(err)
 }
-t.Log(p)
+fmt.Println(p)
 // stdout: {Michał Matczuk [michal@scylladb.com]}
 ```
 
@@ -116,9 +141,9 @@ Load all rows in to a slice:
 var people []Person
 q := session.Query(personTable.Select()).BindMap(qb.M{"first_name": "Michał"})
 if err := q.SelectRelease(&people); err != nil {
-	t.Fatal(err)
+	log.Fatal(err)
 }
-t.Log(people)
+fmt.Println(people)
 // stdout: [{Michał Matczuk [michal@scylladb.com]}]
 ```
 
