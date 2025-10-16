@@ -1,6 +1,8 @@
 module schemagentest
 
-go 1.21
+go 1.24.0
+
+toolchain go1.24.5
 
 require (
 	github.com/gocql/gocql v1.7.0
@@ -10,7 +12,7 @@ require (
 
 require (
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/scylladb/go-reflectx v1.0.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 )
