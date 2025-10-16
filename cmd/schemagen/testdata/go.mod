@@ -5,7 +5,7 @@ go 1.24.0
 toolchain go1.24.5
 
 require (
-	github.com/gocql/gocql v1.7.0
+	github.com/gocql/gocql/v2 v2.0.0
 	github.com/google/go-cmp v0.7.0
 	github.com/scylladb/gocqlx/v3 v3.0.4
 )
