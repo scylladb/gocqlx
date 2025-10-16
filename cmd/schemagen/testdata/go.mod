@@ -2,7 +2,7 @@ module schemagentest
 
 go 1.24.0
 
-toolchain go1.24.5
+toolchain go1.25.3
 
 require (
 	github.com/gocql/gocql v1.7.0
