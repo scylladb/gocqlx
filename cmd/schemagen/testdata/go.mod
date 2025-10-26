@@ -18,6 +18,6 @@ require (
 )
 
 replace (
-	github.com/gocql/gocql => github.com/scylladb/gocql v1.15.3
+	github.com/gocql/gocql => github.com/scylladb/gocql v1.16.0
 	github.com/scylladb/gocqlx/v3 => ../../..
 )
