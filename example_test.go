@@ -35,7 +35,7 @@ func TestExample(t *testing.T) {
 	}
 	defer session.Close()
 
-	session.ExecStmt(`DROP KEYSPACE examples`)
+	_ = session.ExecStmt(`DROP KEYSPACE examples`)
 
 	basicCreateAndPopulateKeyspace(t, session, "examples")
 	createAndPopulateKeyspaceAllTypes(t, session)
@@ -270,7 +270,7 @@ func createAndPopulateKeyspaceAllTypes(t *testing.T, session gocqlx.Session) {
 	copy(byteID[:], id)
 
 	date := time.Date(2021, time.December, 11, 10, 23, 0, 0, time.UTC)
-	var double float64 = 1.2 // nolint:revive
+	var double float64 = 1.2 //nolint:staticcheck // type needs to be enforces
 	var float float32 = 1.3
 	var integer int32 = 123
 	listInt := []int32{1, 2, 3}

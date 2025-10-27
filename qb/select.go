@@ -132,7 +132,7 @@ func (b *SelectBuilder) From(table string) *SelectBuilder {
 }
 
 // Json sets the clause of the query.
-func (b *SelectBuilder) Json() *SelectBuilder { // nolint: revive
+func (b *SelectBuilder) Json() *SelectBuilder {
 	b.json = true
 	return b
 }

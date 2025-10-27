@@ -16,7 +16,10 @@ func BenchmarkCompileNamedQuery(b *testing.B) {
 	q := []byte("INSERT INTO cycling.cyclist_name (id, user_uuid, firstname, stars) VALUES (:id, :user_uuid, :firstname, :stars)")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		gocqlx.CompileNamedQuery(q)
+		_, _, err := gocqlx.CompileNamedQuery(q)
+		if err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 

@@ -16,7 +16,7 @@ func camelize(s string) string {
 
 	l := len(buf)
 	for i := 0; i < l; i++ {
-		if !(allowedBindRune(buf[i]) || buf[i] == '_') {
+		if !allowedBindRune(buf[i]) && buf[i] != '_' {
 			panic(fmt.Sprint("not allowed name ", s))
 		}
 

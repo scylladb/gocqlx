@@ -29,6 +29,8 @@ func ExampleUDT() {
 		FirstName string
 		LastName  string
 	}
+
+	_ = FullName{}
 }
 
 func ExampleUDT_wraper() {
@@ -42,4 +44,6 @@ func ExampleUDT_wraper() {
 		gocqlx.UDT
 		*FullName
 	}
+
+	_ = FullNameUDT{}
 }

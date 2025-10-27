@@ -162,12 +162,13 @@ func BenchmarkBaseGocqlSelect(b *testing.B) {
 		v := make([]*benchPerson, 100)
 		p := new(benchPerson)
 		for iter.Scan(&p.ID, &p.FirstName, &p.LastName, &p.Email, &p.Gender, &p.IPAddress) {
-			v = append(v, p) // nolint:staticcheck
+			v = append(v, p)
 			p = new(benchPerson)
 		}
 		if err := iter.Close(); err != nil {
 			b.Fatal(err)
 		}
+		_ = v
 	}
 }
 

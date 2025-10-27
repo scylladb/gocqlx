@@ -56,7 +56,7 @@ func TestPending(t *testing.T) {
 		defer recreateTables(t, session)
 
 		f := memfs.New()
-		writeFile(f, 0, fmt.Sprintf(insertMigrate, 0)+";")
+		writeFile(t, f, 0, fmt.Sprintf(insertMigrate, 0)+";")
 
 		pending, err := migrate.Pending(ctx, session, f)
 		if err != nil {
@@ -80,7 +80,7 @@ func TestPending(t *testing.T) {
 		}
 
 		for i := 1; i < 3; i++ {
-			writeFile(f, i, fmt.Sprintf(insertMigrate, i)+";")
+			writeFile(t, f, i, fmt.Sprintf(insertMigrate, i)+";")
 		}
 
 		pending, err = migrate.Pending(ctx, session, f)
@@ -101,7 +101,7 @@ func TestMigration(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("init", func(t *testing.T) {
-		if err := migrate.FromFS(ctx, session, makeTestFS(2)); err != nil {
+		if err := migrate.FromFS(ctx, session, makeTestFS(t, 2)); err != nil {
 			t.Fatal(err)
 		}
 		if c := countMigrations(t, session); c != 2 {
@@ -110,7 +110,7 @@ func TestMigration(t *testing.T) {
 	})
 
 	t.Run("update", func(t *testing.T) {
-		if err := migrate.FromFS(ctx, session, makeTestFS(4)); err != nil {
+		if err := migrate.FromFS(ctx, session, makeTestFS(t, 4)); err != nil {
 			t.Fatal(err)
 		}
 		if c := countMigrations(t, session); c != 4 {
@@ -119,7 +119,7 @@ func TestMigration(t *testing.T) {
 	})
 
 	t.Run("ahead", func(t *testing.T) {
-		err := migrate.FromFS(ctx, session, makeTestFS(2))
+		err := migrate.FromFS(ctx, session, makeTestFS(t, 2))
 		if err == nil || !strings.Contains(err.Error(), "ahead") {
 			t.Fatal("expected error")
 		} else {
@@ -128,8 +128,8 @@ func TestMigration(t *testing.T) {
 	})
 
 	t.Run("tempered with file", func(t *testing.T) {
-		f := makeTestFS(4)
-		writeFile(f, 3, "SELECT * FROM bla;")
+		f := makeTestFS(t, 4)
+		writeFile(t, f, 3, "SELECT * FROM bla;")
 
 		if err := migrate.FromFS(ctx, session, f); err == nil || !strings.Contains(err.Error(), "tampered") {
 			t.Fatal("expected error")
@@ -148,8 +148,11 @@ func TestMigrationNoSemicolon(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	f := makeTestFS(0)
-	f.WriteFile("0.cql", []byte(fmt.Sprintf(insertMigrate, 0)+";"+fmt.Sprintf(insertMigrate, 1)), fs.ModePerm)
+	f := makeTestFS(t, 0)
+	err := f.WriteFile("0.cql", []byte(fmt.Sprintf(insertMigrate, 0)+";"+fmt.Sprintf(insertMigrate, 1)), fs.ModePerm)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	ctx := context.Background()
 	if err := migrate.FromFS(ctx, session, f); err != nil {
@@ -169,10 +172,13 @@ func TestMigrationWithTrailingComment(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	f := makeTestFS(0)
+	f := makeTestFS(t, 0)
 	// Create a migration with a trailing comment (this should reproduce the issue)
 	migrationContent := fmt.Sprintf(insertMigrate, 0) + "; -- ttl 1 hour"
-	f.WriteFile("0.cql", []byte(migrationContent), fs.ModePerm)
+	err := f.WriteFile("0.cql", []byte(migrationContent), fs.ModePerm)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	ctx := context.Background()
 	if err := migrate.FromFS(ctx, session, f); err != nil {
@@ -341,7 +347,7 @@ func TestMigrationCallback(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("init", func(t *testing.T) {
-		f := makeTestFS(2)
+		f := makeTestFS(t, 2)
 		reset()
 
 		if err := migrate.FromFS(ctx, session, f); err != nil {
@@ -351,7 +357,7 @@ func TestMigrationCallback(t *testing.T) {
 	})
 
 	t.Run("no duplicate calls", func(t *testing.T) {
-		f := makeTestFS(4)
+		f := makeTestFS(t, 4)
 		reset()
 
 		if err := migrate.FromFS(ctx, session, f); err != nil {
@@ -361,9 +367,9 @@ func TestMigrationCallback(t *testing.T) {
 	})
 
 	t.Run("in calls", func(t *testing.T) {
-		f := makeTestFS(4)
-		writeFile(f, 4, "\n-- CALL Foo;\n")
-		writeFile(f, 5, "\n-- CALL Bar;\n")
+		f := makeTestFS(t, 4)
+		writeFile(t, f, 4, "\n-- CALL Foo;\n")
+		writeFile(t, f, 5, "\n-- CALL Bar;\n")
 		reset()
 
 		if err := migrate.FromFS(ctx, session, f); err != nil {
@@ -383,14 +389,19 @@ func countMigrations(tb testing.TB, session gocqlx.Session) int {
 	return v
 }
 
-func makeTestFS(n int) *memfs.FS {
+func makeTestFS(tb testing.TB, n int) *memfs.FS {
+	tb.Helper()
 	f := memfs.New()
 	for i := 0; i < n; i++ {
-		writeFile(f, i, fmt.Sprintf(insertMigrate, i)+";")
+		writeFile(tb, f, i, fmt.Sprintf(insertMigrate, i)+";")
 	}
 	return f
 }
 
-func writeFile(f *memfs.FS, i int, text string) {
-	f.WriteFile(fmt.Sprint(i, ".cql"), []byte(text), fs.ModePerm)
+func writeFile(tb testing.TB, f *memfs.FS, i int, text string) {
+	tb.Helper()
+	err := f.WriteFile(fmt.Sprint(i, ".cql"), []byte(text), fs.ModePerm)
+	if err != nil {
+		tb.Fatal(err)
+	}
 }

@@ -24,8 +24,7 @@ export PATH := $(GOBIN):$(PATH)
 GOOS := $(shell uname | tr '[:upper:]' '[:lower:]')
 GOARCH := $(shell go env GOARCH)
 
-GOLANGCI_VERSION := 1.64.8
-FIELDALIGNMENT_VERSION := 0.38.0
+GOLANGCI_VERSION := 2.5.0
 
 ifeq ($(GOARCH),arm64)
 	GOLANGCI_DOWNLOAD_URL := "https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-$(GOOS)-arm64.tar.gz"
@@ -97,7 +96,6 @@ get-deps:
 get-tools:
 	@echo "==> Installing tools at $(GOBIN)..."
 	@$(MAKE) install-golangci-lint
-	@$(MAKE) install-fieldalignment
 
 .require-golangci-lint:
 ifeq ($(shell if golangci-lint --version 2>/dev/null | grep ${GOLANGCI_VERSION} 1>/dev/null 2>&1; then echo "ok"; else echo "need-install"; fi), need-install)
@@ -107,15 +105,6 @@ endif
 install-golangci-lint:
 	@echo "==> Installing golangci-lint ${GOLANGCI_VERSION} at $(GOBIN)..."
 	$(call dl_tgz,golangci-lint,$(GOLANGCI_DOWNLOAD_URL))
-
-.require-fieldalignment:
-ifeq ($(shell if fieldalignment -V=full 1>/dev/null 2>&1; then echo "ok"; else echo "need-install"; fi), need-install)
-	$(MAKE) install-golangci-lint
-endif
-
-install-fieldalignment:
-	@echo "==> Installing fieldalignment ${FIELDALIGNMENT_VERSION} at $(GOBIN)..."
-	@go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@v${FIELDALIGNMENT_VERSION}
 
 define dl_tgz
 	@mkdir "$(GOBIN)" 2>/dev/null || true

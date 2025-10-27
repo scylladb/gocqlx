@@ -1,51 +1,32 @@
-run:
-  deadline: 5m
-  tests: true
-  allow-parallel-runners: true
-  modules-download-mode: readonly
-  build-tags: [ all, integration ]
+version: "2"
 
-linters-settings:
-  revive:
-    rules:
-      - name: package-comments
-        disabled: true
-  goimports:
-    local-prefixes: github.com/scylladb/gocqlx
-  gofumpt:
-    extra-rules: true
-  govet:
-    enable-all: true
-    disable:
-      - shadow
-  errcheck:
-    check-blank: true
-  gocognit:
-    min-complexity: 50
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - performance
-      - style
-    disabled-checks:
-      - commentedOutCode
-      - evalOrder
-      - hugeParam
-      - importShadow
-      - yodaStyleExpr
-      - whyNoLint
-  lll:
-    line-length: 180
+formatters:
+  enable:
+    - goimports
+
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/scylladb/gocqlx
+    golines:
+      max-len: 120
+    gofumpt:
+      extra-rules: true
 
 linters:
-  disable-all: true
+  exclusions:
+    rules:
+      - path: '(.+)_test\.go'
+        text: "fieldalignment"
+        linters:
+          - govet
+
+  default: none
   enable:
+    - nolintlint
     - errcheck
     - gocritic
-    - gofumpt
     - goheader
-    - goimports
-    - gosimple
     - govet
     - ineffassign
     - lll
@@ -55,26 +36,41 @@ linters:
     - staticcheck
     - thelper
     - tparallel
-    - typecheck
     - unused
     - forbidigo
+  settings:
+    revive:
+      rules:
+        - name: package-comments
+          disabled: true
+    govet:
+      enable-all: true
+      disable:
+        - shadow
+    errcheck:
+      check-blank: false
+    gocognit:
+      min-complexity: 50
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+      disabled-checks:
+        - commentedOutCode
+        - evalOrder
+        - hugeParam
+        - importShadow
+        - yodaStyleExpr
+        - whyNoLint
+    lll:
+      line-length: 180
+    nolintlint:
+      allow-no-explanation: [ golines ]
+      require-explanation: true
+      require-specific: true
 
-issues:
-  new: true
-  new-from-rev: origin/master
-  exclude-use-default: false
-  exclude:
-    - composite literal uses unkeyed fields
-    - Error return value of `.+\.Close` is not checked
-    - method Json should be JSON
-  exclude-rules:
-    - path: (.*_test.go|migrate/example|gocqlxtest/)
-      linters:
-        - fieldalignment
-        - govet
-        - errcheck
-    - path: doc_test.go
-      linters:
-        - unused
-        - revive
-
+run:
+  build-tags:
+    - integration
+    - all

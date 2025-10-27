@@ -225,7 +225,7 @@ func applyMigration(ctx context.Context, session gocqlx.Session, f fs.FS, path s
 	}
 
 	b, err := io.ReadAll(file)
-	file.Close()
+	_ = file.Close()
 	if err != nil {
 		return err
 	}
