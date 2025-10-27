@@ -1,8 +1,6 @@
 module github.com/scylladb/gocqlx/v3
 
-go 1.24.0
-
-toolchain go1.24.5
+go 1.25.0
 
 require (
 	github.com/gocql/gocql v1.7.0
@@ -15,7 +13,7 @@ require (
 
 require (
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
+	github.com/klauspost/compress v1.18.1 // indirect
 )
 
-replace github.com/gocql/gocql => github.com/scylladb/gocql v1.15.3
+replace github.com/gocql/gocql => github.com/scylladb/gocql v1.16.1

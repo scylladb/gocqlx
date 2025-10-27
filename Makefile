@@ -25,7 +25,7 @@ GOOS := $(shell uname | tr '[:upper:]' '[:lower:]')
 GOARCH := $(shell go env GOARCH)
 
 GOLANGCI_VERSION := 1.64.8
-FIELDALIGNMENT_VERSION := 0.24.0
+FIELDALIGNMENT_VERSION := 0.38.0
 
 ifeq ($(GOARCH),arm64)
 	GOLANGCI_DOWNLOAD_URL := "https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-$(GOOS)-arm64.tar.gz"

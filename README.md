@@ -11,7 +11,7 @@ If you are using GocqlX v3.0.0 or newer, you must ensure your `go.mod` includes 
 
 ```go
 // Use the latest version of scylladb/gocql; check for updates at https://github.com/scylladb/gocql/releases
-replace github.com/gocql/gocql => github.com/scylladb/gocql v1.15.3
+replace github.com/gocql/gocql => github.com/scylladb/gocql v1.16.0
 ```
 
 This is required because GocqlX relies on ScyllaDB-specific extensions and bug fixes introduced in the gocql fork. Attempting to use the standard gocql driver with GocqlX v3.0.0+ may lead to build or runtime issues.
