@@ -18,4 +18,4 @@ require (
 	github.com/klauspost/compress v1.18.0 // indirect
 )
 
-replace github.com/gocql/gocql => github.com/scylladb/gocql v1.15.3
+replace github.com/gocql/gocql => github.com/scylladb/gocql v1.16.1
