@@ -260,7 +260,7 @@ func TestIterxUDT(t *testing.T) {
 			}
 
 			t.Cleanup(func() {
-				session.Query(deleteStmt, nil).Bind(testuuid).ExecRelease() // nolint:errcheck
+				_ = session.Query(deleteStmt, nil).Bind(testuuid).ExecRelease()
 			})
 
 			t.Run("insert-bind", func(t *testing.T) {
@@ -930,7 +930,9 @@ func TestIterxPaging(t *testing.T) {
 		AllowFiltering().
 		Columns("id", "val").ToCql()
 	iter := session.Query(stmt, names).Bind(100).PageSize(10).Iter()
-	defer iter.Close()
+	defer func() {
+		_ = iter.Close()
+	}()
 
 	var cnt int
 	for {

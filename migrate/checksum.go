@@ -23,7 +23,9 @@ func fileChecksum(f fs.FS, path string) (string, error) {
 	if err != nil {
 		return "", nil
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	h := md5.New()
 	if _, err := io.Copy(h, file); err != nil {

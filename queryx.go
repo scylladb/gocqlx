@@ -181,7 +181,7 @@ func (q *Queryx) bindStructArgs(arg0 interface{}, arg1 map[string]interface{}) (
 
 	err := q.Mapper.TraversalsByNameFunc(v.Type(), q.Names, func(i int, t []int) error {
 		if len(t) != 0 {
-			val := reflectx.FieldByIndexesReadOnly(v, t) // nolint:scopelint
+			val := reflectx.FieldByIndexesReadOnly(v, t)
 			arglist = append(arglist, val.Interface())
 		} else {
 			val, ok := arg1[q.Names[i]]

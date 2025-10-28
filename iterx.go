@@ -62,7 +62,7 @@ func (iter *Iterx) StructOnly() *Iterx {
 // If no rows were selected, ErrNotFound is returned.
 func (iter *Iterx) Get(dest interface{}) error {
 	iter.scanAny(dest)
-	iter.Close()
+	_ = iter.Close()
 
 	return iter.checkErrAndNotFound()
 }
@@ -119,7 +119,7 @@ func (iter *Iterx) scanAny(dest interface{}) bool {
 // If no rows were selected, ErrNotFound is NOT returned.
 func (iter *Iterx) Select(dest interface{}) error {
 	iter.scanAll(dest)
-	iter.Close()
+	_ = iter.Close()
 
 	return iter.err
 }
@@ -209,7 +209,7 @@ func (iter *Iterx) scanAll(dest interface{}) bool {
 //   - it is not a struct
 //   - it has no exported fields
 func (iter *Iterx) isScannable(t reflect.Type) bool {
-	ptr := reflect.PtrTo(t)
+	ptr := reflect.PointerTo(t)
 	switch {
 	case ptr.Implements(unmarshallerInterface):
 		return true
@@ -260,7 +260,7 @@ func (iter *Iterx) structScan(value reflect.Value) bool {
 	}
 
 	if iter.fields == nil {
-		columns := columnNames(iter.Iter.Columns())
+		columns := columnNames(iter.Columns())
 		cas := len(columns) > 0 && columns[0] == appliedColumn
 
 		iter.fields = iter.Mapper.TraversalsByName(value.Type(), columns)
@@ -342,7 +342,7 @@ func (iter *Iterx) Close() error {
 func (iter *Iterx) checkErrAndNotFound() error {
 	if iter.err != nil {
 		return iter.err
-	} else if iter.Iter.NumRows() == 0 {
+	} else if iter.NumRows() == 0 {
 		return gocql.ErrNotFound
 	}
 	return nil

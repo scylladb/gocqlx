@@ -37,7 +37,7 @@ type Table struct {
 }
 
 // New creates new Table based on table schema read from Metadata.
-func New(m Metadata) *Table { // nolint: gocritic
+func New(m Metadata) *Table {
 	t := &Table{
 		metadata: m,
 	}

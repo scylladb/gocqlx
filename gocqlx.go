@@ -20,15 +20,15 @@ func structOnlyError(t reflect.Type) error {
 		return fmt.Errorf("expected a struct but got %s", t.Kind())
 	}
 
-	if isUnmarshaller := reflect.PtrTo(t).Implements(unmarshallerInterface); isUnmarshaller {
+	if isUnmarshaller := reflect.PointerTo(t).Implements(unmarshallerInterface); isUnmarshaller {
 		return fmt.Errorf("expected a struct but the provided struct type %s implements gocql.Unmarshaler", t.Name())
 	}
 
-	if isUDTUnmarshaller := reflect.PtrTo(t).Implements(udtUnmarshallerInterface); isUDTUnmarshaller {
+	if isUDTUnmarshaller := reflect.PointerTo(t).Implements(udtUnmarshallerInterface); isUDTUnmarshaller {
 		return fmt.Errorf("expected a struct but the provided struct type %s implements gocql.UDTUnmarshaler", t.Name())
 	}
 
-	if isAutoUDT := reflect.PtrTo(t).Implements(autoUDTInterface); isAutoUDT {
+	if isAutoUDT := reflect.PointerTo(t).Implements(autoUDTInterface); isAutoUDT {
 		return fmt.Errorf("expected a struct but the provided struct type %s implements gocqlx.UDT", t.Name())
 	}
 
