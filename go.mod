@@ -7,7 +7,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/psanford/memfs v0.0.0-20241019191636-4ef911798f9b
 	github.com/scylladb/go-reflectx v1.0.1
-	golang.org/x/sync v0.18.0
+	golang.org/x/sync v0.19.0
 	gopkg.in/inf.v0 v0.9.1
 )
 
