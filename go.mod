@@ -13,7 +13,7 @@ require (
 
 require (
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/klauspost/compress v1.18.1 // indirect
+	github.com/klauspost/compress v1.18.3 // indirect
 )
 
-replace github.com/gocql/gocql => github.com/scylladb/gocql v1.17.0
+replace github.com/gocql/gocql => github.com/scylladb/gocql v1.17.1
