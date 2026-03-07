@@ -15,6 +15,8 @@ github.com/klauspost/compress v1.18.1 h1:bcSGx7UbpBqMChDtsF28Lw6v/G94LPrrbMbdC3J
 github.com/klauspost/compress v1.18.1/go.mod h1:ZQFFVG+MdnR0P+l6wpXgIL4NTtwiKIdBnrBd8Nrxr+0=
 github.com/klauspost/compress v1.18.3 h1:9PJRvfbmTabkOX8moIpXPbMMbYN60bWImDDU7L+/6zw=
 github.com/klauspost/compress v1.18.3/go.mod h1:R0h/fSBs8DE4ENlcrlib3PsXS61voFxhIs2DeRhCvJ4=
+github.com/klauspost/compress v1.18.4 h1:RPhnKRAQ4Fh8zU2FY/6ZFDwTVTxgJ/EMydqSTzE9a2c=
+github.com/klauspost/compress v1.18.4/go.mod h1:R0h/fSBs8DE4ENlcrlib3PsXS61voFxhIs2DeRhCvJ4=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
@@ -29,6 +31,8 @@ github.com/scylladb/gocql v1.17.0 h1:sSjNTgSoC90+1XYXOMeWsQ8+AZbFYQWcspuScmUT53E
 github.com/scylladb/gocql v1.17.0/go.mod h1:0VgVuYnAPOoYN17KXkYdWDxhL2/rH3V3vOisPMngpAw=
 github.com/scylladb/gocql v1.17.1 h1:SbD85ooKK3O3HcpzSuMQ0QNbrILArtzKu7Tgk661Psk=
 github.com/scylladb/gocql v1.17.1/go.mod h1:Sf1nUgIj6BbxvzI6cVMJmmjB6lcMvgcNxHYv/jrGTpA=
+github.com/scylladb/gocql v1.17.3 h1:dmtjGn9asID97piyuz85PEVHEIHm9H9GyMti1+RMObo=
+github.com/scylladb/gocql v1.17.3/go.mod h1:kadKEoGTS/dMUXscNhxR8ORMyx1grygMCNppaacjkh8=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 go.yaml.in/yaml/v2 v2.4.3 h1:6gvOSjQoTB3vt1l+CU+tSyi/HOjfOjRLJ4YwYZGwRO0=
