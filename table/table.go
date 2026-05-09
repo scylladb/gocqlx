@@ -144,24 +144,32 @@ func (t *Table) SelectAll() (stmt string, names []string) {
 	return qb.Select(t.metadata.Name).ToCql()
 }
 
-// Insert returns insert all columns statement.
-func (t *Table) Insert() (stmt string, names []string) {
-	return t.insert.stmt, t.insert.names
+// Insert returns insert statement.
+func (t *Table) Insert(columns ...string) (stmt string, names []string) {
+	if len(columns) == 0 {
+		return t.insert.stmt, t.insert.names
+	}
+
+	return t.InsertBuilder(columns...).ToCql()
 }
 
-// InsertQuery returns query which inserts all columns.
-func (t *Table) InsertQuery(session gocqlx.Session) *gocqlx.Queryx {
-	return session.Query(t.Insert())
+// InsertQuery returns query which inserts columns.
+func (t *Table) InsertQuery(session gocqlx.Session, columns ...string) *gocqlx.Queryx {
+	return session.Query(t.Insert(columns...))
 }
 
-// InsertQueryContext returns query wrapped with context which inserts all columns.
-func (t *Table) InsertQueryContext(ctx context.Context, session gocqlx.Session) *gocqlx.Queryx {
-	return t.InsertQuery(session).WithContext(ctx)
+// InsertQueryContext returns query wrapped with context which inserts columns.
+func (t *Table) InsertQueryContext(ctx context.Context, session gocqlx.Session, columns ...string) *gocqlx.Queryx {
+	return t.InsertQuery(session, columns...).WithContext(ctx)
 }
 
-// InsertBuilder returns a builder initialised with all columns.
-func (t *Table) InsertBuilder() *qb.InsertBuilder {
-	return qb.Insert(t.metadata.Name).Columns(t.metadata.Columns...)
+// InsertBuilder returns a builder initialised with columns.
+func (t *Table) InsertBuilder(columns ...string) *qb.InsertBuilder {
+	if len(columns) == 0 {
+		return qb.Insert(t.metadata.Name).Columns(t.metadata.Columns...)
+	}
+
+	return qb.Insert(t.metadata.Name).Columns(columns...)
 }
 
 // Update returns update by primary key statement.
