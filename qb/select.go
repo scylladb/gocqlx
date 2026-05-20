@@ -175,6 +175,12 @@ func (b *SelectBuilder) TimeoutNamed(name string) *SelectBuilder {
 	return b
 }
 
+// ServiceLevel adds a USING SERVICE LEVEL clause with the given name to the query
+func (b *SelectBuilder) ServiceLevel(name string) *SelectBuilder {
+	b.using.ServiceLevel(name)
+	return b
+}
+
 // Where adds an expression to the WHERE clause of the query. Expressions are
 // ANDed together in the generated CQL.
 func (b *SelectBuilder) Where(w ...Cmp) *SelectBuilder {
