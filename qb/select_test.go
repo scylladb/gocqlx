@@ -89,6 +89,17 @@ func TestSelectBuilder(t *testing.T) {
 			S: "SELECT * FROM cycling.cyclist_name WHERE id=? AND firstname>? USING TIMEOUT ? ",
 			N: []string{"expr", "firstname", "to"},
 		},
+		// Add SERVICE LEVEL
+		{
+			B: Select("cycling.cyclist_name").Where(w, Gt("firstname")).ServiceLevel("foo"),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? AND firstname>? USING SERVICE LEVEL 'foo' ",
+			N: []string{"expr", "firstname"},
+		},
+		{
+			B: Select("cycling.cyclist_name").Where(w, Gt("firstname")).ServiceLevel("foo's").Timeout(10 * time.Second),
+			S: "SELECT * FROM cycling.cyclist_name WHERE id=? AND firstname>? USING TIMEOUT 10s AND SERVICE LEVEL 'foo''s' ",
+			N: []string{"expr", "firstname"},
+		},
 		// Add GROUP BY
 		{
 			B: Select("cycling.cyclist_name").Columns("MAX(stars) as max_stars").GroupBy("id"),
