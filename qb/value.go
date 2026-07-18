@@ -7,6 +7,7 @@ package qb
 import (
 	"bytes"
 	"strconv"
+	"strings"
 )
 
 // value is a CQL value expression for use in an initializer, assignment,
@@ -51,5 +52,15 @@ type lit string
 
 func (l lit) writeCql(cql *bytes.Buffer) (names []string) {
 	cql.WriteString(string(l))
+	return nil
+}
+
+// stringLit is a quoted CQL string literal.
+type stringLit string
+
+func (l stringLit) writeCql(cql *bytes.Buffer) (names []string) {
+	cql.WriteByte('\'')
+	cql.WriteString(strings.ReplaceAll(string(l), "'", "''"))
+	cql.WriteByte('\'')
 	return nil
 }

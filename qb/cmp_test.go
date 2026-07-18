@@ -218,6 +218,14 @@ func TestCmp(t *testing.T) {
 			S: "eq=litval",
 		},
 		{
+			C: EqLitString("eq", "RUNNING"),
+			S: "eq='RUNNING'",
+		},
+		{
+			C: EqLitString("eq", "O'Brien"),
+			S: "eq='O''Brien'",
+		},
+		{
 			C: NeLit("ne", "litval"),
 			S: "ne!=litval",
 		},

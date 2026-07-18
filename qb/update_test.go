@@ -104,6 +104,12 @@ func TestUpdateBuilder(t *testing.T) {
 			S: "UPDATE cycling.cyclist_name SET id=?,user_uuid=?,firstname=? WHERE id=? IF firstname>? ",
 			N: []string{"id", "user_uuid", "firstname", "expr", "firstname"},
 		},
+		// Add IF string literal
+		{
+			B: Update("scheduler_task_run").Set("status").Where(w).If(EqLitString("status", "RUNNING")),
+			S: "UPDATE scheduler_task_run SET status=? WHERE id=? IF status='RUNNING' ",
+			N: []string{"status", "expr"},
+		},
 		// Add TTL
 		{
 			B: Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname").Where(w).TTL(time.Second),

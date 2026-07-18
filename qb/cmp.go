@@ -103,11 +103,21 @@ func EqTupleNamed(column string, count int, name string) Cmp {
 }
 
 // EqLit produces column=literal and does not add a parameter to the query.
+// The literal is written verbatim; use EqLitString for string values.
 func EqLit(column, literal string) Cmp {
 	return Cmp{
 		op:     eq,
 		column: column,
 		value:  lit(literal),
+	}
+}
+
+// EqLitString produces column='literal' and escapes the string for CQL.
+func EqLitString(column, literal string) Cmp {
+	return Cmp{
+		op:     eq,
+		column: column,
+		value:  stringLit(literal),
 	}
 }
 
