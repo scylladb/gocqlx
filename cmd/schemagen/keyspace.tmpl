@@ -98,7 +98,7 @@ var (
 type {{$type_name}}UserType struct {
 	gocqlx.UDT
 {{- range $index, $element := .FieldNames}}
-	{{. | camelize}} {{(index $field_types $index) | mapScyllaToGoType}}
+	{{. | camelize}} {{(index $field_types $index) | mapScyllaToGoType}} `cql:"{{.}}"`
 {{- end}}
 }
 {{- end}}
