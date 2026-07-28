@@ -43,6 +43,12 @@ func TestUpdateBuilder(t *testing.T) {
 			S: "UPDATE cycling.cyclist_name SET user_uuid=literal_uuid,stars=? WHERE id=? ",
 			N: []string{"stars", "expr"},
 		},
+		// Add SET string literal
+		{
+			B: Update("cycling.cyclist_name").SetLitString("firstname", "O'Brien").Where(w),
+			S: "UPDATE cycling.cyclist_name SET firstname='O''Brien' WHERE id=? ",
+			N: []string{"expr"},
+		},
 
 		// Add SET tuple
 		{
@@ -103,6 +109,12 @@ func TestUpdateBuilder(t *testing.T) {
 			B: Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname").Where(w).If(Gt("firstname")),
 			S: "UPDATE cycling.cyclist_name SET id=?,user_uuid=?,firstname=? WHERE id=? IF firstname>? ",
 			N: []string{"id", "user_uuid", "firstname", "expr", "firstname"},
+		},
+		// Add IF string literal
+		{
+			B: Update("scheduler_task_run").Set("status").Where(w).If(EqLitString("status", "RUNNING")),
+			S: "UPDATE scheduler_task_run SET status=? WHERE id=? IF status='RUNNING' ",
+			N: []string{"status", "expr"},
 		},
 		// Add TTL
 		{

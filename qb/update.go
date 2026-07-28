@@ -158,9 +158,18 @@ func (b *UpdateBuilder) SetNamed(column, name string) *UpdateBuilder {
 }
 
 // SetLit adds SET column=literal clause to the query.
+// The literal is written verbatim; use SetLitString for string values.
 func (b *UpdateBuilder) SetLit(column, literal string) *UpdateBuilder {
 	b.assignments = append(
 		b.assignments, assignment{column: column, value: lit(literal)})
+	return b
+}
+
+// SetLitString adds SET column='literal' with an escaped CQL string literal.
+// It does not add a parameter to the query.
+func (b *UpdateBuilder) SetLitString(column, literal string) *UpdateBuilder {
+	b.assignments = append(
+		b.assignments, assignment{column: column, value: stringLit(literal)})
 	return b
 }
 
