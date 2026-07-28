@@ -23,9 +23,8 @@ type Iterx struct {
 	*gocql.Iter
 	Mapper *reflectx.Mapper
 
-	// Cache memory for a rows during iteration in structScan.
-	fields     [][]int
-	values     []interface{}
+	// Cache memory for rows during iteration in structScan.
+	scanPlan   *structScanPlan
 	strict     bool
 	structOnly bool
 	applied    bool
@@ -89,6 +88,10 @@ func (iter *Iterx) scanAny(dest interface{}) bool {
 			iter.err = structOnlyError(base)
 			return false
 		}
+	}
+
+	if tuple, ok := iter.topLevelTuple(base); ok {
+		return iter.scanTuple(value, tuple)
 	}
 
 	if scannable && len(iter.Columns()) > 1 {
@@ -156,6 +159,8 @@ func (iter *Iterx) scanAll(dest interface{}) bool {
 		}
 	}
 
+	tuple, tupleContainer := iter.topLevelTuple(base)
+
 	// if it's a base type make sure it only has 1 column;  if not return an error
 	if scannable && len(iter.Columns()) > 1 {
 		iter.err = fmt.Errorf("expected 1 column in result while scanning scannable type %s but got %d", base.Kind(), len(iter.Columns()))
@@ -173,9 +178,12 @@ func (iter *Iterx) scanAll(dest interface{}) bool {
 		vp = reflect.New(base)
 
 		// scan into the struct field pointers
-		if !scannable {
+		switch {
+		case tupleContainer:
+			ok = iter.scanTuple(vp, tuple)
+		case !scannable:
 			ok = iter.structScan(vp)
-		} else {
+		default:
 			ok = iter.scan(vp)
 		}
 		if !ok {
@@ -231,12 +239,49 @@ func (iter *Iterx) scan(value reflect.Value) bool {
 	return iter.Iter.Scan(udtWrapValue(value, iter.Mapper, iter.strict))
 }
 
+func (iter *Iterx) topLevelTuple(t reflect.Type) (gocql.TupleTypeInfo, bool) {
+	if !isTupleContainerType(t) {
+		return gocql.TupleTypeInfo{}, false
+	}
+
+	columns := iter.Columns()
+	if len(columns) != 1 {
+		return gocql.TupleTypeInfo{}, false
+	}
+
+	tuple, ok := columns[0].TypeInfo.(gocql.TupleTypeInfo)
+	return tuple, ok
+}
+
+func (iter *Iterx) scanTuple(value reflect.Value, tuple gocql.TupleTypeInfo) bool {
+	values := make([]interface{}, len(tuple.Elems))
+	for i := range tuple.Elems {
+		elem, err := tupleElementAddr(value, i, len(tuple.Elems))
+		if err != nil {
+			iter.err = err
+			return false
+		}
+		if elem.Elem().Kind() == reflect.Interface {
+			values[i] = tupleInterfaceScanner{value: elem.Elem()}
+			continue
+		}
+		values[i] = udtWrapValue(elem, iter.Mapper, iter.strict)
+	}
+
+	return iter.Iter.Scan(values...)
+}
+
 // StructScan is like gocql.Iter.Scan, but scans a single row into a single
 // struct. Use this and iterate manually when the memory load of Select() might
 // be prohibitive. StructScan caches the reflect work of matching up column
 // positions to fields to avoid that overhead per scan, which means it is not
 // safe to run StructScan on the same Iterx instance with different struct
 // types.
+//
+// Tuple columns can scan into array, slice, or tuple-shaped struct fields with
+// the same mapped name. Element fields named with db tags, such as
+// `db:"coordinates[0]"`, remain supported. When both forms are present, the
+// field mapped to the tuple column takes precedence.
 func (iter *Iterx) StructScan(dest interface{}) bool {
 	value := reflect.ValueOf(dest)
 
@@ -254,66 +299,178 @@ func (iter *Iterx) StructScan(dest interface{}) bool {
 
 const appliedColumn = "[applied]"
 
+type structScanPlan struct {
+	columns      []string
+	fields       [][]int
+	tupleIndexes []int // Element index for tuple containers; -1 for direct destinations.
+	tupleCounts  []int // Tuple arity; zero for non-tuple columns.
+	values       []interface{}
+}
+
+type tupleInterfaceScanner struct {
+	value reflect.Value
+}
+
+type tupleDiscardScanner struct{}
+
+func (tupleDiscardScanner) UnmarshalCQL(gocql.TypeInfo, []byte) error {
+	return nil
+}
+
+func (s tupleInterfaceScanner) UnmarshalCQL(info gocql.TypeInfo, data []byte) error {
+	if !s.value.CanSet() {
+		return fmt.Errorf("cannot set tuple interface element %s", s.value.Type())
+	}
+	if data == nil {
+		s.value.Set(reflect.Zero(s.value.Type()))
+		return nil
+	}
+
+	value, err := info.NewWithError()
+	if err != nil {
+		return err
+	}
+	if err := gocql.Unmarshal(info, data, value); err != nil {
+		return err
+	}
+
+	elem := reflect.ValueOf(value).Elem()
+	if !elem.Type().AssignableTo(s.value.Type()) {
+		return fmt.Errorf("cannot unmarshal %s into %s", info, s.value.Type())
+	}
+	s.value.Set(elem)
+	return nil
+}
+
 func (iter *Iterx) structScan(value reflect.Value) bool {
 	if value.Kind() != reflect.Ptr {
 		panic("value must be a pointer")
 	}
 
-	if iter.fields == nil {
-		columns := columnNames(iter.Columns())
-		cas := len(columns) > 0 && columns[0] == appliedColumn
+	if iter.scanPlan == nil {
+		plan, err := iter.structScanPlan(value.Type(), iter.Columns())
+		if err != nil {
+			iter.err = err
+			return false
+		}
+		cas := len(plan.columns) > 0 && plan.columns[0] == appliedColumn
 
-		iter.fields = iter.Mapper.TraversalsByName(value.Type(), columns)
 		// if we are strict and it's not CAS query and are missing fields, return an error
 		if iter.strict && !cas {
-			if f, err := missingFields(iter.fields); err != nil {
-				iter.err = fmt.Errorf("missing destination name %q in %s", columns[f], reflect.Indirect(value).Type())
+			if f, err := missingFields(plan.fields); err != nil {
+				iter.err = fmt.Errorf("missing destination name %q in %s", plan.columns[f], reflect.Indirect(value).Type())
 				return false
 			}
 		}
-		iter.values = make([]interface{}, len(columns))
 		if cas {
-			iter.values[0] = &iter.applied
+			plan.values[0] = &iter.applied
 		}
+		iter.scanPlan = &plan
 	}
 
-	if err := iter.fieldsByTraversal(value, iter.fields, iter.values); err != nil {
+	if err := iter.fieldsByTraversal(value, iter.scanPlan); err != nil {
 		iter.err = err
 		return false
 	}
 
 	// scan into the struct field pointers and append to our results
-	return iter.Iter.Scan(iter.values...)
+	return iter.Iter.Scan(iter.scanPlan.values...)
 }
 
-// fieldsByName fills a values interface with fields from the passed value based
-// on the traversals in int.
+func (iter *Iterx) structScanPlan(t reflect.Type, columnInfo []gocql.ColumnInfo) (structScanPlan, error) {
+	var plan structScanPlan
+	appendDestination := func(name string, traversal []int, tupleIndex, tupleCount int, discard interface{}) {
+		plan.columns = append(plan.columns, name)
+		if traversal == nil {
+			traversal = []int{}
+		}
+		plan.fields = append(plan.fields, traversal)
+		plan.tupleIndexes = append(plan.tupleIndexes, tupleIndex)
+		plan.tupleCounts = append(plan.tupleCounts, tupleCount)
+		plan.values = append(plan.values, discard)
+	}
+
+	for _, column := range columnInfo {
+		tuple, ok := column.TypeInfo.(gocql.TupleTypeInfo)
+		if !ok {
+			appendDestination(column.Name, traversalByName(iter.Mapper, t, column.Name), -1, 0, nil)
+			continue
+		}
+
+		traversal := traversalByName(iter.Mapper, t, column.Name)
+		if len(traversal) != 0 {
+			fieldType := fieldTypeByTraversal(t, traversal)
+			switch {
+			case isTupleContainerType(fieldType):
+				for i := range tuple.Elems {
+					appendDestination(gocql.TupleColumnName(column.Name, i), traversal, i, len(tuple.Elems), nil)
+				}
+				continue
+			case fieldType != nil && fieldType.Kind() == reflect.Struct && fieldType.NumField() == len(tuple.Elems):
+				for i := range tuple.Elems {
+					field := fieldType.Field(i)
+					if field.PkgPath != "" {
+						return structScanPlan{}, fmt.Errorf("cannot scan tuple column %q into unexported field %q", column.Name, field.Name)
+					}
+					elemTraversal := append(append([]int(nil), traversal...), i)
+					appendDestination(gocql.TupleColumnName(column.Name, i), elemTraversal, -1, len(tuple.Elems), nil)
+				}
+				continue
+			}
+			return structScanPlan{}, fmt.Errorf("cannot scan tuple column %q into %v; expected an array, slice, or struct with %d fields", column.Name, fieldType, len(tuple.Elems))
+		}
+
+		for i := range tuple.Elems {
+			name := gocql.TupleColumnName(column.Name, i)
+			traversal := traversalByName(iter.Mapper, t, name)
+			var discard interface{}
+			if len(traversal) == 0 {
+				discard = tupleDiscardScanner{}
+			}
+			appendDestination(name, traversal, -1, len(tuple.Elems), discard)
+		}
+	}
+
+	return plan, nil
+}
+
+// fieldsByTraversal fills plan.values with addressable destinations from the
+// passed value based on the traversals in plan.fields.
 // We write this instead of using FieldsByName to save allocations and map
 // lookups when iterating over many rows.
-// Empty traversals will get an interface pointer.
-func (iter *Iterx) fieldsByTraversal(value reflect.Value, traversals [][]int, values []interface{}) error {
+// Columns with an empty traversal keep the destination assigned during planning.
+func (iter *Iterx) fieldsByTraversal(value reflect.Value, plan *structScanPlan) error {
 	value = reflect.Indirect(value)
 	if value.Kind() != reflect.Struct {
 		return fmt.Errorf("expected a struct but got %s", value.Type())
 	}
 
-	for i, traversal := range traversals {
+	for i, traversal := range plan.fields {
 		if len(traversal) == 0 {
 			continue
 		}
-		f := reflectx.FieldByIndexes(value, traversal).Addr()
-		values[i] = udtWrapValue(f, iter.Mapper, iter.strict)
+		f := reflectx.FieldByIndexes(value, traversal)
+		if plan.tupleIndexes[i] >= 0 {
+			elem, err := tupleElementAddr(f, plan.tupleIndexes[i], plan.tupleCounts[i])
+			if err != nil {
+				return err
+			}
+			if elem.Elem().Kind() == reflect.Interface {
+				plan.values[i] = tupleInterfaceScanner{value: elem.Elem()}
+				continue
+			}
+			plan.values[i] = udtWrapValue(elem, iter.Mapper, iter.strict)
+			continue
+		}
+		if plan.tupleCounts[i] > 0 && f.Kind() == reflect.Interface {
+			plan.values[i] = tupleInterfaceScanner{value: f}
+			continue
+		}
+		f = f.Addr()
+		plan.values[i] = udtWrapValue(f, iter.Mapper, iter.strict)
 	}
 
 	return nil
-}
-
-func columnNames(ci []gocql.ColumnInfo) []string {
-	r := make([]string, len(ci))
-	for i, column := range ci {
-		r[i] = column.Name
-	}
-	return r
 }
 
 // Scan consumes the next row of the iterator and copies the columns of the

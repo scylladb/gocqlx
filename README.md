@@ -147,6 +147,32 @@ fmt.Println(people)
 // stdout: [{Michał Matczuk [michal@scylladb.com]}]
 ```
 
+Bind and scan tuple columns with arrays or slices:
+
+```go
+type Place struct {
+	ID         int
+	Coordinate [2]float64
+}
+
+insert := qb.Insert("place").Columns("id").TupleColumn("coordinate", 2).Query(session)
+if err := insert.BindStruct(Place{
+	ID:         1,
+	Coordinate: [2]float64{50.06, 19.94},
+}).ExecRelease(); err != nil {
+	log.Fatal(err)
+}
+
+var place Place
+q := qb.Select("place").Where(qb.Eq("id")).Query(session).BindMap(qb.M{"id": 1})
+if err := q.GetRelease(&place); err != nil {
+	log.Fatal(err)
+}
+```
+
+If a struct also contains fields tagged with tuple element names such as
+`db:"coordinate[0]"`, the array or slice field takes precedence when scanning.
+
 ## Generating table metadata with schemagen
 
 Installation

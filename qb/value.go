@@ -25,7 +25,7 @@ func (p param) writeCql(cql *bytes.Buffer) (names []string) {
 	return []string{string(p)}
 }
 
-// param is a named CQL tuple '?' parameter.
+// tupleParam is a named CQL tuple '?' parameter.
 type tupleParam struct {
 	param param
 	count int
