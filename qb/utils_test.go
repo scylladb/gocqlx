@@ -5,6 +5,83 @@ import (
 	"time"
 )
 
+func TestQuoteTableName(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{
+			name: "simple qualified name",
+			in:   "cycling.cyclist_name",
+			want: "cycling.cyclist_name",
+		},
+		{
+			name: "mixed case table",
+			in:   "ks.tableName",
+			want: `ks."tableName"`,
+		},
+		{
+			name: "mixed case keyspace and table",
+			in:   "keySpace.tableName",
+			want: `"keySpace"."tableName"`,
+		},
+		{
+			name: "reserved keyword table",
+			in:   "ks.select",
+			want: `ks."select"`,
+		},
+		{
+			name: "reserved keyword keyspace",
+			in:   "select.tbl_name",
+			want: `"select".tbl_name`,
+		},
+		{
+			name: "non-reserved keyword table",
+			in:   "ks.aggregate",
+			want: `ks.aggregate`,
+		},
+		{
+			name: "already quoted table",
+			in:   `ks."tableName"`,
+			want: `ks."tableName"`,
+		},
+		{
+			name: "dot inside quoted keyspace",
+			in:   `"key.space".tableName`,
+			want: `"key.space"."tableName"`,
+		},
+		{
+			name: "quote inside unquoted keyspace",
+			in:   `key"space.tableName`,
+			want: `"key""space"."tableName"`,
+		},
+		{
+			name: "escaped quote inside quoted keyspace",
+			in:   `"key""space".tableName`,
+			want: `"key""space"."tableName"`,
+		},
+		{
+			name: "unescaped quote inside quoted table",
+			in:   `ks."table"name"`,
+			want: `ks."""table""name"""`,
+		},
+		{
+			name: "unescaped quotes inside quoted table",
+			in:   `"table"; DROP TABLE "other"`,
+			want: `"""table""; DROP TABLE ""other"""`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := quoteTableName(tt.in); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestFormatDuration(t *testing.T) {
 	tests := []struct {
 		name     string

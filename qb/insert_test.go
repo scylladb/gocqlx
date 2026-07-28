@@ -32,7 +32,7 @@ func TestInsertBuilder(t *testing.T) {
 		// Change table name
 		{
 			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Into("Foobar"),
-			S: "INSERT INTO Foobar (id,user_uuid,firstname) VALUES (?,?,?) ",
+			S: `INSERT INTO "Foobar" (id,user_uuid,firstname) VALUES (?,?,?) `,
 			N: []string{"id", "user_uuid", "firstname"},
 		},
 		// Add columns

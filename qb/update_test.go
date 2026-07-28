@@ -28,7 +28,7 @@ func TestUpdateBuilder(t *testing.T) {
 		// Change table name
 		{
 			B: Update("cycling.cyclist_name").Set("id", "user_uuid", "firstname").Where(w).Table("Foobar"),
-			S: "UPDATE Foobar SET id=?,user_uuid=?,firstname=? WHERE id=? ",
+			S: `UPDATE "Foobar" SET id=?,user_uuid=?,firstname=? WHERE id=? `,
 			N: []string{"id", "user_uuid", "firstname", "expr"},
 		},
 		// Add SET

@@ -31,6 +31,7 @@ type InsertBuilder struct {
 }
 
 // Insert returns a new InsertBuilder with the given table name.
+// See the package documentation for table name quoting rules.
 func Insert(table string) *InsertBuilder {
 	return &InsertBuilder{
 		table: table,
@@ -44,7 +45,7 @@ func (b *InsertBuilder) ToCql() (stmt string, names []string) {
 	cql.WriteString("INSERT ")
 
 	cql.WriteString("INTO ")
-	cql.WriteString(b.table)
+	cql.WriteString(quoteTableName(b.table))
 	cql.WriteByte(' ')
 
 	if b.json {
@@ -92,6 +93,7 @@ func (b *InsertBuilder) QueryContext(ctx context.Context, session gocqlx.Session
 }
 
 // Into sets the INTO clause of the query.
+// See the package documentation for table name quoting rules.
 func (b *InsertBuilder) Into(table string) *InsertBuilder {
 	b.table = table
 	return b
