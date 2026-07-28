@@ -53,6 +53,13 @@ func TestExample(t *testing.T) {
 	unsetEmptyValues(t, session)
 }
 
+func createExampleKeyspace(t *testing.T, session gocqlx.Session) {
+	t.Helper()
+	if err := gocqlxtest.CreateKeyspaceIfNotExists(session, "examples"); err != nil {
+		t.Fatal("create keyspace:", err)
+	}
+}
+
 type Song struct {
 	ID     gocql.UUID
 	Title  string
@@ -76,15 +83,11 @@ type PlaylistItem struct {
 func basicCreateAndPopulateKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
 	t.Helper()
 
-	err := session.ExecStmt(fmt.Sprintf(
-		`CREATE KEYSPACE IF NOT EXISTS %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`,
-		keyspace,
-	))
-	if err != nil {
+	if err := gocqlxtest.CreateKeyspaceIfNotExists(session, keyspace); err != nil {
 		t.Fatal("create keyspace:", err)
 	}
 
-	err = session.ExecStmt(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s.songs (
+	err := session.ExecStmt(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s.songs (
 		id uuid PRIMARY KEY,
 		title text,
 		album text,
@@ -167,10 +170,7 @@ func basicCreateAndPopulateKeyspace(t *testing.T, session gocqlx.Session, keyspa
 func createAndPopulateKeyspaceAllTypes(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
 	// generated with schemagen
 	type CheckTypesStruct struct {
@@ -199,7 +199,7 @@ func createAndPopulateKeyspaceAllTypes(t *testing.T, session gocqlx.Session) {
 		VarInt     int64
 	}
 
-	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.check_types (
+	err := session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.check_types (
 		asci_i ascii,
 		big_int bigint,
 		blo_b blob,
@@ -351,12 +351,9 @@ func basicReadScyllaVersion(t *testing.T, session gocqlx.Session) {
 func datatypesBlob(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
-	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.blobs(k int PRIMARY KEY, b blob, m map<text, blob>)`)
+	err := session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.blobs(k int PRIMARY KEY, b blob, m map<text, blob>)`)
 	if err != nil {
 		t.Fatal("create table:", err)
 	}
@@ -404,12 +401,9 @@ type Coordinates struct {
 func datatypesUserDefinedType(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
-	err = session.ExecStmt(`CREATE TYPE IF NOT EXISTS examples.coordinates(x int, y int)`)
+	err := session.ExecStmt(`CREATE TYPE IF NOT EXISTS examples.coordinates(x int, y int)`)
 	if err != nil {
 		t.Fatal("create type:", err)
 	}
@@ -460,12 +454,9 @@ type coordinates struct {
 func datatypesUserDefinedTypeWrapper(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
-	err = session.ExecStmt(`CREATE TYPE IF NOT EXISTS examples.coordinates(x int, y int)`)
+	err := session.ExecStmt(`CREATE TYPE IF NOT EXISTS examples.coordinates(x int, y int)`)
 	if err != nil {
 		t.Fatal("create type:", err)
 	}
@@ -518,12 +509,9 @@ func datatypesUserDefinedTypeWrapper(t *testing.T, session gocqlx.Session) {
 func datatypesJSON(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
-	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.querybuilder_json(id int PRIMARY KEY, name text, specs map<text, text>)`)
+	err := session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.querybuilder_json(id int PRIMARY KEY, name text, specs map<text, text>)`)
 	if err != nil {
 		t.Fatal("create table:", err)
 	}
@@ -618,12 +606,9 @@ func pagingFillTable(t *testing.T, insert *gocqlx.Queryx) {
 func pagingForwardPaging(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
-	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.paging_forward_paging(
+	err := session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.paging_forward_paging(
 		user_id int,
 		user_name text,
 		added timestamp,
@@ -689,12 +674,9 @@ func pagingForwardPaging(t *testing.T, session gocqlx.Session) {
 func pagingEfficientFullTableScan(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
-	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.paging_efficient_full_table_scan(
+	err := session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.paging_efficient_full_table_scan(
 		user_id int,
 		user_name text,
 		added timestamp,
@@ -801,10 +783,7 @@ func pagingEfficientFullTableScan(t *testing.T, session gocqlx.Session) {
 func lwtLock(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
 	type Lock struct {
 		Name  string
@@ -812,7 +791,7 @@ func lwtLock(t *testing.T, session gocqlx.Session) {
 		TTL   int64
 	}
 
-	err = session.ExecStmt(`CREATE TABLE examples.lock (name text PRIMARY KEY, owner text)`)
+	err := session.ExecStmt(`CREATE TABLE examples.lock (name text PRIMARY KEY, owner text)`)
 	if err != nil {
 		t.Fatal("create table:", err)
 	}
@@ -902,10 +881,7 @@ func lwtLock(t *testing.T, session gocqlx.Session) {
 func unsetEmptyValues(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
 	type Operation struct {
 		ID        string
@@ -914,7 +890,7 @@ func unsetEmptyValues(t *testing.T, session gocqlx.Session) {
 		PaymentID string
 		Fee       *inf.Dec
 	}
-	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.operations (
+	err := session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.operations (
 		id text PRIMARY KEY,
 		client_id text,
 		type text,
