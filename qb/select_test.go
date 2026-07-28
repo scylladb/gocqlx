@@ -58,7 +58,7 @@ func TestSelectBuilder(t *testing.T) {
 		// Change table name
 		{
 			B: Select("cycling.cyclist_name").From("Foobar"),
-			S: "SELECT * FROM Foobar ",
+			S: `SELECT * FROM "Foobar" `,
 		},
 		// Add WHERE
 		{
