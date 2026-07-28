@@ -378,10 +378,22 @@ func (q *Queryx) Iter() *Iterx {
 	}
 }
 
-// Strict forces the query and iterators to report an error if there are missing fields.
-// By default when scanning a struct if result row has a column that cannot be mapped to
-// any destination it is ignored. With strict error is reported.
+// Strict makes the query and iterators created from it use strict struct and UDT
+// mapping. Struct scans report an error when a result column cannot be mapped
+// to any destination field. UDT marshal/unmarshal reports an error when a UDT
+// field name has no matching struct field. By default these unmatched names are
+// ignored unless DefaultStrict is enabled. Use Unsafe to disable strict mode
+// again for this query.
 func (q *Queryx) Strict() *Queryx {
 	q.strict = true
+	return q
+}
+
+// Unsafe makes the query and iterators created from it ignore result columns and
+// UDT fields that cannot be mapped to destination struct fields. It can override
+// DefaultStrict or a prior Strict call for later scans and binds. For bound UDT
+// values, call Unsafe before Bind so the UDT wrapper is created in unsafe mode.
+func (q *Queryx) Unsafe() *Queryx {
+	q.strict = false
 	return q
 }

@@ -13,8 +13,11 @@ import (
 	"github.com/scylladb/go-reflectx"
 )
 
-// DefaultStrict disables the behavior of forcing queries and iterators to ignore
-// missing fields for all queries. See Strict below for more information.
+// DefaultStrict makes newly created queries use strict struct and UDT mapping.
+// In strict mode, struct scans report an error when a result column has no
+// matching destination field, and UDT marshal/unmarshal reports an error when a
+// UDT field name has no matching struct field. Use Queryx.Unsafe or
+// Iterx.Unsafe to disable strict mode for an individual query or iterator.
 var DefaultStrict bool
 
 // Iterx is a wrapper around gocql.Iter which adds struct scanning capabilities.
@@ -31,11 +34,22 @@ type Iterx struct {
 	applied    bool
 }
 
-// Strict forces the iterator to disable ignoring missing fields. In Strict mode
-// when scanning a struct if result row has a column that cannot be mapped to any
-// destination field an error is reported. By default such columns are ignored.
+// Strict makes the iterator use strict struct and UDT mapping. Struct scans
+// report an error when a result column cannot be mapped to any destination
+// field, and UDT marshal/unmarshal reports an error when a UDT field name has
+// no matching struct field. By default unmatched names are ignored unless
+// DefaultStrict is enabled. Use Unsafe to disable strict mode again for this
+// iterator.
 func (iter *Iterx) Strict() *Iterx {
 	iter.strict = true
+	return iter
+}
+
+// Unsafe makes the iterator ignore result columns and UDT fields that cannot be
+// mapped to destination struct fields. It can override DefaultStrict or a prior
+// Strict call; the last Strict or Unsafe call on the iterator wins.
+func (iter *Iterx) Unsafe() *Iterx {
+	iter.strict = false
 	return iter
 }
 

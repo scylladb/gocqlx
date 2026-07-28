@@ -212,6 +212,68 @@ func TestQueryxBindMap(t *testing.T) {
 	})
 }
 
+func TestQueryxStrictUnsafe(t *testing.T) {
+	defaultStrict := DefaultStrict
+	t.Cleanup(func() {
+		DefaultStrict = defaultStrict
+	})
+
+	DefaultStrict = false
+	q := Query(nil, nil)
+	if q.strict {
+		t.Fatal("Query() strict=true, expected false with DefaultStrict disabled")
+	}
+	if got := q.Strict(); got != q {
+		t.Fatal("Strict() did not return receiver")
+	}
+	if !q.strict {
+		t.Fatal("Strict() did not enable strict mode")
+	}
+	if got := q.Unsafe(); got != q {
+		t.Fatal("Unsafe() did not return receiver")
+	}
+	if q.strict {
+		t.Fatal("Unsafe() did not disable strict mode")
+	}
+
+	DefaultStrict = true
+	q = Query(nil, nil)
+	if !q.strict {
+		t.Fatal("Query() strict=false, expected true with DefaultStrict enabled")
+	}
+	q.Unsafe()
+	if q.strict {
+		t.Fatal("Unsafe() did not override DefaultStrict")
+	}
+	q.Strict()
+	if !q.strict {
+		t.Fatal("Strict() did not override Unsafe()")
+	}
+}
+
+func TestIterxStrictUnsafe(t *testing.T) {
+	iter := &Iterx{}
+	if iter.strict {
+		t.Fatal("Iterx strict=true, expected false by default")
+	}
+	if got := iter.Strict(); got != iter {
+		t.Fatal("Strict() did not return receiver")
+	}
+	if !iter.strict {
+		t.Fatal("Strict() did not enable strict mode")
+	}
+	if got := iter.Unsafe(); got != iter {
+		t.Fatal("Unsafe() did not return receiver")
+	}
+	if iter.strict {
+		t.Fatal("Unsafe() did not disable strict mode")
+	}
+	iter.Strict()
+	if !iter.strict {
+		t.Fatal("Strict() did not override Unsafe()")
+	}
+}
+
 func TestQueryxAllWrapped(t *testing.T) {
 	var (
 		gocqlQueryPtr = reflect.TypeOf((*gocql.Query)(nil))

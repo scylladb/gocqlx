@@ -760,6 +760,16 @@ func TestIterxStrict(t *testing.T) {
 		golden = "missing destination name \"testtextunbound\" in gocqlx_test.StrictTable"
 	)
 
+	setDefaultStrict := func(t *testing.T, strict bool) {
+		t.Helper()
+
+		defaultStrict := gocqlx.DefaultStrict
+		gocqlx.DefaultStrict = strict
+		t.Cleanup(func() {
+			gocqlx.DefaultStrict = defaultStrict
+		})
+	}
+
 	t.Run("get strict", func(t *testing.T) {
 		var v StrictTable
 		err := session.Query(stmt, nil).Strict().Get(&v)
@@ -776,6 +786,100 @@ func TestIterxStrict(t *testing.T) {
 		}
 		if cap(v) > 0 {
 			t.Fatalf("Select() effect alloc cap=%d expected 0", cap(v))
+		}
+	})
+
+	t.Run("get default strict", func(t *testing.T) {
+		setDefaultStrict(t, true)
+
+		var v StrictTable
+		err := session.Query(stmt, nil).Get(&v)
+		if err == nil || !strings.HasPrefix(err.Error(), golden) {
+			t.Fatalf("Get() error=%q expected %s", err, golden)
+		}
+	})
+
+	t.Run("get unsafe", func(t *testing.T) {
+		var v StrictTable
+		err := session.Query(stmt, nil).Strict().Unsafe().Get(&v)
+		if err != nil {
+			t.Fatal("Get() failed:", err)
+		}
+		if diff := cmp.Diff(m, v); diff != "" {
+			t.Fatalf("Get()=%+v expected %+v, diff: %s", v, m, diff)
+		}
+	})
+
+	t.Run("get unsafe with default strict", func(t *testing.T) {
+		setDefaultStrict(t, true)
+
+		var v StrictTable
+		err := session.Query(stmt, nil).Unsafe().Get(&v)
+		if err != nil {
+			t.Fatal("Get() failed:", err)
+		}
+		if diff := cmp.Diff(m, v); diff != "" {
+			t.Fatalf("Get()=%+v expected %+v, diff: %s", v, m, diff)
+		}
+	})
+
+	t.Run("select unsafe", func(t *testing.T) {
+		var v []StrictTable
+		err := session.Query(stmt, nil).Strict().Unsafe().SelectRelease(&v)
+		if err != nil {
+			t.Fatal("SelectRelease() failed:", err)
+		}
+		if len(v) != 1 {
+			t.Fatalf("SelectRelease()=%+v expected 1 row got %d", v, len(v))
+		}
+		if diff := cmp.Diff(m, v[0]); diff != "" {
+			t.Fatalf("SelectRelease()[0]=%+v expected %+v, diff: %s", v[0], m, diff)
+		}
+	})
+
+	t.Run("select unsafe with default strict", func(t *testing.T) {
+		setDefaultStrict(t, true)
+
+		var v []StrictTable
+		err := session.Query(stmt, nil).Unsafe().SelectRelease(&v)
+		if err != nil {
+			t.Fatal("SelectRelease() failed:", err)
+		}
+		if len(v) != 1 {
+			t.Fatalf("SelectRelease()=%+v expected 1 row got %d", v, len(v))
+		}
+		if diff := cmp.Diff(m, v[0]); diff != "" {
+			t.Fatalf("SelectRelease()[0]=%+v expected %+v, diff: %s", v[0], m, diff)
+		}
+	})
+
+	t.Run("iter unsafe with default strict", func(t *testing.T) {
+		setDefaultStrict(t, true)
+
+		var v []StrictTable
+		err := session.Query(stmt, nil).Iter().Unsafe().Select(&v)
+		if err != nil {
+			t.Fatal("Select() failed:", err)
+		}
+		if len(v) != 1 {
+			t.Fatalf("Select()=%+v expected 1 row got %d", v, len(v))
+		}
+		if diff := cmp.Diff(m, v[0]); diff != "" {
+			t.Fatalf("Select()[0]=%+v expected %+v, diff: %s", v[0], m, diff)
+		}
+	})
+
+	t.Run("iter unsafe", func(t *testing.T) {
+		var v []StrictTable
+		err := session.Query(stmt, nil).Iter().Strict().Unsafe().Select(&v)
+		if err != nil {
+			t.Fatal("Select() failed:", err)
+		}
+		if len(v) != 1 {
+			t.Fatalf("Select()=%+v expected 1 row got %d", v, len(v))
+		}
+		if diff := cmp.Diff(m, v[0]); diff != "" {
+			t.Fatalf("Select()[0]=%+v expected %+v, diff: %s", v[0], m, diff)
 		}
 	})
 

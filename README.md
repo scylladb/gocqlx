@@ -147,6 +147,35 @@ fmt.Println(people)
 // stdout: [{Michał Matczuk [michal@scylladb.com]}]
 ```
 
+## Strict struct scanning
+
+By default, GocqlX ignores result columns that do not map to exported fields in
+the destination struct. Use `Strict` to catch schema or query drift when scanning
+structs:
+
+```go
+var p Person
+q := session.Query(`SELECT first_name, last_name, email, age FROM person`, nil).Strict()
+if err := q.GetRelease(&p); err != nil {
+	log.Fatal(err) // age has no matching Person field
+}
+```
+
+Set `gocqlx.DefaultStrict = true` to make new queries strict by default. Use
+`Unsafe` on a query or iterator to ignore unmapped columns for that query or
+iterator instance:
+
+```go
+var p Person
+q := session.Query(`SELECT * FROM person`, nil).Unsafe()
+if err := q.GetRelease(&p); err != nil {
+	log.Fatal(err)
+}
+```
+
+When binding UDT values with `Queryx.Bind`, call `Unsafe` before `Bind` so the
+UDT wrapper is created in unsafe mode.
+
 ## Generating table metadata with schemagen
 
 Installation
