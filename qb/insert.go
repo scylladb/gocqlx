@@ -124,10 +124,21 @@ func (b *InsertBuilder) NamedColumn(column, name string) *InsertBuilder {
 }
 
 // LitColumn adds an insert column with a literal value to the query.
+// The literal is written verbatim; use StringLitColumn for string values.
 func (b *InsertBuilder) LitColumn(column, literal string) *InsertBuilder {
 	b.columns = append(b.columns, initializer{
 		column: column,
 		value:  lit(literal),
+	})
+	return b
+}
+
+// StringLitColumn adds an insert column with an escaped CQL string literal value.
+// It does not add a parameter to the query.
+func (b *InsertBuilder) StringLitColumn(column, literal string) *InsertBuilder {
+	b.columns = append(b.columns, initializer{
+		column: column,
+		value:  stringLit(literal),
 	})
 	return b
 }

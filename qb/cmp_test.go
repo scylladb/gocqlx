@@ -218,32 +218,84 @@ func TestCmp(t *testing.T) {
 			S: "eq=litval",
 		},
 		{
+			C: EqLitString("eq", "O'Brien"),
+			S: "eq='O''Brien'",
+		},
+		{
 			C: NeLit("ne", "litval"),
 			S: "ne!=litval",
+		},
+		{
+			C: NeLitString("ne", "O'Brien"),
+			S: "ne!='O''Brien'",
 		},
 		{
 			C: LtLit("lt", "litval"),
 			S: "lt<litval",
 		},
 		{
+			C: LtLitString("lt", "O'Brien"),
+			S: "lt<'O''Brien'",
+		},
+		{
 			C: LtOrEqLit("lt", "litval"),
 			S: "lt<=litval",
+		},
+		{
+			C: LtOrEqLitString("lt", "O'Brien"),
+			S: "lt<='O''Brien'",
 		},
 		{
 			C: GtLit("gt", "litval"),
 			S: "gt>litval",
 		},
 		{
+			C: GtLitString("gt", "O'Brien"),
+			S: "gt>'O''Brien'",
+		},
+		{
 			C: GtOrEqLit("gt", "litval"),
 			S: "gt>=litval",
+		},
+		{
+			C: GtOrEqLitString("gt", "O'Brien"),
+			S: "gt>='O''Brien'",
 		},
 		{
 			C: InLit("in", "litval"),
 			S: "in IN litval",
 		},
 		{
+			C: InLitString("in", "O'Brien"),
+			S: "in IN ('O''Brien')",
+		},
+		{
+			C: InLitStrings("in", "O'Brien", "RUNNING"),
+			S: "in IN ('O''Brien','RUNNING')",
+		},
+		{
 			C: ContainsLit("cnt", "litval"),
 			S: "cnt CONTAINS litval",
+		},
+		{
+			C: ContainsLitString("cnt", "O'Brien"),
+			S: "cnt CONTAINS 'O''Brien'",
+		},
+		{
+			C: ContainsKeyLit("cntKey", "litval"),
+			S: "cntKey CONTAINS KEY litval",
+		},
+		{
+			C: ContainsKeyLitString("cntKey", "O'Brien"),
+			S: "cntKey CONTAINS KEY 'O''Brien'",
+		},
+		{
+			C: LikeLit("like", "litval"),
+			S: "like LIKE litval",
+		},
+		{
+			C: LikeLitString("like", "O'B%"),
+			S: "like LIKE 'O''B%'",
 		},
 
 		// Functions
@@ -302,4 +354,14 @@ func TestCmp(t *testing.T) {
 			t.Error(diff)
 		}
 	}
+}
+
+func TestInLitStringsRequiresLiteral(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("InLitStrings() should panic with no literals")
+		}
+	}()
+
+	InLitStrings("in")
 }
