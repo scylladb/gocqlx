@@ -209,6 +209,52 @@ func TestRenderTemplateRetainsNestedUserTypes(t *testing.T) {
 	}
 }
 
+func TestRenderTemplateIgnoresPaxosTables(t *testing.T) {
+	pkgname := *flagPkgname
+	ignoreNames := *flagIgnoreNames
+	ignoreIndexes := *flagIgnoreIndexes
+	t.Cleanup(func() {
+		*flagPkgname = pkgname
+		*flagIgnoreNames = ignoreNames
+		*flagIgnoreIndexes = ignoreIndexes
+	})
+
+	*flagPkgname = "schemagentest"
+	*flagIgnoreNames = ""
+	*flagIgnoreIndexes = false
+
+	idColumn := &gocql.ColumnMetadata{Name: "id", Type: "uuid"}
+	emailColumn := &gocql.ColumnMetadata{Name: "email", Type: "text"}
+	paxosColumn := &gocql.ColumnMetadata{Name: "row_key", Type: "blob"}
+	b, err := renderTemplate(&gocql.KeyspaceMetadata{
+		Tables: map[string]*gocql.TableMetadata{
+			"users": {
+				Name:           "users",
+				Columns:        map[string]*gocql.ColumnMetadata{"id": idColumn, "email": emailColumn},
+				OrderedColumns: []string{"id", "email"},
+				PartitionKey:   []*gocql.ColumnMetadata{idColumn},
+			},
+			"users_by_email$paxos": {
+				Name:           "users_by_email$paxos",
+				Columns:        map[string]*gocql.ColumnMetadata{"row_key": paxosColumn},
+				OrderedColumns: []string{"row_key"},
+				PartitionKey:   []*gocql.ColumnMetadata{paxosColumn},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	source := string(b)
+	if !strings.Contains(source, "Users = table.New") {
+		t.Fatalf("generated source does not include user table:\n%s", source)
+	}
+	if strings.Contains(source, "paxos") {
+		t.Fatalf("generated source includes internal Paxos table:\n%s", source)
+	}
+}
+
 func TestRenderTemplateRejectsNonComparableMapKeys(t *testing.T) {
 	pkgname := *flagPkgname
 	ignoreNames := *flagIgnoreNames

@@ -104,15 +104,23 @@ func renderTemplate(md *gocql.KeyspaceMetadata) ([]byte, error) {
 	}
 
 	// Then remove all tables, views, and indices if their names match the
-	// filter.
+	// filter. Also skip internal Paxos tables created by LWT.
 	ignoredNames := make(map[string]struct{})
 	for _, ignoredName := range strings.Split(*flagIgnoreNames, ",") {
+		if ignoredName == "" {
+			continue
+		}
 		ignoredNames[ignoredName] = struct{}{}
 	}
 	for name := range ignoredNames {
 		delete(md.Tables, name)
 		delete(md.Views, name)
 		delete(md.Indexes, name)
+	}
+	for name := range md.Tables {
+		if strings.HasSuffix(name, "$paxos") {
+			delete(md.Tables, name)
+		}
 	}
 
 	removeUnusedUserTypes(md)
