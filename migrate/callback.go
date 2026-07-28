@@ -23,9 +23,15 @@ const (
 
 // CallbackFunc enables execution of arbitrary Go code during migration.
 // If error is returned the migration is aborted.
-// BeforeMigration and AfterMigration are triggered before and after processing
-// of each migration file respectively.
+// BeforeMigration is triggered before processing each migration file and again
+// before processing its remaining statements after a partial migration resumes.
+// AfterMigration is attempted after the final statement's progress is recorded
+// and is not retried if it returns an error, including one caused by context
+// cancellation or deadline expiry.
 // CallComment is triggered for each comment in a form `-- CALL <name>;` (note the semicolon).
+// BeforeMigration and AfterMigration receive the caller's context. CallComment
+// receives a context detached from caller cancellation and deadlines so a callback
+// that is part of a started migration operation completes with its progress update.
 type CallbackFunc func(ctx context.Context, session gocqlx.Session, ev CallbackEvent, name string) error
 
 // Callback is means of executing Go code during migrations.
