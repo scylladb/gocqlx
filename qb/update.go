@@ -169,6 +169,7 @@ func (b *UpdateBuilder) SetFunc(column string, fn *Func) *UpdateBuilder {
 }
 
 // SetTuple adds a SET clause for a tuple to the query.
+// It generates bind names in the form "column[0]", "column[1]", and so on.
 func (b *UpdateBuilder) SetTuple(column string, count int) *UpdateBuilder {
 	b.assignments = append(b.assignments, assignment{
 		column: column,

@@ -5,7 +5,10 @@
 package gocqlx
 
 import (
+	"math"
 	"reflect"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/gocql/gocql"
@@ -162,6 +165,195 @@ func TestQueryxBindStruct(t *testing.T) {
 			t.Fatal("unexpected error")
 		}
 	})
+
+	t.Run("tuple array", func(t *testing.T) {
+		v := &struct {
+			Coordinates [2]int
+		}{
+			Coordinates: [2]int{12, 34},
+		}
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		args, err := Query(nil, names).bindStructArgs(v, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(args, []interface{}{12, 34}); diff != "" {
+			t.Error("args mismatch", diff)
+		}
+	})
+
+	t.Run("tuple slice", func(t *testing.T) {
+		v := &struct {
+			Coordinates []int
+		}{
+			Coordinates: []int{56, 78},
+		}
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		args, err := Query(nil, names).bindStructArgs(v, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(args, []interface{}{56, 78}); diff != "" {
+			t.Error("args mismatch", diff)
+		}
+	})
+
+	t.Run("tuple array arity mismatch", func(t *testing.T) {
+		v := &struct {
+			Coordinates [3]int
+		}{
+			Coordinates: [3]int{12, 34, 56},
+		}
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		_, err := Query(nil, names).bindStructArgs(v, nil)
+		if err == nil {
+			t.Fatal("unexpected nil error")
+		}
+		if !strings.Contains(err.Error(), "array length 3 does not match tuple element count 2") {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("tuple slice arity mismatch", func(t *testing.T) {
+		v := &struct {
+			Coordinates []int
+		}{
+			Coordinates: []int{56, 78, 90},
+		}
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		_, err := Query(nil, names).bindStructArgs(v, nil)
+		if err == nil {
+			t.Fatal("unexpected nil error")
+		}
+		if !strings.Contains(err.Error(), "slice length 3 does not match tuple element count 2") {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("tuple byte array", func(t *testing.T) {
+		v := &struct {
+			Coordinates [2]byte
+		}{
+			Coordinates: [2]byte{12, 34},
+		}
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		_, err := Query(nil, names).bindStructArgs(v, nil)
+		if err == nil || !strings.Contains(err.Error(), "expected a non-byte array") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("unsupported tuple field does not fall back to map", func(t *testing.T) {
+		v := &struct {
+			Coordinates int
+		}{
+			Coordinates: 12,
+		}
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		_, err := Query(nil, names).bindStructArgs(v, map[string]interface{}{
+			"coordinates": []int{34, 56},
+		})
+		if err == nil || !strings.Contains(err.Error(), `expected a non-byte array, slice, or struct`) {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("tuple container takes precedence over element fields", func(t *testing.T) {
+		v := &struct {
+			Coordinates [2]int
+			C0          int `db:"coordinates[0]"`
+			C1          int `db:"coordinates[1]"`
+		}{
+			Coordinates: [2]int{12, 34},
+			C0:          56,
+			C1:          78,
+		}
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		args, err := Query(nil, names).bindStructArgs(v, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(args, []interface{}{12, 34}); diff != "" {
+			t.Error("args mismatch", diff)
+		}
+	})
+
+	t.Run("explicit map element overrides unsupported tuple field", func(t *testing.T) {
+		v := &struct{ Coordinates string }{Coordinates: "not a tuple"}
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		args, err := Query(nil, names).bindStructArgs(v, map[string]interface{}{
+			"coordinates[0]": 12,
+			"coordinates[1]": 34,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(args, []interface{}{12, 34}); diff != "" {
+			t.Error("args mismatch", diff)
+		}
+	})
+
+	t.Run("tuple-shaped struct", func(t *testing.T) {
+		type embedded struct {
+			First int
+		}
+		type coordinates struct {
+			embedded
+			Ignored string `db:"-"`
+			Second  int
+		}
+		v := &struct{ Coordinates coordinates }{
+			Coordinates: coordinates{embedded: embedded{First: 12}, Ignored: "ignored", Second: 34},
+		}
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		args, err := Query(nil, names).bindStructArgs(v, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(args, []interface{}{12, 34}); diff != "" {
+			t.Error("args mismatch", diff)
+		}
+	})
+
+	t.Run("collection element name is not inferred as tuple", func(t *testing.T) {
+		q := &Queryx{
+			Names:     []string{"items[0]"},
+			Mapper:    DefaultMapper,
+			statement: "UPDATE tbl SET items[0]=? ",
+		}
+		_, err := q.bindStructArgs(&struct{ Items []int }{Items: []int{7}}, nil)
+		if err == nil || !strings.Contains(err.Error(), `could not find name "items[0]"`) {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("tuple index overflow", func(t *testing.T) {
+		v := &struct {
+			Coordinates []int
+		}{
+			Coordinates: []int{},
+		}
+		name := "coordinates[" + strconv.Itoa(math.MaxInt) + "]"
+		_, err := Query(nil, []string{name}).bindStructArgs(v, nil)
+		if err == nil || !strings.Contains(err.Error(), name) {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("tuple container behind nil embedded pointer", func(t *testing.T) {
+		type tupleFields struct {
+			Coordinates []int
+		}
+		v := &struct {
+			*tupleFields
+		}{}
+		_, err := Query(nil, []string{"coordinates[0]"}).bindStructArgs(v, nil)
+		if err == nil || !strings.Contains(err.Error(), "nil pointer in field traversal") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
 }
 
 func TestQueryxBindMap(t *testing.T) {
@@ -208,6 +400,124 @@ func TestQueryxBindMap(t *testing.T) {
 		_, err := Query(nil, names).bindMapArgs(v)
 		if err == nil {
 			t.Fatal("unexpected error")
+		}
+	})
+
+	t.Run("tuple array", func(t *testing.T) {
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		args, err := Query(nil, names).bindMapArgs(map[string]interface{}{
+			"coordinates": [2]int{12, 34},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(args, []interface{}{12, 34}); diff != "" {
+			t.Error("args mismatch", diff)
+		}
+	})
+
+	t.Run("tuple slice", func(t *testing.T) {
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		args, err := Query(nil, names).bindMapArgs(map[string]interface{}{
+			"coordinates": []int{56, 78},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(args, []interface{}{56, 78}); diff != "" {
+			t.Error("args mismatch", diff)
+		}
+	})
+
+	t.Run("tuple array arity mismatch", func(t *testing.T) {
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		_, err := Query(nil, names).bindMapArgs(map[string]interface{}{
+			"coordinates": [3]int{12, 34, 56},
+		})
+		if err == nil {
+			t.Fatal("unexpected nil error")
+		}
+		if !strings.Contains(err.Error(), "array length 3 does not match tuple element count 2") {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("tuple slice arity mismatch", func(t *testing.T) {
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		_, err := Query(nil, names).bindMapArgs(map[string]interface{}{
+			"coordinates": []int{56, 78, 90},
+		})
+		if err == nil {
+			t.Fatal("unexpected nil error")
+		}
+		if !strings.Contains(err.Error(), "slice length 3 does not match tuple element count 2") {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("tuple nil slice", func(t *testing.T) {
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		_, err := Query(nil, names).bindMapArgs(map[string]interface{}{
+			"coordinates": []int(nil),
+		})
+		if err == nil {
+			t.Fatal("unexpected nil error")
+		}
+		if !strings.Contains(err.Error(), "nil slice does not match tuple element count 2") {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("tuple byte slice", func(t *testing.T) {
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		_, err := Query(nil, names).bindMapArgs(map[string]interface{}{
+			"coordinates": []byte("ab"),
+		})
+		if err == nil || !strings.Contains(err.Error(), "expected a non-byte array") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("collection element exact key", func(t *testing.T) {
+		q := &Queryx{
+			Names:     []string{"items[0]"},
+			Mapper:    DefaultMapper,
+			statement: "UPDATE tbl SET items[0]=? ",
+		}
+		args, err := q.bindMapArgs(map[string]interface{}{
+			"items":    []int{7},
+			"items[0]": 42,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(args, []interface{}{42}); diff != "" {
+			t.Error("args mismatch", diff)
+		}
+	})
+
+	t.Run("tuple blob slice", func(t *testing.T) {
+		names := []string{"coordinates[0]", "coordinates[1]"}
+		args, err := Query(nil, names).bindMapArgs(map[string]interface{}{
+			"coordinates": [][]byte{{1, 2}, {3, 4}},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(args, []interface{}{[]byte{1, 2}, []byte{3, 4}}); diff != "" {
+			t.Error("args mismatch", diff)
+		}
+	})
+
+	t.Run("tuple index overflow", func(t *testing.T) {
+		name := "coordinates[" + strconv.Itoa(math.MaxInt) + "]"
+		_, err := Query(nil, []string{name}).bindMapArgs(map[string]interface{}{
+			"coordinates": []int{},
+		})
+		if err == nil || !strings.Contains(err.Error(), name) {
+			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 }

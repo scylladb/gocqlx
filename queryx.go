@@ -91,9 +91,10 @@ func allowedBindRune(b byte) bool {
 
 // Queryx is a wrapper around gocql.Query which adds struct binding capabilities.
 type Queryx struct {
-	err    error
-	tr     Transformer
-	Mapper *reflectx.Mapper
+	err       error
+	tr        Transformer
+	statement string
+	Mapper    *reflectx.Mapper
 	*gocql.Query
 	Names  []string
 	strict bool
@@ -103,12 +104,17 @@ type Queryx struct {
 //
 // Deprecated: Use gocqlx.Session.Query API instead.
 func Query(q *gocql.Query, names []string) *Queryx {
+	var statement string
+	if q != nil {
+		statement = q.Statement()
+	}
 	return &Queryx{
-		Query:  q,
-		Names:  names,
-		Mapper: DefaultMapper,
-		tr:     DefaultBindTransformer,
-		strict: DefaultStrict,
+		Query:     q,
+		Names:     names,
+		Mapper:    DefaultMapper,
+		tr:        DefaultBindTransformer,
+		strict:    DefaultStrict,
+		statement: statement,
 	}
 }
 
@@ -121,6 +127,12 @@ func (q *Queryx) WithBindTransformer(tr Transformer) *Queryx {
 
 // BindStruct binds query named parameters to values from arg using mapper. If
 // value cannot be found error is reported.
+//
+// Tuple element parameters, such as "coordinates[0]" and "coordinates[1]", can
+// be bound from a non-byte array, slice, or tuple-shaped struct field named
+// "coordinates". Container length or mapped struct field count must match the
+// tuple element count. A same-name tuple field takes precedence over fields
+// tagged with individual element names.
 func (q *Queryx) BindStruct(arg interface{}) *Queryx {
 	arglist, err := q.bindStructArgs(arg, nil)
 	if err != nil {
@@ -136,6 +148,11 @@ func (q *Queryx) BindStruct(arg interface{}) *Queryx {
 // BindStructMap binds query named parameters to values from arg0 and arg1
 // using a mapper. If value cannot be found in arg0 it's looked up in arg1
 // before reporting an error.
+//
+// Tuple element parameters follow BindStruct and BindMap rules. For example,
+// "coordinates[0]" and "coordinates[1]" can be bound from a non-byte array,
+// slice, or tuple-shaped struct field in arg0, or from such a value stored under
+// "coordinates" in arg1.
 func (q *Queryx) BindStructMap(arg0 interface{}, arg1 map[string]interface{}) *Queryx {
 	arglist, err := q.bindStructArgs(arg0, arg1)
 	if err != nil {
@@ -172,6 +189,7 @@ func (q *Queryx) SetHostID(hostID string) *Queryx {
 
 func (q *Queryx) bindStructArgs(arg0 interface{}, arg1 map[string]interface{}) ([]interface{}, error) {
 	arglist := make([]interface{}, 0, len(q.Names))
+	tupleElements := tupleBindElements(q.statement, q.Names)
 
 	// grab the indirected value of arg
 	v := reflect.ValueOf(arg0)
@@ -179,20 +197,53 @@ func (q *Queryx) bindStructArgs(arg0 interface{}, arg1 map[string]interface{}) (
 		v = v.Elem()
 	}
 
-	err := q.Mapper.TraversalsByNameFunc(v.Type(), q.Names, func(i int, t []int) error {
-		if len(t) != 0 {
-			val := reflectx.FieldByIndexesReadOnly(v, t)
-			arglist = append(arglist, val.Interface())
-		} else {
-			val, ok := arg1[q.Names[i]]
-			if !ok {
-				return fmt.Errorf("could not find name %q in %#v and %#v", q.Names[i], arg0, arg1)
+	err := q.Mapper.TraversalsByNameFunc(v.Type(), q.Names, func(i int, directTraversal []int) error {
+		name := q.Names[i]
+		tuple := tupleElements[i]
+		var val interface{}
+
+		switch {
+		case tuple.count != 0:
+			element, found, tupleErr := tupleElementByName(q.Mapper, v, name, tuple)
+			switch {
+			case tupleErr == nil && found:
+				val = element.Interface()
+			case tupleErr != nil:
+				// An explicit BindStructMap element remains a valid fallback when
+				// the struct has a same-name field that is not a tuple container.
+				var ok bool
+				if val, ok = arg1[name]; !ok {
+					return tupleErr
+				}
+			case len(directTraversal) != 0:
+				val = reflectx.FieldByIndexesReadOnly(v, directTraversal).Interface()
+			default:
+				var ok bool
+				val, ok = arg1[name]
+				if !ok {
+					var err error
+					val, ok, err = tupleElementFromMap(q.Mapper, arg1, name, tuple)
+					if err != nil {
+						return err
+					}
+					if !ok {
+						return fmt.Errorf("could not find name %q in %#v and %#v", name, arg0, arg1)
+					}
+				}
 			}
-			arglist = append(arglist, val)
+		case len(directTraversal) != 0:
+			val = reflectx.FieldByIndexesReadOnly(v, directTraversal).Interface()
+		default:
+			var ok bool
+			val, ok = arg1[name]
+			if !ok {
+				return fmt.Errorf("could not find name %q in %#v and %#v", name, arg0, arg1)
+			}
 		}
+		arglist = append(arglist, val)
 
 		if q.tr != nil {
-			arglist[i] = q.tr(q.Names[i], arglist[i])
+			arglist[i] = q.tr(name, arglist[i])
 		}
 
 		return nil
@@ -202,6 +253,11 @@ func (q *Queryx) bindStructArgs(arg0 interface{}, arg1 map[string]interface{}) (
 }
 
 // BindMap binds query named parameters using map.
+//
+// Tuple element parameters, such as "coordinates[0]" and "coordinates[1]", can
+// be bound from a non-byte array, slice, or tuple-shaped struct value stored
+// under "coordinates". Container length or mapped struct field count must match
+// the tuple element count.
 func (q *Queryx) BindMap(arg map[string]interface{}) *Queryx {
 	arglist, err := q.bindMapArgs(arg)
 	if err != nil {
@@ -216,11 +272,19 @@ func (q *Queryx) BindMap(arg map[string]interface{}) *Queryx {
 
 func (q *Queryx) bindMapArgs(arg map[string]interface{}) ([]interface{}, error) {
 	arglist := make([]interface{}, 0, len(q.Names))
+	tupleElements := tupleBindElements(q.statement, q.Names)
 
-	for _, name := range q.Names {
+	for i, name := range q.Names {
 		val, ok := arg[name]
 		if !ok {
-			return arglist, fmt.Errorf("could not find name %q in %#v", name, arg)
+			var err error
+			val, ok, err = tupleElementFromMap(q.Mapper, arg, name, tupleElements[i])
+			if err != nil {
+				return arglist, err
+			}
+			if !ok {
+				return arglist, fmt.Errorf("could not find name %q in %#v", name, arg)
+			}
 		}
 
 		if q.tr != nil {

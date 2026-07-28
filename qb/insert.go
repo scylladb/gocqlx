@@ -142,6 +142,7 @@ func (b *InsertBuilder) FuncColumn(column string, fn *Func) *InsertBuilder {
 }
 
 // TupleColumn adds an insert column for a tuple value to the query.
+// It generates bind names in the form "column[0]", "column[1]", and so on.
 func (b *InsertBuilder) TupleColumn(column string, count int) *InsertBuilder {
 	b.columns = append(b.columns, initializer{
 		column: column,
