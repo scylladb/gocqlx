@@ -38,15 +38,18 @@ endif
 .PHONY: fmt
 fmt:
 	@go fmt ./...
+	@cd ./examples/basic && go fmt ./...
 
 .PHONY: check
 check: .require-golangci-lint
 	@golangci-lint run ./...
+	@cd ./examples/basic && golangci-lint run ./...
 
 .PHONY: fix
 fix: .require-golangci-lint .require-fieldalignment
 	@$(MAKE) fmt
 	@golangci-lint run --fix ./...
+	@cd ./examples/basic && golangci-lint run --fix ./...
 	@fieldalignment -test=false -fix  ./...
 
 GOTEST := go test -cpu $(GOTEST_CPU) -count=1 -cover -race -tags all
@@ -68,6 +71,10 @@ test: start-scylla
 	@$(GOTEST) ./cmd/schemagen
 	echo "==> Running tests... in ./cmd/schemagen/testdata"
 	@cd ./cmd/schemagen/testdata ; go mod tidy ; $(GOTEST) .; cd ../../..
+	echo "==> Running tests... in ./examples/basic"
+	@cd ./examples/basic && $(GOTEST) .
+	echo "==> Smoke testing ./examples/basic"
+	@cd ./examples/basic && go run . -hosts 127.0.0.1:9042
 
 .PHONY: bench
 bench:
@@ -91,6 +98,7 @@ stop-scylla:
 .PHONY: get-deps
 get-deps:
 	@go mod download
+	@cd ./examples/basic && go mod download
 
 .PHONY: get-tools
 get-tools:

@@ -39,7 +39,7 @@ jobs:
         id: gomod-cache
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('go.mod', 'cmd/schemagen/testdata/go.mod') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('go.mod', 'cmd/schemagen/testdata/go.mod', 'examples/basic/go.mod') }}
 
       - name: Download Dependencies
         run: git --version && make get-deps && make get-tools
