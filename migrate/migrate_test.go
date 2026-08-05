@@ -61,6 +61,10 @@ func TestPending(t *testing.T) {
 
 		f := memfs.New()
 		writeFile(t, f, 0, fmt.Sprintf(insertMigrate, 0)+";")
+		openErr := errors.New("open migration")
+		if _, err := migrate.Pending(ctx, session, openErrorFS{FS: f, Path: "0.cql", Err: openErr}); !errors.Is(err, openErr) {
+			t.Fatalf("Pending() error = %v, expected %v", err, openErr)
+		}
 
 		pending, err := migrate.Pending(ctx, session, f)
 		if err != nil {
@@ -104,6 +108,32 @@ func TestMigration(t *testing.T) {
 
 	ctx := context.Background()
 
+	t.Run("no migrations", func(t *testing.T) {
+		err := migrate.FromFS(ctx, session, memfs.New())
+		var noMigrations *migrate.NoMigrationsError
+		if !errors.Is(err, migrate.ErrNoMigrations) || !errors.As(err, &noMigrations) {
+			t.Fatalf("FromFS() error = %v, expected NoMigrationsError", err)
+		}
+		if noMigrations.Pattern != "*.cql" {
+			t.Fatalf("NoMigrationsError.Pattern = %q, expected %q", noMigrations.Pattern, "*.cql")
+		}
+	})
+
+	t.Run("no migration statements", func(t *testing.T) {
+		f := memfs.New()
+		if err := f.WriteFile("0.cql", nil, fs.ModePerm); err != nil {
+			t.Fatal(err)
+		}
+		err := migrate.FromFS(ctx, session, f)
+		var noStatements *migrate.NoMigrationStatementsError
+		if !errors.Is(err, migrate.ErrNoMigrationStatements) || !errors.As(err, &noStatements) {
+			t.Fatalf("FromFS() error = %v, expected NoMigrationStatementsError", err)
+		}
+		if noStatements.Path != "0.cql" {
+			t.Fatalf("NoMigrationStatementsError.Path = %q, expected %q", noStatements.Path, "0.cql")
+		}
+	})
+
 	t.Run("init", func(t *testing.T) {
 		if err := migrate.FromFS(ctx, session, makeTestFS(t, 2)); err != nil {
 			t.Fatal(err)
@@ -124,21 +154,60 @@ func TestMigration(t *testing.T) {
 
 	t.Run("ahead", func(t *testing.T) {
 		err := migrate.FromFS(ctx, session, makeTestFS(t, 2))
-		if err == nil || !strings.Contains(err.Error(), "ahead") {
-			t.Fatal("expected error")
-		} else {
-			t.Log(err)
+		var ahead *migrate.DatabaseAheadError
+		if !errors.Is(err, migrate.ErrDatabaseAhead) || !errors.As(err, &ahead) {
+			t.Fatalf("FromFS() error = %v, expected DatabaseAheadError", err)
+		}
+		if ahead.Applied != 4 || ahead.Available != 2 {
+			t.Fatalf("DatabaseAheadError = %#v", ahead)
 		}
 	})
 
-	t.Run("tempered with file", func(t *testing.T) {
+	t.Run("inconsistent migrations", func(t *testing.T) {
+		f := memfs.New()
+		if err := f.WriteFile("00.cql", []byte(fmt.Sprintf(insertMigrate, 0)+";"), fs.ModePerm); err != nil {
+			t.Fatal(err)
+		}
+		for i := 1; i < 4; i++ {
+			writeFile(t, f, i, fmt.Sprintf(insertMigrate, i)+";")
+		}
+
+		err := migrate.FromFS(ctx, session, f)
+		var mismatch *migrate.InconsistentMigrationError
+		if !errors.Is(err, migrate.ErrInconsistentMigrations) || !errors.As(err, &mismatch) {
+			t.Fatalf("FromFS() error = %v, expected InconsistentMigrationError", err)
+		}
+		if mismatch.Expected != "0.cql" || mismatch.Actual != "00.cql" || mismatch.Index != 0 {
+			t.Fatalf("InconsistentMigrationError = %#v", mismatch)
+		}
+	})
+
+	t.Run("checksum open error", func(t *testing.T) {
+		openErr := errors.New("open migration")
+		err := migrate.FromFS(ctx, session, openErrorFS{
+			FS:   makeTestFS(t, 4),
+			Path: "0.cql",
+			Err:  openErr,
+		})
+		if !errors.Is(err, openErr) {
+			t.Fatalf("FromFS() error = %v, expected %v", err, openErr)
+		}
+		if !strings.Contains(err.Error(), `calculate checksum for "0.cql"`) {
+			t.Fatalf("FromFS() error = %v, expected checksum context", err)
+		}
+	})
+
+	t.Run("tampered with file", func(t *testing.T) {
 		f := makeTestFS(t, 4)
 		writeFile(t, f, 3, "SELECT * FROM bla;")
 
-		if err := migrate.FromFS(ctx, session, f); err == nil || !strings.Contains(err.Error(), "tampered") {
-			t.Fatal("expected error")
-		} else {
-			t.Log(err)
+		err := migrate.FromFS(ctx, session, f)
+		var mismatch *migrate.ChecksumMismatchError
+		if !errors.Is(err, migrate.ErrChecksumMismatch) || !errors.As(err, &mismatch) {
+			t.Fatalf("FromFS() error = %v, expected ChecksumMismatchError", err)
+		}
+		if mismatch.Path != "3.cql" || mismatch.Expected == "" || mismatch.Actual == "" {
+			t.Fatalf("ChecksumMismatchError = %#v", mismatch)
 		}
 	})
 }
@@ -381,6 +450,38 @@ func TestMigrationCallback(t *testing.T) {
 		}
 		assertCallbacks(t, 2, 2, 2)
 	})
+}
+
+func TestMigrationMissingCallbackHandler(t *testing.T) {
+	previousCallback := migrate.Callback
+	migrate.Callback = nil
+	defer func() {
+		migrate.Callback = previousCallback
+	}()
+
+	session := gocqlxtest.CreateSession(t)
+	defer session.Close()
+	recreateTables(t, session)
+
+	f := memfs.New()
+	if err := f.WriteFile("0.cql", []byte("-- CALL seed;"), fs.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+
+	err := migrate.FromFS(context.Background(), session, f)
+	if !errors.Is(err, migrate.ErrMissingCallbackHandler) {
+		t.Fatalf("FromFS() error = %v, expected ErrMissingCallbackHandler", err)
+	}
+	var missing *migrate.MissingCallbackHandlerError
+	if !errors.As(err, &missing) {
+		t.Fatalf("FromFS() error = %v, expected MissingCallbackHandlerError", err)
+	}
+	if missing.Name != "seed" || missing.Statement != 1 {
+		t.Fatalf("MissingCallbackHandlerError = %#v", missing)
+	}
+	if got, want := err.Error(), `apply migration "0.cql": statement 1: missing callback handler for "seed"`; got != want {
+		t.Fatalf("FromFS() error = %q, expected %q", got, want)
+	}
 }
 
 func TestMigrationRecordsProgressAfterContextCanceled(t *testing.T) {
@@ -685,6 +786,19 @@ type queryObserverFunc func(context.Context, gocql.ObservedQuery)
 
 func (f queryObserverFunc) ObserveQuery(ctx context.Context, query gocql.ObservedQuery) {
 	f(ctx, query)
+}
+
+type openErrorFS struct {
+	fs.FS
+	Path string
+	Err  error
+}
+
+func (f openErrorFS) Open(name string) (fs.File, error) {
+	if name == f.Path {
+		return nil, f.Err
+	}
+	return f.FS.Open(name)
 }
 
 func countMigrations(tb testing.TB, session gocqlx.Session) int {
