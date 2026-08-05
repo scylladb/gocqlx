@@ -24,6 +24,7 @@ var (
 )
 
 type udt struct {
+	mapper *reflectx.Mapper
 	field  map[string]reflect.Value
 	value  reflect.Value
 	strict bool
@@ -31,6 +32,7 @@ type udt struct {
 
 func makeUDT(value reflect.Value, mapper *reflectx.Mapper, strict bool) udt {
 	return udt{
+		mapper: mapper,
 		value:  value,
 		field:  mapper.FieldMap(value),
 		strict: strict,
@@ -40,7 +42,12 @@ func makeUDT(value reflect.Value, mapper *reflectx.Mapper, strict bool) udt {
 func (u udt) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
 	value, ok := u.field[name]
 	if ok {
-		return gocql.Marshal(info, value.Interface())
+		switch info.(type) {
+		case gocql.UDTTypeInfo:
+			return gocql.Marshal(info, makeUDT(value, u.mapper, u.strict))
+		default:
+			return gocql.Marshal(info, value.Interface())
+		}
 	}
 	if !u.strict {
 		return nil, nil
@@ -51,6 +58,10 @@ func (u udt) MarshalUDT(name string, info gocql.TypeInfo) ([]byte, error) {
 func (u udt) UnmarshalUDT(name string, info gocql.TypeInfo, data []byte) error {
 	value, ok := u.field[name]
 	if ok {
+		if value.Addr().Type().Implements(autoUDTInterface) {
+			return gocql.Unmarshal(info, data, makeUDT(value.Addr(), u.mapper, u.strict))
+		}
+
 		return gocql.Unmarshal(info, data, value.Addr().Interface())
 	}
 	if !u.strict {
