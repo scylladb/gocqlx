@@ -143,13 +143,18 @@ func Migrate(ctx context.Context, session gocqlx.Session, dir string) error {
 // FromFS executes new CQL files from a file system abstraction (io/fs.FS).
 // The provided FS has to be a flat directory containing *.cql files.
 //
+// Cancellation and deadlines stop migration between statements. Once a
+// statement starts, its execution and progress update finish before the
+// cancellation error is returned. AfterMigration runs only when the file's
+// final statement completes.
+//
 // It supports code based migrations, see Callback and CallbackFunc.
 // Any comment in form `-- CALL <name>;` will trigger an CallComment callback.
 func FromFS(ctx context.Context, session gocqlx.Session, f fs.FS) error {
 	// get database migrations
 	dbm, err := List(ctx, session)
 	if err != nil {
-		return fmt.Errorf("list migrations: %s", err)
+		return fmt.Errorf("list migrations: %w", err)
 	}
 
 	// get file migrations
@@ -184,18 +189,18 @@ func FromFS(ctx context.Context, session gocqlx.Session, f fs.FS) error {
 	if len(dbm) > 0 {
 		last := len(dbm) - 1
 		if err := applyMigration(ctx, session, f, fm[last], dbm[last].Done); err != nil {
-			return fmt.Errorf("apply migration %q: %s", fm[last], err)
+			return fmt.Errorf("apply migration %q: %w", fm[last], err)
 		}
 	}
 
 	for i := len(dbm); i < len(fm); i++ {
 		if err := applyMigration(ctx, session, f, fm[i], 0); err != nil {
-			return fmt.Errorf("apply migration %q: %s", fm[i], err)
+			return fmt.Errorf("apply migration %q: %w", fm[i], err)
 		}
 	}
 
 	if err = session.AwaitSchemaAgreement(ctx); err != nil {
-		return fmt.Errorf("awaiting schema agreement: %s", err)
+		return fmt.Errorf("awaiting schema agreement: %w", err)
 	}
 
 	return nil
@@ -211,7 +216,8 @@ func FromFS(ctx context.Context, session gocqlx.Session, f fs.FS) error {
 // allowing for resumption of partially completed migrations.
 //
 // Parameters:
-//   - ctx: context for cancellation and timeouts
+//   - ctx: context checked between statements and passed to BeforeMigration,
+//     AfterMigration, and schema-agreement waits
 //   - session: database session for executing statements
 //   - f: filesystem containing the migration file
 //   - path: path to the migration file within the filesystem
@@ -244,12 +250,15 @@ func applyMigration(ctx context.Context, session gocqlx.Session, f fs.FS, path s
 		"end_time",
 	).ToCql()
 
-	update := session.ContextQuery(ctx, stmt, names)
+	// Once a statement starts, allow both the statement and its progress update
+	// to finish. The parent context is checked between statements below.
+	operationCtx := context.WithoutCancel(ctx)
+	update := session.ContextQuery(operationCtx, stmt, names)
 	defer update.Release()
 
 	if DefaultAwaitSchemaAgreement.ShouldAwait(AwaitSchemaAgreementBeforeEachFile) {
 		if err = session.AwaitSchemaAgreement(ctx); err != nil {
-			return fmt.Errorf("awaiting schema agreement: %s", err)
+			return fmt.Errorf("awaiting schema agreement: %w", err)
 		}
 	}
 
@@ -274,15 +283,25 @@ func applyMigration(ctx context.Context, session gocqlx.Session, f fs.FS, path s
 			continue
 		}
 
-		if Callback != nil && i == 1 {
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("context ended before statement %d: %w", i, err)
+		}
+
+		if Callback != nil && i == done+1 {
 			if err := Callback(ctx, session, BeforeMigration, info.Name); err != nil {
-				return fmt.Errorf("before migration callback: %s", err)
+				return fmt.Errorf("before migration callback: %w", err)
+			}
+			if err := ctx.Err(); err != nil {
+				return fmt.Errorf("context ended before statement %d: %w", i, err)
 			}
 		}
 
 		if DefaultAwaitSchemaAgreement.ShouldAwait(AwaitSchemaAgreementBeforeEachStatement) {
 			if err = session.AwaitSchemaAgreement(ctx); err != nil {
-				return fmt.Errorf("awaiting schema agreement: %s", err)
+				return fmt.Errorf("awaiting schema agreement before statement %d: %w", i, err)
+			}
+			if err := ctx.Err(); err != nil {
+				return fmt.Errorf("context ended before statement %d: %w", i, err)
 			}
 		}
 
@@ -295,14 +314,14 @@ func applyMigration(ctx context.Context, session gocqlx.Session, f fs.FS, path s
 			if Callback == nil {
 				return fmt.Errorf("statement %d: missing callback handler while trying to call %s", i, cb)
 			}
-			if err := Callback(ctx, session, CallComment, cb); err != nil {
-				return fmt.Errorf("callback %s: %s", cb, err)
+			if err := Callback(operationCtx, session, CallComment, cb); err != nil {
+				return fmt.Errorf("callback %s: %w", cb, err)
 			}
 		} else if stmt != "" && !isComment(stmt) {
 			// Execute SQL statements (skip empty statements and comments)
-			q := session.ContextQuery(ctx, stmt, nil).RetryPolicy(nil)
+			q := session.ContextQuery(operationCtx, stmt, nil).RetryPolicy(nil)
 			if err := q.ExecRelease(); err != nil {
-				return fmt.Errorf("statement %d: %s", i, err)
+				return fmt.Errorf("statement %d: %w", i, err)
 			}
 		}
 		// Regular comments and empty statements are silently skipped
@@ -311,7 +330,7 @@ func applyMigration(ctx context.Context, session gocqlx.Session, f fs.FS, path s
 		info.Done = i
 		info.EndTime = time.Now()
 		if err := update.BindStruct(info).Exec(); err != nil {
-			return fmt.Errorf("migration statement %d: %s", i, err)
+			return fmt.Errorf("migration statement %d: %w", i, err)
 		}
 	}
 	if i == 0 {
@@ -320,7 +339,7 @@ func applyMigration(ctx context.Context, session gocqlx.Session, f fs.FS, path s
 
 	if Callback != nil && i > done {
 		if err := Callback(ctx, session, AfterMigration, info.Name); err != nil {
-			return fmt.Errorf("after migration callback: %s", err)
+			return fmt.Errorf("after migration callback: %w", err)
 		}
 	}
 

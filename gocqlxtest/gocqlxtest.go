@@ -35,7 +35,7 @@ func CreateSession(tb testing.TB) gocqlx.Session {
 	tb.Helper()
 
 	cluster := CreateCluster()
-	return createSessionFromCluster(tb, cluster)
+	return CreateSessionFromCluster(tb, cluster)
 }
 
 // CreateCluster creates gocql ClusterConfig from flags.
@@ -122,7 +122,9 @@ func execCreateKeyspaceStmt(session execStmtSession, stmt string) error {
 	return session.ExecStmt(stmt + ` AND tablets = {'enabled': false}`)
 }
 
-func createSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) gocqlx.Session {
+// CreateSessionFromCluster creates a new gocqlx session from cluster while
+// preserving the shared test keyspace lifecycle.
+func CreateSessionFromCluster(tb testing.TB, cluster *gocql.ClusterConfig) gocqlx.Session {
 	tb.Helper()
 	if !flag.Parsed() {
 		flag.Parse()

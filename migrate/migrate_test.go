@@ -9,11 +9,15 @@ package migrate_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
+	"github.com/gocql/gocql"
 	"github.com/psanford/memfs"
 
 	"github.com/scylladb/gocqlx/v3"
@@ -379,11 +383,325 @@ func TestMigrationCallback(t *testing.T) {
 	})
 }
 
+func TestMigrationRecordsProgressAfterContextCanceled(t *testing.T) {
+	session := gocqlxtest.CreateSession(t)
+	defer session.Close()
+	recreateTables(t, session)
+
+	f := memfs.New()
+	err := f.WriteFile("0.cql", []byte(fmt.Sprintf(insertMigrate, 0)+";\n-- CALL cancel;\n-- CALL after_cancel;\n"+fmt.Sprintf(insertMigrate, 1)+";"), fs.ModePerm)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	afterCancelCalls := 0
+	beforeCalls := 0
+	afterMigrationCalls := 0
+	migrate.Callback = func(callbackCtx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
+		if ev == migrate.BeforeMigration {
+			beforeCalls++
+		}
+		if ev == migrate.AfterMigration {
+			afterMigrationCalls++
+		}
+		if ev == migrate.CallComment && name == "cancel" {
+			cancel()
+			if err := callbackCtx.Err(); err != nil {
+				return fmt.Errorf("callback context was canceled: %w", err)
+			}
+		}
+		if ev == migrate.CallComment && name == "after_cancel" {
+			afterCancelCalls++
+		}
+		return nil
+	}
+	defer func() {
+		migrate.Callback = nil
+	}()
+
+	err = migrate.FromFS(ctx, session, f)
+	if !errors.Is(err, context.Canceled) || !strings.Contains(err.Error(), "context ended before statement 3") {
+		t.Fatalf("FromFS() error=%v expected context canceled", err)
+	}
+
+	if done := migrationDone(t, session, "0.cql"); done != 2 {
+		t.Fatalf("migration done=%d expected 2", done)
+	}
+	if count := countMigrations(t, session); count != 1 {
+		t.Fatalf("migration statements executed=%d expected 1", count)
+	}
+	if afterCancelCalls != 0 {
+		t.Fatalf("post-cancellation callback calls=%d expected 0", afterCancelCalls)
+	}
+	if beforeCalls != 1 {
+		t.Fatalf("before migration callback calls=%d expected 1", beforeCalls)
+	}
+	if afterMigrationCalls != 0 {
+		t.Fatalf("after migration callback calls=%d expected 0", afterMigrationCalls)
+	}
+
+	if err := migrate.FromFS(context.Background(), session, f); err != nil {
+		t.Fatalf("resume migration: %v", err)
+	}
+	if done := migrationDone(t, session, "0.cql"); done != 4 {
+		t.Fatalf("resumed migration done=%d expected 4", done)
+	}
+	if count := countMigrations(t, session); count != 2 {
+		t.Fatalf("migration statements executed after resume=%d expected 2", count)
+	}
+	if afterCancelCalls != 1 {
+		t.Fatalf("post-cancellation callback calls after resume=%d expected 1", afterCancelCalls)
+	}
+	if beforeCalls != 2 {
+		t.Fatalf("before migration callback calls after resume=%d expected 2", beforeCalls)
+	}
+	if afterMigrationCalls != 1 {
+		t.Fatalf("after migration callback calls after resume=%d expected 1", afterMigrationCalls)
+	}
+}
+
+func TestMigrationBeforeCallbackUsesParentContext(t *testing.T) {
+	session := gocqlxtest.CreateSession(t)
+	defer session.Close()
+	recreateTables(t, session)
+
+	f := memfs.New()
+	err := f.WriteFile("0.cql", []byte(fmt.Sprintf(insertMigrate, 0)+";"), fs.ModePerm)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var callbackErr error
+	migrate.Callback = func(callbackCtx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
+		if ev == migrate.BeforeMigration {
+			cancel()
+			callbackErr = callbackCtx.Err()
+		}
+		return nil
+	}
+	defer func() {
+		migrate.Callback = nil
+	}()
+
+	err = migrate.FromFS(ctx, session, f)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("FromFS() error=%v expected context canceled", err)
+	}
+	if !errors.Is(callbackErr, context.Canceled) {
+		t.Fatalf("callback context error=%v expected context canceled", callbackErr)
+	}
+	if count := countMigrations(t, session); count != 0 {
+		t.Fatalf("migration statements executed=%d expected 0", count)
+	}
+}
+
+func TestMigrationAfterCallbackUsesParentContext(t *testing.T) {
+	session := gocqlxtest.CreateSession(t)
+	defer session.Close()
+	recreateTables(t, session)
+
+	f := memfs.New()
+	err := f.WriteFile("0.cql", []byte("-- CALL cancel;"), fs.ModePerm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	afterCalls := 0
+	migrate.Callback = func(callbackCtx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
+		switch ev {
+		case migrate.CallComment:
+			cancel()
+		case migrate.AfterMigration:
+			afterCalls++
+			err := callbackCtx.Err()
+			if err == nil {
+				return errors.New("after migration context was not canceled")
+			}
+			return err
+		}
+		return nil
+	}
+	defer func() {
+		migrate.Callback = nil
+	}()
+
+	err = migrate.FromFS(ctx, session, f)
+	if !errors.Is(err, context.Canceled) || !strings.Contains(err.Error(), "after migration callback: context canceled") {
+		t.Fatalf("FromFS() error=%v expected canceled AfterMigration callback", err)
+	}
+	if done := migrationDone(t, session, "0.cql"); done != 1 {
+		t.Fatalf("migration done=%d expected 1", done)
+	}
+	if afterCalls != 1 {
+		t.Fatalf("after migration callback calls=%d expected 1", afterCalls)
+	}
+	if count := countMigrations(t, session); count != 0 {
+		t.Fatalf("migration statements executed=%d expected 0", count)
+	}
+
+	if err := migrate.FromFS(context.Background(), session, f); err != nil {
+		t.Fatalf("resume migration: %v", err)
+	}
+	if afterCalls != 1 {
+		t.Fatalf("after migration callback calls after resume=%d expected 1", afterCalls)
+	}
+}
+
+func TestMigrationCQLStatementUsesDetachedContext(t *testing.T) {
+	ctx := newManualDeadlineContext(context.Background())
+	deadlineObserved := make(chan bool, 1)
+	cluster := gocqlxtest.CreateCluster()
+	cluster.QueryObserver = queryObserverFunc(func(queryCtx context.Context, query gocql.ObservedQuery) {
+		if !strings.Contains(query.Statement, "INSERT INTO gocqlx_test.migrate_table") {
+			return
+		}
+		_, hasDeadline := queryCtx.Deadline()
+		deadlineObserved <- hasDeadline
+		ctx.expire()
+	})
+	session := gocqlxtest.CreateSessionFromCluster(t, cluster)
+	defer session.Close()
+	recreateTables(t, session)
+
+	f := memfs.New()
+	if err := f.WriteFile("0.cql", []byte(fmt.Sprintf(insertMigrate, 0)+";\n"+fmt.Sprintf(insertMigrate, 1)+";"), fs.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+
+	err := migrate.FromFS(ctx, session, f)
+	if !errors.Is(err, context.DeadlineExceeded) || !strings.Contains(err.Error(), "context ended before statement 2") {
+		t.Fatalf("FromFS() error=%v expected deadline exceeded before statement 2", err)
+	}
+	select {
+	case hasDeadline := <-deadlineObserved:
+		if hasDeadline {
+			t.Fatal("CQL statement context retained parent deadline")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting to observe CQL statement")
+	}
+	if done := migrationDone(t, session, "0.cql"); done != 1 {
+		t.Fatalf("migration done=%d expected 1", done)
+	}
+	if count := countMigrations(t, session); count != 1 {
+		t.Fatalf("migration statements executed=%d expected 1", count)
+	}
+}
+
+func TestMigrationFinishesStartedOperationAfterDeadline(t *testing.T) {
+	session := gocqlxtest.CreateSession(t)
+	defer session.Close()
+	recreateTables(t, session)
+
+	f := memfs.New()
+	err := f.WriteFile("0.cql", []byte(fmt.Sprintf(insertMigrate, 0)+";\n-- CALL wait_for_deadline;\n"+fmt.Sprintf(insertMigrate, 1)+";"), fs.ModePerm)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := newManualDeadlineContext(context.Background())
+	migrate.Callback = func(callbackCtx context.Context, session gocqlx.Session, ev migrate.CallbackEvent, name string) error {
+		if ev == migrate.CallComment && name == "wait_for_deadline" {
+			ctx.expire()
+			if _, ok := callbackCtx.Deadline(); ok {
+				return errors.New("callback context retained parent deadline")
+			}
+			if err := callbackCtx.Err(); err != nil {
+				return fmt.Errorf("callback context ended: %w", err)
+			}
+		}
+		return nil
+	}
+	defer func() {
+		migrate.Callback = nil
+	}()
+
+	err = migrate.FromFS(ctx, session, f)
+	if !errors.Is(err, context.DeadlineExceeded) || !strings.Contains(err.Error(), "context ended before statement 3") {
+		t.Fatalf("FromFS() error=%v expected deadline exceeded before statement 3", err)
+	}
+	if done := migrationDone(t, session, "0.cql"); done != 2 {
+		t.Fatalf("migration done=%d expected 2", done)
+	}
+	if count := countMigrations(t, session); count != 1 {
+		t.Fatalf("migration statements executed=%d expected 1", count)
+	}
+
+	if err := migrate.FromFS(context.Background(), session, f); err != nil {
+		t.Fatalf("resume migration: %v", err)
+	}
+	if done := migrationDone(t, session, "0.cql"); done != 3 {
+		t.Fatalf("resumed migration done=%d expected 3", done)
+	}
+	if count := countMigrations(t, session); count != 2 {
+		t.Fatalf("migration statements executed after resume=%d expected 2", count)
+	}
+}
+
+type manualDeadlineContext struct {
+	context.Context
+	deadline   time.Time
+	done       chan struct{}
+	expireOnce sync.Once
+}
+
+func newManualDeadlineContext(parent context.Context) *manualDeadlineContext {
+	return &manualDeadlineContext{
+		Context:  parent,
+		deadline: time.Now().Add(time.Hour),
+		done:     make(chan struct{}),
+	}
+}
+
+func (c *manualDeadlineContext) Deadline() (time.Time, bool) {
+	return c.deadline, true
+}
+
+func (c *manualDeadlineContext) Done() <-chan struct{} {
+	return c.done
+}
+
+func (c *manualDeadlineContext) Err() error {
+	select {
+	case <-c.done:
+		return context.DeadlineExceeded
+	default:
+		return nil
+	}
+}
+
+func (c *manualDeadlineContext) expire() {
+	c.expireOnce.Do(func() {
+		close(c.done)
+	})
+}
+
+type queryObserverFunc func(context.Context, gocql.ObservedQuery)
+
+func (f queryObserverFunc) ObserveQuery(ctx context.Context, query gocql.ObservedQuery) {
+	f(ctx, query)
+}
+
 func countMigrations(tb testing.TB, session gocqlx.Session) int {
 	tb.Helper()
 
 	var v int
 	if err := session.Query("SELECT COUNT(*) FROM gocqlx_test.migrate_table", nil).Get(&v); err != nil {
+		tb.Fatal(err)
+	}
+	return v
+}
+
+func migrationDone(tb testing.TB, session gocqlx.Session, name string) int {
+	tb.Helper()
+
+	var v int
+	if err := session.Query("SELECT done FROM gocqlx_test.gocqlx_migrate WHERE name = ?", nil).Bind(name).Get(&v); err != nil {
 		tb.Fatal(err)
 	}
 	return v
