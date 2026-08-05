@@ -65,7 +65,7 @@ func (b *Batch) BindStruct(qry *Queryx, arg interface{}) error {
 	if err != nil {
 		return err
 	}
-	b.Query(qry.Statement(), args...)
+	b.Query(qry.Statement(), udtWrapSlice(qry.Mapper, qry.strict, args)...)
 	return nil
 }
 
@@ -75,7 +75,7 @@ func (b *Batch) Bind(qry *Queryx, args ...interface{}) error {
 	if len(qry.Names) != len(args) {
 		return fmt.Errorf("query requires %d arguments, but %d provided", len(qry.Names), len(args))
 	}
-	b.Query(qry.Statement(), args...)
+	b.Query(qry.Statement(), udtWrapSlice(qry.Mapper, qry.strict, args)...)
 	return nil
 }
 
@@ -86,7 +86,7 @@ func (b *Batch) BindMap(qry *Queryx, arg map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	b.Query(qry.Statement(), args...)
+	b.Query(qry.Statement(), udtWrapSlice(qry.Mapper, qry.strict, args)...)
 	return nil
 }
 
@@ -97,7 +97,7 @@ func (b *Batch) BindStructMap(qry *Queryx, arg0 interface{}, arg1 map[string]int
 	if err != nil {
 		return err
 	}
-	b.Query(qry.Statement(), args...)
+	b.Query(qry.Statement(), udtWrapSlice(qry.Mapper, qry.strict, args)...)
 	return nil
 }
 
