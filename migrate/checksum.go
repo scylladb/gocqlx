@@ -21,7 +21,7 @@ func checksum(b []byte) string {
 func fileChecksum(f fs.FS, path string) (string, error) {
 	file, err := f.Open(path)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	defer func() {
 		_ = file.Close()

@@ -6,7 +6,6 @@ package migrate
 
 import (
 	"context"
-	"errors"
 
 	"github.com/scylladb/gocqlx/v3"
 )
@@ -64,7 +63,7 @@ func (r CallbackRegister) Callback(ctx context.Context, session gocqlx.Session, 
 	f, ok := r[nameEvent{name, ev}]
 	if !ok {
 		if ev == CallComment {
-			return errors.New("missing handler")
+			return &MissingCallbackHandlerError{Name: name}
 		}
 		return nil
 	}
