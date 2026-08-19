@@ -38,6 +38,7 @@ func structOnlyError(t reflect.Type) error {
 // reflect helpers
 
 var (
+	marshalerInterface       = reflect.TypeOf((*gocql.Marshaler)(nil)).Elem()
 	unmarshallerInterface    = reflect.TypeOf((*gocql.Unmarshaler)(nil)).Elem()
 	udtUnmarshallerInterface = reflect.TypeOf((*gocql.UDTUnmarshaler)(nil)).Elem()
 	autoUDTInterface         = reflect.TypeOf((*UDT)(nil)).Elem()

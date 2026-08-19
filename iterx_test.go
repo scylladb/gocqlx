@@ -59,6 +59,232 @@ func diff(t *testing.T, expected, got interface{}) {
 
 var diffOpts = cmpopts.IgnoreUnexported(big.Int{}, inf.Dec{})
 
+func TestIterxTupleArraySlice(t *testing.T) {
+	session := gocqlxtest.CreateSession(t)
+	t.Cleanup(func() {
+		session.Close()
+	})
+
+	if err := session.ExecStmt(`CREATE TABLE gocqlx_test.tuple_table (
+			k int PRIMARY KEY,
+			c frozen<tuple<int, int>>
+		)`); err != nil {
+		t.Fatal("create table:", err)
+	}
+
+	insert := qb.Insert("gocqlx_test.tuple_table").Columns("k").TupleColumn("c", 2).Query(session)
+	if err := insert.BindMap(qb.M{
+		"k": 1,
+		"c": [2]int{12, 34},
+	}).Exec(); err != nil {
+		t.Fatal("insert array tuple:", err)
+	}
+
+	type tupleRow struct {
+		K int
+		C []int
+	}
+
+	if err := insert.BindStruct(tupleRow{
+		K: 2,
+		C: []int{56, 78},
+	}).ExecRelease(); err != nil {
+		t.Fatal("insert slice tuple:", err)
+	}
+	insert = qb.Insert("gocqlx_test.tuple_table").Columns("k").TupleColumn("c", 2).Query(session)
+	if err := insert.BindMap(qb.M{
+		"k": 3,
+		"c": []interface{}{nil, 90},
+	}).ExecRelease(); err != nil {
+		t.Fatal("insert tuple with null element:", err)
+	}
+
+	var arrayRow struct {
+		K int
+		C [2]int
+	}
+	if err := qb.Select("gocqlx_test.tuple_table").
+		Where(qb.EqLit("k", "1")).
+		Query(session).
+		Get(&arrayRow); err != nil {
+		t.Fatal("get array tuple:", err)
+	}
+	diff(t, struct {
+		K int
+		C [2]int
+	}{K: 1, C: [2]int{12, 34}}, arrayRow)
+
+	var sliceRow tupleRow
+	if err := qb.Select("gocqlx_test.tuple_table").
+		Where(qb.EqLit("k", "2")).
+		Query(session).
+		Get(&sliceRow); err != nil {
+		t.Fatal("get slice tuple:", err)
+	}
+	diff(t, tupleRow{K: 2, C: []int{56, 78}}, sliceRow)
+
+	t.Run("no row preserves tuple slice", func(t *testing.T) {
+		dest := tupleRow{K: 99, C: []int{9, 10}}
+		err := qb.Select("gocqlx_test.tuple_table").
+			Where(qb.EqLit("k", "999")).
+			Query(session).
+			Get(&dest)
+		if err != gocql.ErrNotFound {
+			t.Fatalf("Get() error=%v, want %v", err, gocql.ErrNotFound)
+		}
+		diff(t, tupleRow{K: 99, C: []int{9, 10}}, dest)
+	})
+
+	t.Run("exhausted struct scan preserves tuple slice", func(t *testing.T) {
+		iter := qb.Select("gocqlx_test.tuple_table").
+			Where(qb.EqLit("k", "1")).
+			Query(session).
+			Iter()
+		var dest tupleRow
+		if !iter.StructScan(&dest) {
+			t.Fatal("first StructScan failed:", iter.Close())
+		}
+		if iter.StructScan(&dest) {
+			t.Fatal("unexpected second row")
+		}
+		if err := iter.Close(); err != nil {
+			t.Fatal("close iterator:", err)
+		}
+		diff(t, tupleRow{K: 1, C: []int{12, 34}}, dest)
+	})
+
+	var structRow struct {
+		K int
+		C struct {
+			Field1 int
+			Field2 int
+		}
+	}
+	if err := qb.Select("gocqlx_test.tuple_table").
+		Where(qb.EqLit("k", "1")).
+		Query(session).
+		Get(&structRow); err != nil {
+		t.Fatal("get struct tuple:", err)
+	}
+	diff(t, struct {
+		K int
+		C struct {
+			Field1 int
+			Field2 int
+		}
+	}{K: 1, C: struct {
+		Field1 int
+		Field2 int
+	}{Field1: 12, Field2: 34}}, structRow)
+
+	var taggedRow struct {
+		K  int
+		C0 int `db:"c[0]"`
+		C1 int `db:"c[1]"`
+	}
+	if err := qb.Select("gocqlx_test.tuple_table").
+		Where(qb.EqLit("k", "1")).
+		Query(session).
+		Get(&taggedRow); err != nil {
+		t.Fatal("get tagged tuple elements:", err)
+	}
+	diff(t, struct {
+		K  int
+		C0 int `db:"c[0]"`
+		C1 int `db:"c[1]"`
+	}{K: 1, C0: 12, C1: 34}, taggedRow)
+
+	var taggedInterfaceRow struct {
+		K  int
+		C0 interface{} `db:"c[0]"`
+		C1 interface{} `db:"c[1]"`
+	}
+	if err := qb.Select("gocqlx_test.tuple_table").
+		Where(qb.EqLit("k", "1")).
+		Query(session).
+		Get(&taggedInterfaceRow); err != nil {
+		t.Fatal("get tagged interface tuple elements:", err)
+	}
+	diff(t, struct {
+		K  int
+		C0 interface{} `db:"c[0]"`
+		C1 interface{} `db:"c[1]"`
+	}{K: 1, C0: 12, C1: 34}, taggedInterfaceRow)
+
+	var interfaceRow struct {
+		K int
+		C []interface{}
+	}
+	if err := qb.Select("gocqlx_test.tuple_table").
+		Where(qb.EqLit("k", "3")).
+		Query(session).
+		Get(&interfaceRow); err != nil {
+		t.Fatal("get nullable interface tuple:", err)
+	}
+	diff(t, struct {
+		K int
+		C []interface{}
+	}{K: 3, C: []interface{}{nil, 90}}, interfaceRow)
+
+	var topArray [2]int
+	if err := qb.Select("gocqlx_test.tuple_table").
+		Columns("c").
+		Where(qb.EqLit("k", "1")).
+		Query(session).
+		Get(&topArray); err != nil {
+		t.Fatal("get top-level array tuple:", err)
+	}
+	diff(t, [2]int{12, 34}, topArray)
+
+	var topSlice []int
+	if err := qb.Select("gocqlx_test.tuple_table").
+		Columns("c").
+		Where(qb.EqLit("k", "2")).
+		Query(session).
+		Get(&topSlice); err != nil {
+		t.Fatal("get top-level slice tuple:", err)
+	}
+	diff(t, []int{56, 78}, topSlice)
+
+	var topArrays [][2]int
+	if err := qb.Select("gocqlx_test.tuple_table").
+		Columns("c").
+		Where(qb.EqLit("k", "1")).
+		Query(session).
+		Select(&topArrays); err != nil {
+		t.Fatal("select top-level array tuples:", err)
+	}
+	diff(t, [][2]int{{12, 34}}, topArrays)
+
+	var topSlices [][]int
+	if err := qb.Select("gocqlx_test.tuple_table").
+		Columns("c").
+		Where(qb.EqLit("k", "2")).
+		Query(session).
+		Select(&topSlices); err != nil {
+		t.Fatal("select top-level slice tuples:", err)
+	}
+	diff(t, [][]int{{56, 78}}, topSlices)
+
+	if err := qb.Update("gocqlx_test.tuple_table").
+		SetTuple("c", 2).
+		Where(qb.Eq("k")).
+		Query(session).
+		BindMap(qb.M{"k": 2, "c": []int{91, 92}}).
+		ExecRelease(); err != nil {
+		t.Fatal("update tuple:", err)
+	}
+
+	sliceRow = tupleRow{}
+	if err := qb.Select("gocqlx_test.tuple_table").
+		Where(qb.EqLit("k", "2")).
+		Query(session).
+		Get(&sliceRow); err != nil {
+		t.Fatal("get updated tuple:", err)
+	}
+	diff(t, tupleRow{K: 2, C: []int{91, 92}}, sliceRow)
+}
+
 func TestIterxUDT(t *testing.T) {
 	session := gocqlxtest.CreateSession(t)
 	t.Cleanup(func() {

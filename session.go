@@ -47,11 +47,13 @@ func WrapSession(session *gocql.Session, err error) (Session, error) {
 // a query, see the "Query" function .
 func (s Session) ContextQuery(ctx context.Context, stmt string, names []string) *Queryx {
 	return &Queryx{
-		Query:  s.Session.Query(stmt).WithContext(ctx),
-		Names:  names,
-		Mapper: s.Mapper,
-		tr:     DefaultBindTransformer,
-		strict: DefaultStrict,
+		Query:         s.Session.Query(stmt).WithContext(ctx),
+		Names:         names,
+		Mapper:        s.Mapper,
+		tr:            DefaultBindTransformer,
+		strict:        DefaultStrict,
+		statement:     stmt,
+		tupleElements: tupleBindElements(stmt, names),
 	}
 }
 
@@ -62,11 +64,13 @@ func (s Session) ContextQuery(ctx context.Context, stmt string, names []string) 
 // binding.
 func (s Session) Query(stmt string, names []string) *Queryx {
 	return &Queryx{
-		Query:  s.Session.Query(stmt),
-		Names:  names,
-		Mapper: s.Mapper,
-		tr:     DefaultBindTransformer,
-		strict: DefaultStrict,
+		Query:         s.Session.Query(stmt),
+		Names:         names,
+		Mapper:        s.Mapper,
+		tr:            DefaultBindTransformer,
+		strict:        DefaultStrict,
+		statement:     stmt,
+		tupleElements: tupleBindElements(stmt, names),
 	}
 }
 
