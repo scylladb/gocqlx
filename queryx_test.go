@@ -522,6 +522,43 @@ func TestQueryxBindMap(t *testing.T) {
 	})
 }
 
+func TestQueryxCachesTupleBindElements(t *testing.T) {
+	q := &Queryx{
+		Names:     []string{"coordinates[0]", "coordinates[1]"},
+		Mapper:    DefaultMapper,
+		statement: "UPDATE tbl SET coordinates=(?,?) ",
+	}
+
+	first := q.cachedTupleBindElements()
+	if len(first) != 2 || first[0].count != 2 || first[1].count != 2 {
+		t.Fatalf("unexpected tuple metadata: %#v", first)
+	}
+
+	q.statement = "UPDATE tbl SET coordinates=? "
+	second := q.cachedTupleBindElements()
+	if &first[0] != &second[0] {
+		t.Fatal("tuple metadata was recomputed")
+	}
+}
+
+func TestQueryxBindMapTupleInCollectionLiteral(t *testing.T) {
+	q := &Queryx{
+		Names:     []string{"point[0]", "point[1]"},
+		Mapper:    DefaultMapper,
+		statement: "UPDATE tbl SET points=[(?,?)] ",
+	}
+
+	args, err := q.bindMapArgs(map[string]interface{}{
+		"point": [2]int{12, 34},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff([]interface{}{12, 34}, args); diff != "" {
+		t.Error("args mismatch", diff)
+	}
+}
+
 func TestQueryxAllWrapped(t *testing.T) {
 	var (
 		gocqlQueryPtr = reflect.TypeOf((*gocql.Query)(nil))

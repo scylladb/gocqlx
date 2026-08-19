@@ -123,6 +123,36 @@ func TestIterxTupleArraySlice(t *testing.T) {
 	}
 	diff(t, tupleRow{K: 2, C: []int{56, 78}}, sliceRow)
 
+	t.Run("no row preserves tuple slice", func(t *testing.T) {
+		dest := tupleRow{K: 99, C: []int{9, 10}}
+		err := qb.Select("gocqlx_test.tuple_table").
+			Where(qb.EqLit("k", "999")).
+			Query(session).
+			Get(&dest)
+		if err != gocql.ErrNotFound {
+			t.Fatalf("Get() error=%v, want %v", err, gocql.ErrNotFound)
+		}
+		diff(t, tupleRow{K: 99, C: []int{9, 10}}, dest)
+	})
+
+	t.Run("exhausted struct scan preserves tuple slice", func(t *testing.T) {
+		iter := qb.Select("gocqlx_test.tuple_table").
+			Where(qb.EqLit("k", "1")).
+			Query(session).
+			Iter()
+		var dest tupleRow
+		if !iter.StructScan(&dest) {
+			t.Fatal("first StructScan failed:", iter.Close())
+		}
+		if iter.StructScan(&dest) {
+			t.Fatal("unexpected second row")
+		}
+		if err := iter.Close(); err != nil {
+			t.Fatal("close iterator:", err)
+		}
+		diff(t, tupleRow{K: 1, C: []int{12, 34}}, dest)
+	})
+
 	var structRow struct {
 		K int
 		C struct {

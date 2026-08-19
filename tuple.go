@@ -51,6 +51,9 @@ func parseTupleElementName(name string) (base string, index int, ok bool) {
 }
 
 func tupleBindElements(stmt string, names []string) []tupleBindElement {
+	if len(names) == 0 {
+		return nil
+	}
 	if stmt == "" {
 		return tupleBindElementsByName(names)
 	}
@@ -140,6 +143,8 @@ func tuplePlaceholderGroups(stmt string) [][]int {
 		doubleQuote  bool
 		lineComment  bool
 		blockComment bool
+		dollarQuote  bool
+		previous     = -1
 	)
 
 	for i := 0; i < len(stmt); i++ {
@@ -151,13 +156,19 @@ func tuplePlaceholderGroups(stmt string) [][]int {
 
 		switch {
 		case lineComment:
-			if ch == '\n' {
+			if ch == '\n' || ch == '\r' {
 				lineComment = false
 			}
 			continue
 		case blockComment:
 			if ch == '*' && next == '/' {
 				blockComment = false
+				i++
+			}
+			continue
+		case dollarQuote:
+			if ch == '$' && next == '$' {
+				dollarQuote = false
 				i++
 			}
 			continue
@@ -179,7 +190,7 @@ func tuplePlaceholderGroups(stmt string) [][]int {
 				}
 			}
 			continue
-		case ch == '-' && next == '-':
+		case (ch == '-' && next == '-') || (ch == '/' && next == '/'):
 			lineComment = true
 			i++
 			continue
@@ -195,13 +206,18 @@ func tuplePlaceholderGroups(stmt string) [][]int {
 			invalidateTupleFrame(stack)
 			doubleQuote = true
 			continue
+		case ch == '$' && next == '$':
+			invalidateTupleFrame(stack)
+			dollarQuote = true
+			i++
+			continue
 		}
 
 		switch ch {
 		case '(':
 			invalidateTupleFrame(stack)
 			stack = append(stack, tuplePlaceholderFrame{
-				valid:             isTuplePlaceholderContext(stmt, i),
+				valid:             isTuplePlaceholderContext(stmt, previous),
 				expectPlaceholder: true,
 			})
 		case ')':
@@ -235,27 +251,21 @@ func tuplePlaceholderGroups(stmt string) [][]int {
 		default:
 			invalidateTupleFrame(stack)
 		}
+		if ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n' {
+			previous = i
+		}
 	}
 
 	return groups
 }
 
-func isTuplePlaceholderContext(stmt string, open int) bool {
-	previous := open - 1
-	for previous >= 0 {
-		switch stmt[previous] {
-		case ' ', '\t', '\r', '\n':
-			previous--
-			continue
-		}
-		break
-	}
+func isTuplePlaceholderContext(stmt string, previous int) bool {
 	if previous < 0 {
 		return false
 	}
 
 	switch stmt[previous] {
-	case '(', ',', '=', '<', '>', '!':
+	case '(', '[', '{', ':', ',', '=', '<', '>', '!':
 		return true
 	}
 

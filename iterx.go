@@ -25,6 +25,7 @@ type Iterx struct {
 
 	// Cache memory for rows during iteration in structScan.
 	scanPlan   *structScanPlan
+	rowScanner gocql.Scanner
 	strict     bool
 	structOnly bool
 	applied    bool
@@ -254,6 +255,10 @@ func (iter *Iterx) topLevelTuple(t reflect.Type) (gocql.TupleTypeInfo, bool) {
 }
 
 func (iter *Iterx) scanTuple(value reflect.Value, tuple gocql.TupleTypeInfo) bool {
+	if !iter.nextRow() {
+		return false
+	}
+
 	values := make([]interface{}, len(tuple.Elems))
 	for i := range tuple.Elems {
 		elem, err := tupleElementAddr(value, i, len(tuple.Elems))
@@ -268,7 +273,18 @@ func (iter *Iterx) scanTuple(value reflect.Value, tuple gocql.TupleTypeInfo) boo
 		values[i] = udtWrapValue(elem, iter.Mapper, iter.strict)
 	}
 
-	return iter.Iter.Scan(values...)
+	if err := iter.rowScanner.Scan(values...); err != nil {
+		iter.err = err
+		return false
+	}
+	return true
+}
+
+func (iter *Iterx) nextRow() bool {
+	if iter.rowScanner == nil {
+		iter.rowScanner = iter.Iter.Scanner()
+	}
+	return iter.rowScanner.Next()
 }
 
 // StructScan is like gocql.Iter.Scan, but scans a single row into a single
@@ -306,6 +322,7 @@ type structScanPlan struct {
 	tupleIndexes []int // Element index for tuple containers; -1 for direct destinations.
 	tupleCounts  []int // Tuple arity; zero for non-tuple columns.
 	values       []interface{}
+	deferValues  bool // Destinations must be prepared only after a row is available.
 }
 
 type tupleInterfaceScanner struct {
@@ -369,16 +386,43 @@ func (iter *Iterx) structScan(value reflect.Value) bool {
 		iter.scanPlan = &plan
 	}
 
+	if iter.scanPlan.deferValues && !iter.nextRow() {
+		return false
+	}
+
 	if err := iter.fieldsByTraversal(value, iter.scanPlan); err != nil {
 		iter.err = err
 		return false
 	}
 
 	// scan into the struct field pointers and append to our results
+	if iter.scanPlan.deferValues {
+		if err := iter.rowScanner.Scan(iter.scanPlan.values...); err != nil {
+			iter.err = err
+			return false
+		}
+		return true
+	}
 	return iter.Iter.Scan(iter.scanPlan.values...)
 }
 
 func (iter *Iterx) structScanPlan(t reflect.Type, columnInfo []gocql.ColumnInfo) (structScanPlan, error) {
+	columns := make([]string, len(columnInfo))
+	ordinary := true
+	for i, column := range columnInfo {
+		columns[i] = column.Name
+		if _, ok := column.TypeInfo.(gocql.TupleTypeInfo); ok {
+			ordinary = false
+		}
+	}
+	if ordinary {
+		return structScanPlan{
+			columns: columns,
+			fields:  iter.Mapper.TraversalsByName(t, columns),
+			values:  make([]interface{}, len(columns)),
+		}, nil
+	}
+
 	var plan structScanPlan
 	appendDestination := func(name string, traversal []int, tupleIndex, tupleCount int, discard interface{}) {
 		plan.columns = append(plan.columns, name)
@@ -403,6 +447,7 @@ func (iter *Iterx) structScanPlan(t reflect.Type, columnInfo []gocql.ColumnInfo)
 			fieldType := fieldTypeByTraversal(t, traversal)
 			switch {
 			case isTupleScanContainerType(fieldType):
+				plan.deferValues = true
 				baseType := derefTupleType(fieldType)
 				if baseType.Kind() == reflect.Array && baseType.Len() != len(tuple.Elems) {
 					return structScanPlan{}, fmt.Errorf(
@@ -502,7 +547,14 @@ func (iter *Iterx) Scan(dest ...interface{}) bool {
 // Close closes the iterator and returns any errors that happened during
 // the query or the iteration.
 func (iter *Iterx) Close() error {
-	err := iter.Iter.Close()
+	var err error
+	if iter.rowScanner != nil {
+		scanner := iter.rowScanner
+		iter.rowScanner = nil
+		err = scanner.Err()
+	} else {
+		err = iter.Iter.Close()
+	}
 	if iter.err == nil {
 		iter.err = err
 	}

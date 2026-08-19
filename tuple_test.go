@@ -106,6 +106,51 @@ func TestTupleBindElements(t *testing.T) {
 			},
 		},
 		{
+			name:  "dollar quoted literal before tuple",
+			stmt:  "INSERT INTO tbl (literal,c) VALUES ($$?$$,(?,?)) ",
+			names: []string{"c[0]", "c[1]"},
+			want: []tupleBindElement{
+				{base: "c", count: 2},
+				{base: "c", index: 1, count: 2},
+			},
+		},
+		{
+			name:  "slash comment before tuple",
+			stmt:  "UPDATE tbl SET c=// ? is not a marker\n(?,?) ",
+			names: []string{"c[0]", "c[1]"},
+			want: []tupleBindElement{
+				{base: "c", count: 2},
+				{base: "c", index: 1, count: 2},
+			},
+		},
+		{
+			name:  "block comment between operator and tuple",
+			stmt:  "UPDATE tbl SET c=/* tuple follows */(?,?) ",
+			names: []string{"c[0]", "c[1]"},
+			want: []tupleBindElement{
+				{base: "c", count: 2},
+				{base: "c", index: 1, count: 2},
+			},
+		},
+		{
+			name:  "tuple first in collection literal",
+			stmt:  "UPDATE tbl SET values=[(?,?)] ",
+			names: []string{"value[0]", "value[1]"},
+			want: []tupleBindElement{
+				{base: "value", count: 2},
+				{base: "value", index: 1, count: 2},
+			},
+		},
+		{
+			name:  "tuple in UDT literal",
+			stmt:  "UPDATE tbl SET value={point:(?,?)} ",
+			names: []string{"point[0]", "point[1]"},
+			want: []tupleBindElement{
+				{base: "point", count: 2},
+				{base: "point", index: 1, count: 2},
+			},
+		},
+		{
 			name:  "non-canonical name",
 			stmt:  "UPDATE tbl SET c=(?,?) ",
 			names: []string{"c[0]", "c[+1]"},

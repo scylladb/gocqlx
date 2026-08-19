@@ -91,10 +91,11 @@ func allowedBindRune(b byte) bool {
 
 // Queryx is a wrapper around gocql.Query which adds struct binding capabilities.
 type Queryx struct {
-	err       error
-	tr        Transformer
-	statement string
-	Mapper    *reflectx.Mapper
+	err           error
+	tr            Transformer
+	statement     string
+	tupleElements []tupleBindElement
+	Mapper        *reflectx.Mapper
 	*gocql.Query
 	Names  []string
 	strict bool
@@ -109,12 +110,13 @@ func Query(q *gocql.Query, names []string) *Queryx {
 		statement = q.Statement()
 	}
 	return &Queryx{
-		Query:     q,
-		Names:     names,
-		Mapper:    DefaultMapper,
-		tr:        DefaultBindTransformer,
-		strict:    DefaultStrict,
-		statement: statement,
+		Query:         q,
+		Names:         names,
+		Mapper:        DefaultMapper,
+		tr:            DefaultBindTransformer,
+		strict:        DefaultStrict,
+		statement:     statement,
+		tupleElements: tupleBindElements(statement, names),
 	}
 }
 
@@ -189,7 +191,7 @@ func (q *Queryx) SetHostID(hostID string) *Queryx {
 
 func (q *Queryx) bindStructArgs(arg0 interface{}, arg1 map[string]interface{}) ([]interface{}, error) {
 	arglist := make([]interface{}, 0, len(q.Names))
-	tupleElements := tupleBindElements(q.statement, q.Names)
+	tupleElements := q.cachedTupleBindElements()
 
 	// grab the indirected value of arg
 	v := reflect.ValueOf(arg0)
@@ -272,7 +274,7 @@ func (q *Queryx) BindMap(arg map[string]interface{}) *Queryx {
 
 func (q *Queryx) bindMapArgs(arg map[string]interface{}) ([]interface{}, error) {
 	arglist := make([]interface{}, 0, len(q.Names))
-	tupleElements := tupleBindElements(q.statement, q.Names)
+	tupleElements := q.cachedTupleBindElements()
 
 	for i, name := range q.Names {
 		val, ok := arg[name]
@@ -293,6 +295,13 @@ func (q *Queryx) bindMapArgs(arg map[string]interface{}) ([]interface{}, error) 
 		arglist = append(arglist, val)
 	}
 	return arglist, nil
+}
+
+func (q *Queryx) cachedTupleBindElements() []tupleBindElement {
+	if q.tupleElements == nil {
+		q.tupleElements = tupleBindElements(q.statement, q.Names)
+	}
+	return q.tupleElements
 }
 
 // Bind sets query arguments of query. This can also be used to rebind new query arguments
