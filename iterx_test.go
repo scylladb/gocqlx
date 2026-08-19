@@ -371,6 +371,58 @@ func TestIterxUDT(t *testing.T) {
 	}
 }
 
+func TestIterxUDTCollections(t *testing.T) {
+	type collectionValue struct {
+		gocqlx.UDT
+		UserID string `db:"user_id"`
+	}
+	type collectionKey struct {
+		gocqlx.UDT
+		Code string `db:"code"`
+	}
+
+	session := gocqlxtest.CreateSession(t)
+	defer session.Close()
+
+	for _, stmt := range []string{
+		`CREATE TYPE gocqlx_test.collection_map_value (user_id text)`,
+		`CREATE TYPE gocqlx_test.collection_map_key (code text)`,
+		`CREATE TABLE gocqlx_test.udt_collection_table (
+			id text PRIMARY KEY,
+			by_name map<text, frozen<collection_map_value>>,
+			by_key map<frozen<collection_map_key>, frozen<collection_map_value>>
+		)`,
+	} {
+		if err := session.ExecStmt(stmt); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	wantByName := map[string]collectionValue{
+		"one": {UserID: "user-1"},
+	}
+	wantByKey := map[collectionKey]collectionValue{
+		{Code: "one"}: {UserID: "user-1"},
+	}
+	if err := session.Query(`INSERT INTO udt_collection_table (id, by_name, by_key) VALUES (?, ?, ?)`, nil).
+		Bind("one", wantByName, wantByKey).Exec(); err != nil {
+		t.Fatal(err)
+	}
+
+	var gotByName map[string]collectionValue
+	var gotByKey map[collectionKey]collectionValue
+	if err := session.Query(`SELECT by_name, by_key FROM udt_collection_table WHERE id = ?`, nil).
+		Bind("one").Scan(&gotByName, &gotByKey); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(wantByName, gotByName); diff != "" {
+		t.Fatal(diff)
+	}
+	if diff := cmp.Diff(wantByKey, gotByKey); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
 func TestIterxStruct(t *testing.T) {
 	session := gocqlxtest.CreateSession(t)
 	defer session.Close()
