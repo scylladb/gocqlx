@@ -103,11 +103,22 @@ func EqTupleNamed(column string, count int, name string) Cmp {
 }
 
 // EqLit produces column=literal and does not add a parameter to the query.
+// The literal is written verbatim; use EqLitString for string values.
 func EqLit(column, literal string) Cmp {
 	return Cmp{
 		op:     eq,
 		column: column,
 		value:  lit(literal),
+	}
+}
+
+// EqLitString produces column='literal' with an escaped CQL string literal.
+// It does not add a parameter to the query.
+func EqLitString(column, literal string) Cmp {
+	return Cmp{
+		op:     eq,
+		column: column,
+		value:  stringLit(literal),
 	}
 }
 
@@ -163,11 +174,22 @@ func NeTupleNamed(column string, count int, name string) Cmp {
 }
 
 // NeLit produces column!=literal and does not add a parameter to the query.
+// The literal is written verbatim; use NeLitString for string values.
 func NeLit(column, literal string) Cmp {
 	return Cmp{
 		op:     ne,
 		column: column,
 		value:  lit(literal),
+	}
+}
+
+// NeLitString produces column!='literal' with an escaped CQL string literal.
+// It does not add a parameter to the query.
+func NeLitString(column, literal string) Cmp {
+	return Cmp{
+		op:     ne,
+		column: column,
+		value:  stringLit(literal),
 	}
 }
 
@@ -223,11 +245,22 @@ func LtTupleNamed(column string, count int, name string) Cmp {
 }
 
 // LtLit produces column<literal and does not add a parameter to the query.
+// The literal is written verbatim; use LtLitString for string values.
 func LtLit(column, literal string) Cmp {
 	return Cmp{
 		op:     lt,
 		column: column,
 		value:  lit(literal),
+	}
+}
+
+// LtLitString produces column<'literal' with an escaped CQL string literal.
+// It does not add a parameter to the query.
+func LtLitString(column, literal string) Cmp {
+	return Cmp{
+		op:     lt,
+		column: column,
+		value:  stringLit(literal),
 	}
 }
 
@@ -283,11 +316,22 @@ func LtOrEqTupleNamed(column string, count int, name string) Cmp {
 }
 
 // LtOrEqLit produces column<=literal and does not add a parameter to the query.
+// The literal is written verbatim; use LtOrEqLitString for string values.
 func LtOrEqLit(column, literal string) Cmp {
 	return Cmp{
 		op:     leq,
 		column: column,
 		value:  lit(literal),
+	}
+}
+
+// LtOrEqLitString produces column<='literal' with an escaped CQL string literal.
+// It does not add a parameter to the query.
+func LtOrEqLitString(column, literal string) Cmp {
+	return Cmp{
+		op:     leq,
+		column: column,
+		value:  stringLit(literal),
 	}
 }
 
@@ -343,11 +387,22 @@ func GtTupleNamed(column string, count int, name string) Cmp {
 }
 
 // GtLit produces column>literal and does not add a parameter to the query.
+// The literal is written verbatim; use GtLitString for string values.
 func GtLit(column, literal string) Cmp {
 	return Cmp{
 		op:     gt,
 		column: column,
 		value:  lit(literal),
+	}
+}
+
+// GtLitString produces column>'literal' with an escaped CQL string literal.
+// It does not add a parameter to the query.
+func GtLitString(column, literal string) Cmp {
+	return Cmp{
+		op:     gt,
+		column: column,
+		value:  stringLit(literal),
 	}
 }
 
@@ -403,11 +458,22 @@ func GtOrEqTupleNamed(column string, count int, name string) Cmp {
 }
 
 // GtOrEqLit produces column>=literal and does not add a parameter to the query.
+// The literal is written verbatim; use GtOrEqLitString for string values.
 func GtOrEqLit(column, literal string) Cmp {
 	return Cmp{
 		op:     geq,
 		column: column,
 		value:  lit(literal),
+	}
+}
+
+// GtOrEqLitString produces column>='literal' with an escaped CQL string literal.
+// It does not add a parameter to the query.
+func GtOrEqLitString(column, literal string) Cmp {
+	return Cmp{
+		op:     geq,
+		column: column,
+		value:  stringLit(literal),
 	}
 }
 
@@ -463,11 +529,33 @@ func InTupleNamed(column string, count int, name string) Cmp {
 }
 
 // InLit produces column IN literal and does not add a parameter to the query.
+// The literal is written verbatim; use InLitString or InLitStrings for string values.
 func InLit(column, literal string) Cmp {
 	return Cmp{
 		op:     in,
 		column: column,
 		value:  lit(literal),
+	}
+}
+
+// InLitString produces column IN ('literal') with an escaped CQL string literal.
+// It does not add a parameter to the query.
+func InLitString(column, literal string) Cmp {
+	return InLitStrings(column, literal)
+}
+
+// InLitStrings produces column IN ('literal',...) with escaped CQL string literals.
+// It does not add parameters to the query.
+// It panics if literals is empty.
+func InLitStrings(column string, literals ...string) Cmp {
+	if len(literals) == 0 {
+		panic("qb: InLitStrings requires at least one literal")
+	}
+
+	return Cmp{
+		op:     in,
+		column: column,
+		value:  stringListLit(literals),
 	}
 }
 
@@ -556,11 +644,42 @@ func ContainsKeyTupleNamed(column string, count int, name string) Cmp {
 }
 
 // ContainsLit produces column CONTAINS literal and does not add a parameter to the query.
+// The literal is written verbatim; use ContainsLitString for string values.
 func ContainsLit(column, literal string) Cmp {
 	return Cmp{
 		op:     cnt,
 		column: column,
 		value:  lit(literal),
+	}
+}
+
+// ContainsLitString produces column CONTAINS 'literal' with an escaped CQL string literal.
+// It does not add a parameter to the query.
+func ContainsLitString(column, literal string) Cmp {
+	return Cmp{
+		op:     cnt,
+		column: column,
+		value:  stringLit(literal),
+	}
+}
+
+// ContainsKeyLit produces column CONTAINS KEY literal and does not add a parameter to the query.
+// The literal is written verbatim; use ContainsKeyLitString for string values.
+func ContainsKeyLit(column, literal string) Cmp {
+	return Cmp{
+		op:     cntKey,
+		column: column,
+		value:  lit(literal),
+	}
+}
+
+// ContainsKeyLitString produces column CONTAINS KEY 'literal' with an escaped CQL string literal.
+// It does not add a parameter to the query.
+func ContainsKeyLitString(column, literal string) Cmp {
+	return Cmp{
+		op:     cntKey,
+		column: column,
+		value:  stringLit(literal),
 	}
 }
 
@@ -570,6 +689,26 @@ func Like(column string) Cmp {
 		op:     like,
 		column: column,
 		value:  param(column),
+	}
+}
+
+// LikeLit produces column LIKE literal and does not add a parameter to the query.
+// The literal is written verbatim; use LikeLitString for string values.
+func LikeLit(column, literal string) Cmp {
+	return Cmp{
+		op:     like,
+		column: column,
+		value:  lit(literal),
+	}
+}
+
+// LikeLitString produces column LIKE 'literal' with an escaped CQL string literal.
+// It does not add a parameter to the query.
+func LikeLitString(column, literal string) Cmp {
+	return Cmp{
+		op:     like,
+		column: column,
+		value:  stringLit(literal),
 	}
 }
 

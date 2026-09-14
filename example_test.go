@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
+	"github.com/google/go-cmp/cmp"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/inf.v0"
 
@@ -24,7 +25,7 @@ import (
 )
 
 // Running examples locally:
-// make run-scylla
+// make start-scylla
 // make run-examples
 func TestExample(t *testing.T) {
 	cluster := gocqlxtest.CreateCluster()
@@ -38,6 +39,8 @@ func TestExample(t *testing.T) {
 	_ = session.ExecStmt(`DROP KEYSPACE examples`)
 
 	basicCreateAndPopulateKeyspace(t, session, "examples")
+	basicBatchInsertStructs(t, session, "examples")
+	basicUpdateWithTableModel(t, session, "examples")
 	createAndPopulateKeyspaceAllTypes(t, session)
 	basicReadScyllaVersion(t, session)
 
@@ -51,6 +54,13 @@ func TestExample(t *testing.T) {
 
 	lwtLock(t, session)
 	unsetEmptyValues(t, session)
+}
+
+func createExampleKeyspace(t *testing.T, session gocqlx.Session) {
+	t.Helper()
+	if err := gocqlxtest.CreateKeyspaceIfNotExists(session, "examples"); err != nil {
+		t.Fatal("create keyspace:", err)
+	}
 }
 
 type Song struct {
@@ -70,21 +80,14 @@ type PlaylistItem struct {
 	SongID gocql.UUID
 }
 
-// This example shows how to use query builders and table models to build
-// queries. It uses "BindStruct" function for parameter binding and "Select"
-// function for loading data to a slice.
-func basicCreateAndPopulateKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
+func createMusicTables(t *testing.T, session gocqlx.Session, keyspace string) {
 	t.Helper()
 
-	err := session.ExecStmt(fmt.Sprintf(
-		`CREATE KEYSPACE IF NOT EXISTS %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`,
-		keyspace,
-	))
-	if err != nil {
+	if err := gocqlxtest.CreateKeyspaceIfNotExists(session, keyspace); err != nil {
 		t.Fatal("create keyspace:", err)
 	}
 
-	err = session.ExecStmt(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s.songs (
+	err := session.ExecStmt(fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s.songs (
 		id uuid PRIMARY KEY,
 		title text,
 		album text,
@@ -105,14 +108,33 @@ func basicCreateAndPopulateKeyspace(t *testing.T, session gocqlx.Session, keyspa
 	if err != nil {
 		t.Fatal("create table:", err)
 	}
+}
 
-	playlistMetadata := table.Metadata{
+func songTableModel(keyspace string) *table.Table {
+	return table.New(table.Metadata{
+		Name:    fmt.Sprintf("%s.songs", keyspace),
+		Columns: []string{"id", "title", "album", "artist", "tags", "data"},
+		PartKey: []string{"id"},
+	})
+}
+
+func playlistTableModel(keyspace string) *table.Table {
+	return table.New(table.Metadata{
 		Name:    fmt.Sprintf("%s.playlists", keyspace),
 		Columns: []string{"id", "title", "album", "artist", "song_id"},
 		PartKey: []string{"id"},
-		SortKey: []string{"title", "album", "artist", "song_id"},
-	}
-	playlistTable := table.New(playlistMetadata)
+		SortKey: []string{"title", "album", "artist"},
+	})
+}
+
+// This example shows how to use query builders and table models to build
+// queries. It uses "BindStruct" function for parameter binding and "Select"
+// function for loading data to a slice.
+func basicCreateAndPopulateKeyspace(t *testing.T, session gocqlx.Session, keyspace string) {
+	t.Helper()
+
+	createMusicTables(t, session, keyspace)
+	playlistTable := playlistTableModel(keyspace)
 
 	// Insert song using query builder.
 	insertSong := qb.Insert(fmt.Sprintf("%s.songs", keyspace)).
@@ -161,16 +183,113 @@ func basicCreateAndPopulateKeyspace(t *testing.T, session gocqlx.Session, keyspa
 	}
 }
 
+// This example shows how to add structs to a batch and execute them together.
+func basicBatchInsertStructs(t *testing.T, session gocqlx.Session, keyspace string) {
+	t.Helper()
+
+	createMusicTables(t, session, keyspace)
+	songTable := songTableModel(keyspace)
+	playlistTable := playlistTableModel(keyspace)
+
+	song := Song{
+		ID:     mustParseUUID("c6f075cb-f98f-4e51-9aa5-9b218ff26ad2"),
+		Title:  "Moonlight Serenade",
+		Album:  "The Essential Glenn Miller",
+		Artist: "Glenn Miller",
+		Tags:   []string{"swing"},
+		Data:   []byte("music"),
+	}
+	playlist := PlaylistItem{
+		ID:     mustParseUUID("7720de96-8984-41a7-a560-91f2398d6ebf"),
+		Title:  song.Title,
+		Album:  song.Album,
+		Artist: song.Artist,
+		SongID: song.ID,
+	}
+
+	// Use a logged batch because these denormalized rows span partitions and
+	// must stay in sync.
+	batch := session.Batch(gocql.LoggedBatch)
+
+	insertSong := songTable.InsertQuery(session)
+	err := batch.BindStruct(insertSong, song)
+	insertSong.Release()
+	if err != nil {
+		t.Fatal("bind song:", err)
+	}
+
+	insertPlaylist := playlistTable.InsertQuery(session)
+	err = batch.BindStruct(insertPlaylist, playlist)
+	insertPlaylist.Release()
+	if err != nil {
+		t.Fatal("bind playlist:", err)
+	}
+
+	if err := session.ExecuteBatch(batch); err != nil {
+		t.Fatal("execute batch:", err)
+	}
+
+	var gotSong Song
+	if err := songTable.GetQuery(session).BindStruct(song).GetRelease(&gotSong); err != nil {
+		t.Fatal("select song:", err)
+	}
+	if diff := cmp.Diff(gotSong, song); diff != "" {
+		t.Fatalf("song mismatch (-got +want):\n%s", diff)
+	}
+
+	var gotPlaylist PlaylistItem
+	if err := playlistTable.GetQuery(session).BindStruct(playlist).GetRelease(&gotPlaylist); err != nil {
+		t.Fatal("select playlist:", err)
+	}
+	if diff := cmp.Diff(gotPlaylist, playlist); diff != "" {
+		t.Fatalf("playlist mismatch (-got +want):\n%s", diff)
+	}
+}
+
+// This example shows how to update a row through a table model.
+func basicUpdateWithTableModel(t *testing.T, session gocqlx.Session, keyspace string) {
+	t.Helper()
+
+	createMusicTables(t, session, keyspace)
+	songTable := songTableModel(keyspace)
+
+	song := Song{
+		ID:     mustParseUUID("5b355d4f-9f91-43b7-83d4-d51d0797cd71"),
+		Title:  "Original title",
+		Album:  "Original album",
+		Artist: "Original artist",
+		Tags:   []string{"demo"},
+		Data:   []byte("music"),
+	}
+	if err := songTable.InsertQuery(session).BindStruct(song).ExecRelease(); err != nil {
+		t.Fatal("insert song:", err)
+	}
+
+	song.Title = "Updated title"
+	song.Album = "Updated album"
+	// The full struct can be bound here: UpdateQuery writes only title and
+	// album and uses id for the WHERE clause because binding follows the
+	// statement's named parameters.
+	if err := songTable.UpdateQuery(session, "title", "album").BindStruct(song).ExecRelease(); err != nil {
+		t.Fatal("update song:", err)
+	}
+
+	var got Song
+	if err := songTable.GetQuery(session).BindStruct(song).GetRelease(&got); err != nil {
+		t.Fatal("select updated song:", err)
+	}
+	if got.Title != song.Title || got.Album != song.Album {
+		t.Fatalf("updated song=%+v expected title=%q album=%q", got, song.Title, song.Album)
+	}
+}
+
 // This example shows how to use query builders and table models to build
 // queries with all types. It uses "BindStruct" function for parameter binding and "Select"
 // function for loading data to a slice.
 func createAndPopulateKeyspaceAllTypes(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
 	// generated with schemagen
 	type CheckTypesStruct struct {
@@ -199,7 +318,7 @@ func createAndPopulateKeyspaceAllTypes(t *testing.T, session gocqlx.Session) {
 		VarInt     int64
 	}
 
-	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.check_types (
+	err := session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.check_types (
 		asci_i ascii,
 		big_int bigint,
 		blo_b blob,
@@ -351,12 +470,9 @@ func basicReadScyllaVersion(t *testing.T, session gocqlx.Session) {
 func datatypesBlob(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
-	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.blobs(k int PRIMARY KEY, b blob, m map<text, blob>)`)
+	err := session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.blobs(k int PRIMARY KEY, b blob, m map<text, blob>)`)
 	if err != nil {
 		t.Fatal("create table:", err)
 	}
@@ -404,12 +520,9 @@ type Coordinates struct {
 func datatypesUserDefinedType(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
-	err = session.ExecStmt(`CREATE TYPE IF NOT EXISTS examples.coordinates(x int, y int)`)
+	err := session.ExecStmt(`CREATE TYPE IF NOT EXISTS examples.coordinates(x int, y int)`)
 	if err != nil {
 		t.Fatal("create type:", err)
 	}
@@ -460,12 +573,9 @@ type coordinates struct {
 func datatypesUserDefinedTypeWrapper(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
-	err = session.ExecStmt(`CREATE TYPE IF NOT EXISTS examples.coordinates(x int, y int)`)
+	err := session.ExecStmt(`CREATE TYPE IF NOT EXISTS examples.coordinates(x int, y int)`)
 	if err != nil {
 		t.Fatal("create type:", err)
 	}
@@ -518,12 +628,9 @@ func datatypesUserDefinedTypeWrapper(t *testing.T, session gocqlx.Session) {
 func datatypesJSON(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
-	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.querybuilder_json(id int PRIMARY KEY, name text, specs map<text, text>)`)
+	err := session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.querybuilder_json(id int PRIMARY KEY, name text, specs map<text, text>)`)
 	if err != nil {
 		t.Fatal("create table:", err)
 	}
@@ -618,12 +725,9 @@ func pagingFillTable(t *testing.T, insert *gocqlx.Queryx) {
 func pagingForwardPaging(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
-	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.paging_forward_paging(
+	err := session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.paging_forward_paging(
 		user_id int,
 		user_name text,
 		added timestamp,
@@ -689,12 +793,9 @@ func pagingForwardPaging(t *testing.T, session gocqlx.Session) {
 func pagingEfficientFullTableScan(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
-	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.paging_efficient_full_table_scan(
+	err := session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.paging_efficient_full_table_scan(
 		user_id int,
 		user_name text,
 		added timestamp,
@@ -801,10 +902,7 @@ func pagingEfficientFullTableScan(t *testing.T, session gocqlx.Session) {
 func lwtLock(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
 	type Lock struct {
 		Name  string
@@ -812,7 +910,7 @@ func lwtLock(t *testing.T, session gocqlx.Session) {
 		TTL   int64
 	}
 
-	err = session.ExecStmt(`CREATE TABLE examples.lock (name text PRIMARY KEY, owner text)`)
+	err := session.ExecStmt(`CREATE TABLE examples.lock (name text PRIMARY KEY, owner text)`)
 	if err != nil {
 		t.Fatal("create table:", err)
 	}
@@ -902,10 +1000,7 @@ func lwtLock(t *testing.T, session gocqlx.Session) {
 func unsetEmptyValues(t *testing.T, session gocqlx.Session) {
 	t.Helper()
 
-	err := session.ExecStmt(`CREATE KEYSPACE IF NOT EXISTS examples WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}`)
-	if err != nil {
-		t.Fatal("create keyspace:", err)
-	}
+	createExampleKeyspace(t, session)
 
 	type Operation struct {
 		ID        string
@@ -914,7 +1009,7 @@ func unsetEmptyValues(t *testing.T, session gocqlx.Session) {
 		PaymentID string
 		Fee       *inf.Dec
 	}
-	err = session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.operations (
+	err := session.ExecStmt(`CREATE TABLE IF NOT EXISTS examples.operations (
 		id text PRIMARY KEY,
 		client_id text,
 		type text,

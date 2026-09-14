@@ -22,32 +22,32 @@ func TestTableGet(t *testing.T) {
 	}{
 		{
 			M: Metadata{
-				Name:    "table",
+				Name:    "tbl",
 				Columns: []string{"a", "b", "c", "d"},
 				PartKey: []string{"a"},
 				SortKey: []string{"b"},
 			},
 			N: []string{"a", "b"},
-			S: "SELECT * FROM table WHERE a=? AND b=? ",
+			S: "SELECT * FROM tbl WHERE a=? AND b=? ",
 		},
 		{
 			M: Metadata{
-				Name:    "table",
+				Name:    "tbl",
 				Columns: []string{"a", "b", "c", "d"},
 				PartKey: []string{"a"},
 			},
 			N: []string{"a"},
-			S: "SELECT * FROM table WHERE a=? ",
+			S: "SELECT * FROM tbl WHERE a=? ",
 		},
 		{
 			M: Metadata{
-				Name:    "table",
+				Name:    "tbl",
 				Columns: []string{"a", "b", "c", "d"},
 				PartKey: []string{"a"},
 			},
 			C: []string{"d"},
 			N: []string{"a"},
-			S: "SELECT d FROM table WHERE a=? ",
+			S: "SELECT d FROM tbl WHERE a=? ",
 		},
 	}
 
@@ -82,24 +82,24 @@ func TestTableSelect(t *testing.T) {
 	}{
 		{
 			M: Metadata{
-				Name:    "table",
+				Name:    "tbl",
 				Columns: []string{"a", "b", "c", "d"},
 				PartKey: []string{"a"},
 				SortKey: []string{"b"},
 			},
 			N: []string{"a"},
-			S: "SELECT * FROM table WHERE a=? ",
+			S: "SELECT * FROM tbl WHERE a=? ",
 		},
 		{
 			M: Metadata{
-				Name:    "table",
+				Name:    "tbl",
 				Columns: []string{"a", "b", "c", "d"},
 				PartKey: []string{"a"},
 				SortKey: []string{"b"},
 			},
 			C: []string{"d"},
 			N: []string{"a"},
-			S: "SELECT d FROM table WHERE a=? ",
+			S: "SELECT d FROM tbl WHERE a=? ",
 		},
 	}
 
@@ -133,13 +133,13 @@ func TestTableInsert(t *testing.T) {
 	}{
 		{
 			M: Metadata{
-				Name:    "table",
+				Name:    "tbl",
 				Columns: []string{"a", "b", "c", "d"},
 				PartKey: []string{"a"},
 				SortKey: []string{"b"},
 			},
 			N: []string{"a", "b", "c", "d"},
-			S: "INSERT INTO table (a,b,c,d) VALUES (?,?,?,?) ",
+			S: "INSERT INTO tbl (a,b,c,d) VALUES (?,?,?,?) ",
 		},
 	}
 
@@ -163,14 +163,14 @@ func TestTableUpdate(t *testing.T) {
 	}{
 		{
 			M: Metadata{
-				Name:    "table",
+				Name:    "tbl",
 				Columns: []string{"a", "b", "c", "d"},
 				PartKey: []string{"a"},
 				SortKey: []string{"b"},
 			},
 			C: []string{"d"},
 			N: []string{"d", "a", "b"},
-			S: "UPDATE table SET d=? WHERE a=? AND b=? ",
+			S: "UPDATE tbl SET d=? WHERE a=? AND b=? ",
 		},
 	}
 
@@ -205,32 +205,32 @@ func TestTableDelete(t *testing.T) {
 	}{
 		{
 			M: Metadata{
-				Name:    "table",
+				Name:    "tbl",
 				Columns: []string{"a", "b", "c", "d"},
 				PartKey: []string{"a"},
 				SortKey: []string{"b"},
 			},
 			N: []string{"a", "b"},
-			S: "DELETE FROM table WHERE a=? AND b=? ",
+			S: "DELETE FROM tbl WHERE a=? AND b=? ",
 		},
 		{
 			M: Metadata{
-				Name:    "table",
+				Name:    "tbl",
 				Columns: []string{"a", "b", "c", "d"},
 				PartKey: []string{"a"},
 			},
 			N: []string{"a"},
-			S: "DELETE FROM table WHERE a=? ",
+			S: "DELETE FROM tbl WHERE a=? ",
 		},
 		{
 			M: Metadata{
-				Name:    "table",
+				Name:    "tbl",
 				Columns: []string{"a", "b", "c", "d"},
 				PartKey: []string{"a"},
 			},
 			C: []string{"d"},
 			N: []string{"a"},
-			S: "DELETE d FROM table WHERE a=? ",
+			S: "DELETE d FROM tbl WHERE a=? ",
 		},
 	}
 
@@ -256,6 +256,61 @@ func TestTableDelete(t *testing.T) {
 	}
 }
 
+func TestTableQuotedName(t *testing.T) {
+	tbl := New(Metadata{
+		Name:    `ks.tableName`,
+		Columns: []string{"a", "b", "c", "d"},
+		PartKey: []string{"a"},
+		SortKey: []string{"b"},
+	})
+	stmtOnly := func(stmt string, _ []string) string {
+		return stmt
+	}
+
+	tests := []struct {
+		name string
+		got  string
+		want string
+	}{
+		{
+			name: "get",
+			got:  stmtOnly(tbl.Get()),
+			want: `SELECT * FROM ks."tableName" WHERE a=? AND b=? `,
+		},
+		{
+			name: "select",
+			got:  stmtOnly(tbl.Select()),
+			want: `SELECT * FROM ks."tableName" WHERE a=? `,
+		},
+		{
+			name: "select all",
+			got:  stmtOnly(tbl.SelectAll()),
+			want: `SELECT * FROM ks."tableName" `,
+		},
+		{
+			name: "insert",
+			got:  stmtOnly(tbl.Insert()),
+			want: `INSERT INTO ks."tableName" (a,b,c,d) VALUES (?,?,?,?) `,
+		},
+		{
+			name: "update",
+			got:  stmtOnly(tbl.Update("d")),
+			want: `UPDATE ks."tableName" SET d=? WHERE a=? AND b=? `,
+		},
+		{
+			name: "delete",
+			got:  stmtOnly(tbl.Delete()),
+			want: `DELETE FROM ks."tableName" WHERE a=? AND b=? `,
+		},
+	}
+
+	for _, tt := range tests {
+		if diff := cmp.Diff(tt.want, tt.got); diff != "" {
+			t.Errorf("%s stmt mismatch (-want +got):\n%s", tt.name, diff)
+		}
+	}
+}
+
 func TestTableConcurrentUsage(t *testing.T) {
 	table := []struct {
 		Name string
@@ -267,25 +322,25 @@ func TestTableConcurrentUsage(t *testing.T) {
 		{
 			Name: "Full select",
 			M: Metadata{
-				Name:    "table",
+				Name:    "tbl",
 				Columns: []string{"a", "b", "c", "d"},
 				PartKey: []string{"a"},
 				SortKey: []string{"b"},
 			},
 			N: []string{"a", "b"},
-			S: "SELECT * FROM table WHERE a=? AND b=? ",
+			S: "SELECT * FROM tbl WHERE a=? AND b=? ",
 		},
 		{
 			Name: "Sub select",
 			M: Metadata{
-				Name:    "table",
+				Name:    "tbl",
 				Columns: []string{"a", "b", "c", "d"},
 				PartKey: []string{"a"},
 				SortKey: []string{"b"},
 			},
 			C: []string{"d"},
 			N: []string{"a", "b"},
-			S: "SELECT d FROM table WHERE a=? AND b=? ",
+			S: "SELECT d FROM tbl WHERE a=? AND b=? ",
 		},
 	}
 

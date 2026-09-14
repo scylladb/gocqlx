@@ -49,6 +49,7 @@ type SelectBuilder struct {
 }
 
 // Select returns a new SelectBuilder with the given table name.
+// See the package documentation for table name quoting rules.
 func Select(table string) *SelectBuilder {
 	return &SelectBuilder{
 		table: table,
@@ -81,7 +82,7 @@ func (b *SelectBuilder) ToCql() (stmt string, names []string) {
 		b.columns.writeCql(&cql)
 	}
 	cql.WriteString(" FROM ")
-	cql.WriteString(b.table)
+	cql.WriteString(quoteTableName(b.table))
 	cql.WriteByte(' ')
 
 	names = append(names, b.where.writeCql(&cql)...)
@@ -126,6 +127,7 @@ func (b *SelectBuilder) QueryContext(ctx context.Context, session gocqlx.Session
 }
 
 // From sets the table to be selected from.
+// See the package documentation for table name quoting rules.
 func (b *SelectBuilder) From(table string) *SelectBuilder {
 	b.table = table
 	return b

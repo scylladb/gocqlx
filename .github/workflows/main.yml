@@ -25,21 +25,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Git Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: '0'
 
       - name: Install Go 1.25
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.25
 
       - name: Cache Dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: gomod-cache
         with:
           path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('go.mod', 'cmd/schemagen/testdata/go.mod') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('go.mod', 'cmd/schemagen/testdata/go.mod', 'examples/basic/go.mod') }}
 
       - name: Download Dependencies
         run: git --version && make get-deps && make get-tools

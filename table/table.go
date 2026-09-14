@@ -13,6 +13,8 @@ import (
 
 // Metadata represents table schema.
 type Metadata struct {
+	// Name is the CQL table name. It may be keyspace-qualified; table builders
+	// apply qb table name quoting rules when rendering statements.
 	Name    string
 	Columns []string
 	PartKey []string

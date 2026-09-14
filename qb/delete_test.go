@@ -28,7 +28,7 @@ func TestDeleteBuilder(t *testing.T) {
 		// Change table name
 		{
 			B: Delete("cycling.cyclist_name").Where(w).From("Foobar"),
-			S: "DELETE FROM Foobar WHERE id=? ",
+			S: `DELETE FROM "Foobar" WHERE id=? `,
 			N: []string{"expr"},
 		},
 		// Add column

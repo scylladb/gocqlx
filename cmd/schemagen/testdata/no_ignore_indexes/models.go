@@ -69,8 +69,8 @@ var (
 // User-defined types (UDT) structs.
 type AlbumUserType struct {
 	gocqlx.UDT
-	Name        string
-	Songwriters []string
+	Name        string   `cql:"name"`
+	Songwriters []string `cql:"songwriters"`
 }
 
 // Table structs.

@@ -227,6 +227,7 @@ var (
 ## Examples
 
 You can find lots of examples in [example_test.go](https://github.com/scylladb/gocqlx/blob/master/example_test.go).
+There is also a runnable example app with its own `go.mod` in [examples/basic](examples/basic).
 
 Go and run them locally:
 

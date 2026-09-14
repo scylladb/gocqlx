@@ -32,7 +32,7 @@ func TestInsertBuilder(t *testing.T) {
 		// Change table name
 		{
 			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").Into("Foobar"),
-			S: "INSERT INTO Foobar (id,user_uuid,firstname) VALUES (?,?,?) ",
+			S: `INSERT INTO "Foobar" (id,user_uuid,firstname) VALUES (?,?,?) `,
 			N: []string{"id", "user_uuid", "firstname"},
 		},
 		// Add columns
@@ -52,6 +52,12 @@ func TestInsertBuilder(t *testing.T) {
 			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid", "firstname").LitColumn("stars", "stars_lit"),
 			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname,stars) VALUES (?,?,?,stars_lit) ",
 			N: []string{"id", "user_uuid", "firstname"},
+		},
+		// Add a string literal column
+		{
+			B: Insert("cycling.cyclist_name").Columns("id", "user_uuid").StringLitColumn("firstname", "O'Brien"),
+			S: "INSERT INTO cycling.cyclist_name (id,user_uuid,firstname) VALUES (?,?,'O''Brien') ",
+			N: []string{"id", "user_uuid"},
 		},
 		// Add TTL
 		{

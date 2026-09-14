@@ -41,6 +41,7 @@ type UpdateBuilder struct {
 }
 
 // Update returns a new UpdateBuilder with the given table name.
+// See the package documentation for table name quoting rules.
 func Update(table string) *UpdateBuilder {
 	return &UpdateBuilder{
 		table: table,
@@ -52,7 +53,7 @@ func (b *UpdateBuilder) ToCql() (stmt string, names []string) {
 	cql := bytes.Buffer{}
 
 	cql.WriteString("UPDATE ")
-	cql.WriteString(b.table)
+	cql.WriteString(quoteTableName(b.table))
 	cql.WriteByte(' ')
 
 	names = append(names, b.using.writeCql(&cql)...)
@@ -92,6 +93,7 @@ func (b *UpdateBuilder) QueryContext(ctx context.Context, session gocqlx.Session
 }
 
 // Table sets the table to be updated.
+// See the package documentation for table name quoting rules.
 func (b *UpdateBuilder) Table(table string) *UpdateBuilder {
 	b.table = table
 	return b
@@ -156,9 +158,18 @@ func (b *UpdateBuilder) SetNamed(column, name string) *UpdateBuilder {
 }
 
 // SetLit adds SET column=literal clause to the query.
+// The literal is written verbatim; use SetLitString for string values.
 func (b *UpdateBuilder) SetLit(column, literal string) *UpdateBuilder {
 	b.assignments = append(
 		b.assignments, assignment{column: column, value: lit(literal)})
+	return b
+}
+
+// SetLitString adds SET column='literal' with an escaped CQL string literal.
+// It does not add a parameter to the query.
+func (b *UpdateBuilder) SetLitString(column, literal string) *UpdateBuilder {
+	b.assignments = append(
+		b.assignments, assignment{column: column, value: stringLit(literal)})
 	return b
 }
 
