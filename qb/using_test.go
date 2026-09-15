@@ -143,6 +143,21 @@ func TestUsing(t *testing.T) {
 			B: new(using).TimestampNamed("ts").Timestamp(time.Date(2005, 5, 5, 0, 0, 0, 0, time.UTC)),
 			S: "USING TIMESTAMP 1115251200000000 ",
 		},
+		// ServiceLevel
+		{
+			B: new(using).ServiceLevel("foo"),
+			S: "USING SERVICE LEVEL 'foo' ",
+		},
+		// ServiceLevel with additional Timeout
+		{
+			B: new(using).ServiceLevel("foo").Timeout(time.Second),
+			S: "USING TIMEOUT 1s AND SERVICE LEVEL 'foo' ",
+		},
+		// ServiceLevel with a silly, but legal, name
+		{
+			B: new(using).ServiceLevel(`^&*^\!@#&($%^!';[](+`),
+			S: `USING SERVICE LEVEL '^&*^\!@#&($%^!'';[](+' `,
+		},
 	}
 
 	for _, test := range table {

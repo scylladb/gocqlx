@@ -7,6 +7,7 @@ package qb
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -27,6 +28,7 @@ type using struct {
 	ttl           int64
 	timestamp     int64
 	timeout       time.Duration
+	serviceLevel  string
 }
 
 func (u *using) TTL(d time.Duration) *using {
@@ -68,6 +70,11 @@ func (u *using) TimeoutNamed(name string) *using {
 	return u
 }
 
+func (u *using) ServiceLevel(name string) *using {
+	u.serviceLevel = name
+	return u
+}
+
 func (u *using) writeCql(cql *bytes.Buffer) (names []string) {
 	writePreamble := u.preambleWriter()
 
@@ -99,6 +106,11 @@ func (u *using) writeCql(cql *bytes.Buffer) (names []string) {
 		writePreamble(cql)
 		cql.WriteString("TIMEOUT ? ")
 		names = append(names, u.timeoutName)
+	}
+
+	if u.serviceLevel != "" {
+		writePreamble(cql)
+		fmt.Fprintf(cql, "SERVICE LEVEL '%s' ", strings.ReplaceAll(u.serviceLevel, "'", "''"))
 	}
 
 	return
