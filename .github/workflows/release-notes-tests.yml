@@ -1,0 +1,21 @@
+name: Test release automation
+
+on:
+  push:
+    branches: [master]
+    paths: ['.github/**', 'RELEASING.md']
+  pull_request:
+    paths: ['.github/**', 'RELEASING.md']
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: node --test .github/scripts/*.test.cjs

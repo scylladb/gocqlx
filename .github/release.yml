@@ -1,0 +1,4 @@
+changelog:
+  exclude:
+    labels:
+      - omit-from-release-notes
