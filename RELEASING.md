@@ -14,24 +14,25 @@ reruns.
 
 ## Keeping generated notes useful
 
-Generated notes exclude PRs labeled `omit-from-release-notes`. A trusted
-classifier applies the label only if every changed path is an explicitly known
-support file: documented README files, `RELEASING.md`, Go `*_test.go` files,
-dedicated testdata directories, `.github/`, or the known development settings
+Generated notes exclude PRs labeled `omit-from-release-notes`. The stock
+`actions/labeler` action uses `.github/labeler.yml` to apply the label only when
+all reported changed filenames match known support paths: documented README
+files, `RELEASING.md`, Go `*_test.go` files, dedicated testdata directories,
+`.github/`, or the known development settings
 `.gitignore`, `.golangci.yml`, and `renovate.json`.
 
 Production Go files (including the importable `gocqlxtest` package), runnable
 examples, embedded migration example CQL, templates, root and example module
 manifests, `Makefile`, and unknown paths stay in the notes. Mixed PRs stay in the
-notes. Renames must have support paths on both sides. Authors, titles, and broad
-`chore` or `dependencies` labels never determine exclusion.
+notes. Authors, titles, and broad `chore` or `dependencies` labels never
+determine exclusion. Matching uses the filenames reported by GitHub; it does
+not inspect file contents or previous rename paths.
 
-Classification runs on PR opening, synchronization, reopening, editing, and
-closing. It checks a complete paginated file list against stable head/base SHAs
-and file counts, removes stale omission labels for mixed changes, and attempts
-to remove the label before surfacing API or snapshot failures. Runs for the same
-PR are serialized. It executes only default-branch classifier code, including
-for fork PRs; PR code never runs with label-write permissions.
+Labeling runs on PR opening, synchronization, reopening, editing, and closing,
+including merge events. With `sync-labels: true`, the action removes the omission
+label when the filename rules stop matching. Runs for the same PR are serialized.
+The workflow fetches its repository configuration through the API and checks out
+no PR code, including for fork PRs.
 
 Before releasing, backfill support-only PRs that merged before this workflow:
 

@@ -1,0 +1,6 @@
+# One union pattern allows a mixture of support paths while requiring every
+# reported changed filename to match. Keep runtime code and manifests visible.
+omit-from-release-notes:
+  - changed-files:
+      - all-globs-to-all-files:
+          - '{.github/**,**/*_test.go,testdata/**,migrate/testdata/**,cmd/schemagen/testdata/**,README.md,migrate/README.md,qb/README.md,examples/basic/README.md,RELEASING.md,.gitignore,.golangci.yml,renovate.json}'
