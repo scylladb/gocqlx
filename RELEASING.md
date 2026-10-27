@@ -72,9 +72,9 @@ sufficient. Recover an unverified omission by removing the marker on GitHub and
 retrying classification after the underlying error is resolved. Recheck after
 any later relevant change before tagging.
 
-Publication remains asynchronous; no automated release/classification barrier
-is included in this PR or its later review cycles. If manual verification is
-missed, published notes may omit runtime changes or include support changes.
+Publication remains asynchronous; there is no automated release/classification
+barrier. If manual verification is missed, published notes may omit runtime
+changes or include support changes.
 Reruns preserve already published notes, and no follow-up synchronization work is
 scheduled. Manually applying the label is an override that reclassification can
 remove.
