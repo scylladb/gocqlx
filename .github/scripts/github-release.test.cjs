@@ -36,16 +36,17 @@ function fixture(existing = false) {
         return {data: {type: 'file', encoding: 'base64',
           content: Buffer.from('module github.com/scylladb/gocqlx/v3\n').toString('base64')}};
       },
-      getReleaseByTag: async () => {
-        if (!existing) throw {status: 404};
-        return {data: {body: 'Curated notes', tag_name: tag, draft: false}};
-      },
+      listReleases: () => {},
       generateReleaseNotes: async args => {
         calls.push(['notes', args]);
         return {data: {body: 'Filtered notes'}};
       },
       createRelease: async args => calls.push(['create', args]),
     },
+  }, paginate: async (method, args) => {
+    assert.equal(method, github.rest.repos.listReleases);
+    assert.deepEqual(args, {owner: 'scylladb', repo: 'gocqlx', per_page: 100});
+    return existing ? [{body: 'Curated notes', tag_name: tag, draft: false}] : [];
   }};
   return {github, context: {repo: {owner: 'scylladb', repo: 'gocqlx'}},
     core: {info: () => {}}, calls, object};
@@ -78,7 +79,7 @@ test('missing or mismatched authoritative tags prevent release creation', async 
 
 test('release lookup errors are not mistaken for absent releases', async () => {
   const f = fixture();
-  f.github.rest.repos.getReleaseByTag = async () => {throw new Error('Forbidden');};
+  f.github.paginate = async () => {throw new Error('Forbidden');};
   await assert.rejects(publish(f, tag, commit), /Forbidden/);
   assert.equal(f.calls.some(call => call[0] === 'create'), false);
 });
@@ -93,14 +94,22 @@ test('workflow trusts default-branch automation and serializes each tag', () => 
   assert.match(readFileSync('.github/release.yml', 'utf8'), /labels:\n      - omit-from-release-notes/);
 });
 
-test('existing draft or conflicting release is an actionable failure', async () => {
-  for (const existing of [{tag_name: tag, draft: true},
-    {tag_name: 'v3.0.3', draft: false}]) {
-    const f = fixture(true);
-    f.github.rest.repos.getReleaseByTag = async () => ({data: existing});
-    await assert.rejects(publish(f, tag, commit), /unpublished or.*conflicting/);
-    assert.equal(f.calls.some(call => call[0] === 'create'), false);
+test('matching drafts fail even when a published release also has the tag', async () => {
+  for (const releases of [[{tag_name: tag, draft: true}],
+    [{tag_name: tag, draft: false}, {tag_name: tag, draft: true}]]) {
+    const f = fixture();
+    f.github.paginate = async () => releases;
+    await assert.rejects(publish(f, tag, commit), /unpublished/);
+    assert.deepEqual(f.calls.map(call => call[0]), ['tag']);
   }
+});
+
+test('unrelated published and draft releases do not block creation', async () => {
+  const f = fixture();
+  f.github.paginate = async () => [{tag_name: 'v3.0.3', draft: false},
+    {tag_name: 'v3.0.5', draft: true}];
+  await publish(f, tag, commit);
+  assert.deepEqual(f.calls.map(call => call[0]), ['tag', 'notes', 'create']);
 });
 
 test('invalid tagged module and unavailable module prevent release creation', async () => {

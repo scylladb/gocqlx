@@ -31,15 +31,14 @@ async function publish({github, context, core}, tag, expectedCommit) {
     throw new Error('Could not read the tagged Go module');
   }
   validateModule(tag, Buffer.from(moduleFile.content, 'base64').toString('utf8'));
-  try {
-    const existing = (await github.rest.repos.getReleaseByTag({...repo, tag})).data;
-    if (existing.draft || existing.tag_name !== tag) {
-      throw new Error('Existing release is unpublished or has a conflicting tag');
-    }
+  const releases = await github.paginate(github.rest.repos.listReleases, {...repo, per_page: 100});
+  const matching = releases.filter(release => release.tag_name === tag);
+  if (matching.some(release => release.draft)) {
+    throw new Error('Existing release is unpublished; publish or remove the draft before retrying');
+  }
+  if (matching.length) {
     core.info(`Release ${tag} already exists; preserving its notes`);
     return;
-  } catch (error) {
-    if (error.status !== 404) throw error;
   }
   const notes = (await github.rest.repos.generateReleaseNotes({...repo, tag_name: tag,
     configuration_file_path: '.github/release.yml'})).data;
