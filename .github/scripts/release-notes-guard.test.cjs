@@ -93,6 +93,25 @@ test('canonical policy matches mixed support files and keeps runtime or unknown 
   }
 });
 
+test('runnable examples stay visible alone, in mixed PRs, and through renames', async () => {
+  for (const filename of ['example_test.go', 'migrate/example/example_test.go',
+    'migrate/example/cql/example_test.go']) {
+    for (const files of [[file(filename)], [file('README.md'), file(filename)]]) {
+      assert.equal((await guard.snapshot(fixture({files}).github, repo, 20)).omit, false, filename);
+    }
+    const fromExample = await guard.snapshot(fixture({files: [file('README.md', {
+      status: 'renamed', previous_filename: filename})]}).github, repo, 20);
+    assert.equal(fromExample.omit, false, filename);
+    assert.equal(fromExample.unsafeRename, true, filename);
+    const toExample = await guard.snapshot(fixture({files: [file(filename, {
+      status: 'renamed', previous_filename: 'README.md'})]}).github, repo, 20);
+    assert.equal(toExample.omit, false, filename);
+  }
+  for (const filename of ['queryx_test.go', 'migrate/migrate_test.go', 'qb/select_test.go']) {
+    assert.equal((await guard.snapshot(fixture({files: [file(filename)]}).github, repo, 20)).omit, true, filename);
+  }
+});
+
 test('renames use the actual canonical policy for both prior and current paths', async () => {
   for (const [previous, omit] of [['README.md', true], ['queryx.go', false], ['unknown', false]]) {
     const current = await guard.snapshot(fixture({files: [file('RELEASING.md', {

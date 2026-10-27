@@ -1,6 +1,7 @@
-# One union pattern allows a mixture of support paths while requiring every
-# reported changed filename to match. Keep runtime code and manifests visible.
+# The support-path union permits mixtures while requiring every file to match.
+# Runnable examples stay visible even when their filenames end in _test.go.
 omit-from-release-notes:
   - changed-files:
       - all-globs-to-all-files:
           - '{.github/**,**/*_test.go,testdata/**,migrate/testdata/**,cmd/schemagen/testdata/**,README.md,migrate/README.md,qb/README.md,examples/basic/README.md,RELEASING.md,.gitignore,.golangci.yml,renovate.json}'
+          - '!{example_test.go,migrate/example/**}'

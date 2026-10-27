@@ -22,7 +22,8 @@ files, `RELEASING.md`, Go `*_test.go` files, dedicated testdata directories,
 `.gitignore`, `.golangci.yml`, and `renovate.json`.
 
 Production Go files (including the importable `gocqlxtest` package), runnable
-examples, embedded migration example CQL, templates, root and example module
+examples (including `example_test.go` and all of `migrate/example/`), embedded
+migration example CQL, templates, root and example module
 manifests, `Makefile`, and unknown paths stay in the notes. Mixed PRs stay in the
 notes. Authors, titles, and broad `chore` or `dependencies` labels never
 determine exclusion. Classification reads the current and previous rename paths from GitHub. A rename
