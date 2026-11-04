@@ -3,5 +3,24 @@
   "extends": [
     "config:recommended"
   ],
-  "prConcurrentLimit": 2
+  "prConcurrentLimit": 2,
+  "packageRules": [
+    {
+      "description": "Update docs Python dependencies together, including transitive dependencies through lock file maintenance",
+      "matchManagers": ["pep621"],
+      "matchFileNames": ["docs/**"],
+      "rangeStrategy": "update-lockfile",
+      "groupName": "docs",
+      "lockFileMaintenance": {
+        "enabled": true
+      }
+    },
+    {
+      "description": "Update the docs Python version manually together with the docs workflows",
+      "matchManagers": ["pep621"],
+      "matchFileNames": ["docs/**"],
+      "matchDepTypes": ["requires-python"],
+      "enabled": false
+    }
+  ]
 }
