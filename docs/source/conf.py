@@ -4,20 +4,14 @@ from sphinx_scylladb_theme.utils import (  # pyright: ignore[reportMissingTypeSt
     multiversion_regex_builder,  # pyright: ignore[reportUnknownVariableType]
 )
 
-
 # -- Global variables --------------------------------------------------
 
 # Publish only the default branch for now, under the stable URL.
 TAGS: list[str] = []
-
 BRANCHES = ["master"]
-
 LATEST_VERSION = "master"
-
 UNSTABLE_VERSIONS = []
-
 DEPRECATED_VERSIONS = []
-
 
 # -- General configuration ---------------------------------------------
 
@@ -37,9 +31,7 @@ source_suffix = {
 master_doc = "index"
 
 project = "GocqlX"
-
 copyright = "2026, ScyllaDB"
-
 author = "ScyllaDB"
 
 exclude_patterns = [
@@ -49,43 +41,30 @@ exclude_patterns = [
     "**/_partials",
 ]
 
-
 # -- Options for myst parser -------------------------------------------
 
 myst_enable_extensions = ["colon_fence"]
-
 myst_heading_anchors = 3
-
 
 # -- Options for not found extension -----------------------------------
 
 # Use the theme's 404 page with assets served from the custom domain root.
 notfound_template = "404.html"
-
 notfound_urls_prefix = ""
-
 
 # -- Options for sitemap extension -------------------------------------
 
 sitemap_url_scheme = "/stable/{link}"
 
-
 # -- Options for multiversion extension --------------------------------
 
 smv_tag_whitelist = multiversion_regex_builder(TAGS)
-
 smv_branch_whitelist = multiversion_regex_builder(BRANCHES)
-
 smv_latest_version = LATEST_VERSION
-
 smv_rename_latest_version = "stable"
-
 smv_remote_whitelist = r"^origin$"
-
 smv_released_pattern = r"^tags/.*$"
-
 smv_outputdir_format = "{ref.name}"
-
 
 # -- Options for HTML output -------------------------------------------
 
@@ -105,12 +84,9 @@ html_theme_options = {  # type: ignore
 }
 
 html_title = "GocqlX Documentation"
-
 html_short_title = "GocqlX"
-
 html_sidebars = {"**": ["side-nav.html"]}
 
 # Root URL for the multiversion GitHub Pages deployment.
 html_baseurl = "https://gocqlx-driver.docs.scylladb.com"
-
 html_context = {"html_baseurl": html_baseurl}
