@@ -7,12 +7,16 @@ It’s inspired by [Sqlx](https://github.com/jmoiron/sqlx), a tool for working w
 
 Versions of GocqlX prior to v3.0.0 are compatible with both [Apache Cassandra’s gocql](https://github.com/apache/cassandra-gocql-driver) and [ScyllaDB’s fork](https://github.com/scylladb/gocql).
 However, starting with v3.0.0, GocqlX exclusively supports the scylladb/gocql driver.
-If you are using GocqlX v3.0.0 or newer, you must ensure your `go.mod` includes a replace directive to point to ScyllaDB’s fork:
+This version requires scylladb/gocql v1.20.0 or newer.
+Add a replace directive to your application's `go.mod`:
 
 ```go
 // Use the latest version of scylladb/gocql; check for updates at https://github.com/scylladb/gocql/releases
-replace github.com/gocql/gocql => github.com/scylladb/gocql v1.16.0
+replace github.com/gocql/gocql => github.com/scylladb/gocql v1.20.0
 ```
+
+Replace directives in dependencies are not inherited.
+Update any older driver replacement in your application's `go.mod` before upgrading GocqlX.
 
 This is required because GocqlX relies on ScyllaDB-specific extensions and bug fixes introduced in the gocql fork. Attempting to use the standard gocql driver with GocqlX v3.0.0+ may lead to build or runtime issues.
 
