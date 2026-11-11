@@ -47,6 +47,8 @@ linters:
       enable-all: true
       disable:
         - shadow
+        # Keep modernization suggestions out of the compatibility check.
+        - inline
     errcheck:
       check-blank: false
     gocognit:

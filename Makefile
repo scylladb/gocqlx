@@ -24,7 +24,7 @@ export PATH := $(GOBIN):$(PATH)
 GOOS := $(shell uname | tr '[:upper:]' '[:lower:]')
 GOARCH := $(shell go env GOARCH)
 
-GOLANGCI_VERSION := 2.5.0
+GOLANGCI_VERSION := 2.13.2
 
 ifeq ($(GOARCH),arm64)
 	GOLANGCI_DOWNLOAD_URL := "https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-$(GOOS)-arm64.tar.gz"
