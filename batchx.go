@@ -173,6 +173,20 @@ func (b *Batch) WithTimestamp(timestamp int64) *Batch {
 	return b
 }
 
+// SetKeyspace sets the keyspace in which the batch executes.
+// Only available on protocol >= 5.
+func (b *Batch) SetKeyspace(keyspace string) *Batch {
+	b.Batch.SetKeyspace(keyspace)
+	return b
+}
+
+// WithNowInSeconds sets the current time in seconds used by the server for the batch.
+// Only available on protocol >= 5.
+func (b *Batch) WithNowInSeconds(now int) *Batch {
+	b.Batch.WithNowInSeconds(now)
+	return b
+}
+
 // Query adds the query to the batch operation
 func (b *Batch) Query(stmt string, args ...interface{}) *Batch {
 	b.Batch.Query(stmt, args...)

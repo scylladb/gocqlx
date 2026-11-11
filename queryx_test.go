@@ -231,3 +231,17 @@ func TestQueryxAllWrapped(t *testing.T) {
 		}
 	}
 }
+
+func TestQueryxProtocolV5Options(t *testing.T) {
+	q := Query(new(gocql.Query), []string{"value"})
+	got := q.SetKeyspace("test_keyspace").WithNowInSeconds(123).BindMap(map[string]interface{}{"value": 42})
+	if got != q {
+		t.Fatal("query options must preserve the Queryx wrapper")
+	}
+	if got.Keyspace() != "test_keyspace" {
+		t.Errorf("keyspace = %q, want test_keyspace", got.Keyspace())
+	}
+	if err := got.Err(); err != nil {
+		t.Fatal(err)
+	}
+}
