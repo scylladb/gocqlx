@@ -9,7 +9,6 @@ package gocqlx_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/gocql/gocql"
 
@@ -37,7 +36,8 @@ func TestProtocolV5Options(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	now := int(time.Now().Unix())
+	// Use virtual epoch time so ignoring either clock override changes the observed TTL.
+	const now = 0
 	t.Run("query", func(t *testing.T) {
 		err := session.Query("INSERT INTO options (id, value) VALUES (?, ?) USING TTL 20", []string{"id", "value"}).
 			SetKeyspace(keyspace).WithNowInSeconds(now).BindMap(map[string]interface{}{"id": 1, "value": "query"}).ExecRelease()
