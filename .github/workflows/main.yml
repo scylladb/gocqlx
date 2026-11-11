@@ -8,11 +8,9 @@ on:
     types: [opened, synchronize, reopened]
 
 env:
-  # On CICD following error shows up:
-  #   go: github.com/gocql/gocql@v1.7.0: GOPROXY list is not the empty string, but contains no entries
-  # This env variable is set to make it go away
-  # If at some point you see no error, feel free to remove it
-  GOPROXY: direct
+  # Use Go's default proxy to fetch pinned modules when their origins are unavailable.
+  # Keep direct fallback for modules not served by the proxy.
+  GOPROXY: https://proxy.golang.org,direct
   # On CICD following error shows up:
   #   go: golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@v0.24.0: golang.org/x/tools@v0.24.0: verifying module: missing GOSUMDB
   # This env variable makes it go away
