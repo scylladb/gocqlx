@@ -9,7 +9,7 @@ require (
 
 require (
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/klauspost/compress v1.18.6 // indirect
+	github.com/klauspost/compress v1.18.7 // indirect
 	github.com/scylladb/go-reflectx v1.0.1 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
