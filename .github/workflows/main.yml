@@ -22,6 +22,8 @@ env:
 jobs:
   test:
     name: Go ${{ matrix.go }}
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -70,6 +72,7 @@ jobs:
 
   build:
     name: Build
+    permissions: {}
     if: always()
     needs: test
     runs-on: ubuntu-latest
