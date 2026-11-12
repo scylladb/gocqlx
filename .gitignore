@@ -21,3 +21,9 @@ cmd/schemagen/testdata/go.sum
 # Claude / AI assistant metadata
 CLAUDE.md
 .claude/
+
+# Documentation build output and Python environment
+/docs/_build/
+/docs/.venv/
+__pycache__/
+*.py[cod]

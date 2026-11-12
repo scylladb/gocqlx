@@ -1,0 +1,49 @@
+name: "Docs / Build PR"
+# For more information,
+# see https://sphinx-theme.scylladb.com/stable/deployment/production.html#available-workflows
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "docs/**"
+      - "README.md"
+      - "qb/README.md"
+      - "migrate/README.md"
+      - "examples/basic/README.md"
+      - ".github/workflows/docs-*.yaml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Build docs
+        id: docs-build
+        shell: bash
+        run: |
+          make -C docs test SPHINXOPTS="-j auto -w $RUNNER_TEMP/docs-warnings.log" \
+            2>&1 | tee "$RUNNER_TEMP/docs-build.log"
+
+      - name: Summarize docs diagnostics
+        if: always()
+        uses: scylladb/sphinx-scylladb-theme/.github/actions/docs-report@0d821fc4038ee9ad6363362c02035132489bf3f6
+        with:
+          build-outcome: ${{ steps.docs-build.outcome }}
