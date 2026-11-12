@@ -24,7 +24,7 @@ export PATH := $(GOBIN):$(PATH)
 GOOS := $(shell uname | tr '[:upper:]' '[:lower:]')
 GOARCH := $(shell go env GOARCH)
 
-GOLANGCI_VERSION := 2.5.0
+GOLANGCI_VERSION := 2.13.2
 
 ifeq ($(GOARCH),arm64)
 	GOLANGCI_DOWNLOAD_URL := "https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-$(GOOS)-arm64.tar.gz"
@@ -70,7 +70,7 @@ test: start-scylla
 	echo "==> Running tests... in ./cmd/schemagen"
 	@$(GOTEST) ./cmd/schemagen
 	echo "==> Running tests... in ./cmd/schemagen/testdata"
-	@cd ./cmd/schemagen/testdata ; go mod tidy ; $(GOTEST) .; cd ../../..
+	@cd ./cmd/schemagen/testdata && go mod tidy && $(GOTEST) .
 	echo "==> Running tests... in ./examples/basic"
 	@cd ./examples/basic && $(GOTEST) .
 	echo "==> Smoke testing ./examples/basic"
