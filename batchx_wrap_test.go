@@ -5,6 +5,7 @@
 package gocqlx
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/gocql/gocql"
@@ -18,6 +19,14 @@ func TestBatchProtocolV5Options(t *testing.T) {
 	}
 	if got.Keyspace() != "test_keyspace" {
 		t.Errorf("keyspace = %q, want test_keyspace", got.Keyspace())
+	}
+	// The driver has no getter for this option.
+	now := reflect.ValueOf(got.Batch).Elem().FieldByName("nowInSeconds")
+	if now.IsNil() {
+		t.Fatal("now-in-seconds option was not forwarded to the batch")
+	}
+	if value := now.Elem().Int(); value != 123 {
+		t.Errorf("now-in-seconds = %d, want 123", value)
 	}
 	if len(got.Entries) != 1 {
 		t.Fatalf("batch has %d entries, want 1", len(got.Entries))

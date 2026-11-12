@@ -241,6 +241,14 @@ func TestQueryxProtocolV5Options(t *testing.T) {
 	if got.Keyspace() != "test_keyspace" {
 		t.Errorf("keyspace = %q, want test_keyspace", got.Keyspace())
 	}
+	// The driver has no getter for this option.
+	now := reflect.ValueOf(got.Query).Elem().FieldByName("nowInSecondsValue")
+	if now.IsNil() {
+		t.Fatal("now-in-seconds option was not forwarded to the query")
+	}
+	if value := now.Elem().Int(); value != 123 {
+		t.Errorf("now-in-seconds = %d, want 123", value)
+	}
 	if err := got.Err(); err != nil {
 		t.Fatal(err)
 	}
