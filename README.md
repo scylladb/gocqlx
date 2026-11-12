@@ -7,7 +7,8 @@ It’s inspired by [Sqlx](https://github.com/jmoiron/sqlx), a tool for working w
 
 Versions of GocqlX prior to v3.0.0 are compatible with both [Apache Cassandra’s gocql](https://github.com/apache/cassandra-gocql-driver) and [ScyllaDB’s fork](https://github.com/scylladb/gocql).
 However, starting with v3.0.0, GocqlX exclusively supports the scylladb/gocql driver.
-This version requires scylladb/gocql v1.20.0 or newer.
+This version supports scylladb/gocql v1.20.0 or newer.
+The protocol v5 query and batch APIs are available in v1.19.0; v1.20.0 is the supported minimum by policy and the version used for testing.
 Add a replace directive to your application's `go.mod`:
 
 ```go
