@@ -25,10 +25,10 @@ type using struct {
 	ttlName       string
 	timestampName string
 	timeoutName   string
+	serviceLevel  string
 	ttl           int64
 	timestamp     int64
 	timeout       time.Duration
-	serviceLevel  string
 }
 
 func (u *using) TTL(d time.Duration) *using {
