@@ -70,7 +70,7 @@ test: start-scylla
 	echo "==> Running tests... in ./cmd/schemagen"
 	@$(GOTEST) ./cmd/schemagen
 	echo "==> Running tests... in ./cmd/schemagen/testdata"
-	@cd ./cmd/schemagen/testdata ; go mod tidy ; $(GOTEST) .; cd ../../..
+	@cd ./cmd/schemagen/testdata && go mod tidy && $(GOTEST) .
 	echo "==> Running tests... in ./examples/basic"
 	@cd ./examples/basic && $(GOTEST) .
 	echo "==> Smoke testing ./examples/basic"
