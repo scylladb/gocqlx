@@ -231,3 +231,28 @@ func TestQueryxAllWrapped(t *testing.T) {
 		}
 	}
 }
+
+func TestQueryxProtocolV5Options(t *testing.T) {
+	q := Query(new(gocql.Query), []string{"value"})
+	got := q.SetKeyspace("test_keyspace").WithNowInSeconds(123).BindMap(map[string]interface{}{"value": 42})
+	if got != q {
+		t.Fatal("query options must preserve the Queryx wrapper")
+	}
+	if got.Keyspace() != "test_keyspace" {
+		t.Errorf("keyspace = %q, want test_keyspace", got.Keyspace())
+	}
+	// The driver has no getter for this option.
+	now := reflect.ValueOf(got.Query).Elem().FieldByName("nowInSecondsValue")
+	if !now.IsValid() {
+		t.Fatal("gocql.Query field nowInSecondsValue was not found")
+	}
+	if now.IsNil() {
+		t.Fatal("now-in-seconds option was not forwarded to the query")
+	}
+	if value := now.Elem().Int(); value != 123 {
+		t.Errorf("now-in-seconds = %d, want 123", value)
+	}
+	if err := got.Err(); err != nil {
+		t.Fatal(err)
+	}
+}
