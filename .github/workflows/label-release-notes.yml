@@ -1,0 +1,137 @@
+name: Label support-only release changes
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited, closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to classify, including merged PRs
+        required: true
+        type: number
+
+permissions: {}
+
+concurrency:
+  group: release-notes-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: false
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+    steps:
+      - name: Require default-branch manual dispatch
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            if (context.eventName === 'workflow_dispatch' &&
+                context.ref !== `refs/heads/${context.payload.repository.default_branch}`) {
+              throw new Error('Run manual classification on the repository default branch');
+            }
+      - name: Confirm pull request target
+        id: target
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const raw = process.env.PR_NUMBER;
+            if (!/^[1-9][0-9]*$/.test(raw) || !Number.isSafeInteger(Number(raw))) {
+              throw new Error('Expected a canonical positive safe PR number');
+            }
+            const number = Number(raw);
+            if (context.eventName !== 'pull_request_target' ||
+                context.payload?.pull_request?.number !== number) {
+              const {data: pr} = await github.rest.pulls.get({
+                ...context.repo, pull_number: number
+              });
+              if (pr.number !== number) throw new Error('Target is not the requested pull request');
+            }
+            core.setOutput('confirmed-pr', 'true');
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        id: checkout
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - run: npm ci --ignore-scripts --prefix .github
+        id: install
+      - name: Collect verified PR file snapshot
+        id: guard
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const guard = require('./.github/scripts/release-notes-guard.cjs');
+            const number = guard.parseNumber(process.env.PR_NUMBER);
+            const snapshot = await guard.snapshot(github, context.repo, number);
+            core.setOutput('hash', snapshot.hash);
+            core.setOutput('unsafe-rename', String(snapshot.unsafeRename));
+            core.info(`Collected head=${snapshot.head} base=${snapshot.base} count=${snapshot.count} snapshot=${snapshot.hash}`);
+      - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
+        id: labeler
+        if: success() && steps.guard.outputs.unsafe-rename == 'false'
+        with:
+          configuration-path: .github/labeler.yml
+          sync-labels: true
+          pr-number: ${{ env.PR_NUMBER }}
+      - name: Verify classification or attempt omission-label cleanup
+        if: always()
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          CONFIRMED_PR: ${{ steps.target.outputs.confirmed-pr }}
+          TARGET_OUTCOME: ${{ steps.target.outcome }}
+          CHECKOUT_OUTCOME: ${{ steps.checkout.outcome }}
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          GUARD_OUTCOME: ${{ steps.guard.outcome }}
+          LABELER_OUTCOME: ${{ steps.labeler.outcome }}
+          SNAPSHOT_HASH: ${{ steps.guard.outputs.hash }}
+          UNSAFE_RENAME: ${{ steps.guard.outputs.unsafe-rename }}
+        with:
+          script: |
+            // Keep cleanup independent of checkout and installed dependencies.
+            const raw = process.env.PR_NUMBER;
+            if (!/^[1-9][0-9]*$/.test(raw) || !Number.isSafeInteger(Number(raw))) {
+              throw new Error('Expected a canonical positive safe PR number');
+            }
+            const number = Number(raw);
+            if (process.env.CONFIRMED_PR !== 'true') {
+              throw new Error('Target was not confirmed as a pull request; labels were not changed');
+            }
+            const removeLabel = async () => {
+              try {
+                await github.rest.issues.removeLabel({
+                  ...context.repo, issue_number: number, name: 'omit-from-release-notes'
+                });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+            };
+            let removing = false;
+            try {
+              const unsafe = process.env.UNSAFE_RENAME === 'true';
+              if ([process.env.TARGET_OUTCOME, process.env.CHECKOUT_OUTCOME,
+                   process.env.INSTALL_OUTCOME, process.env.GUARD_OUTCOME].some(outcome => outcome !== 'success') ||
+                  !['true', 'false'].includes(process.env.UNSAFE_RENAME) ||
+                  process.env.LABELER_OUTCOME !== (unsafe ? 'skipped' : 'success')) {
+                throw new Error('Classification predecessor failed or unexpectedly skipped');
+              }
+              if (unsafe) {
+                removing = true;
+                await removeLabel();
+                removing = false;
+              }
+              const guard = require('./.github/scripts/release-notes-guard.cjs');
+              const verified = await guard.verify(github, context.repo, number, process.env.SNAPSHOT_HASH);
+              core.info(`Verified head=${verified.head} base=${verified.base} count=${verified.count} snapshot=${verified.hash} omit=${verified.omit}; actual label checked`);
+            } catch (error) {
+              // A failed removal is already a visible cleanup attempt; do not retry it.
+              if (!removing) {
+                try { await removeLabel(); }
+                catch (cleanupError) { core.error(`Omission-label cleanup failed: ${cleanupError.message}`); }
+              }
+              throw error;
+            }
