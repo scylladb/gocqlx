@@ -22,6 +22,9 @@ func TestBatchProtocolV5Options(t *testing.T) {
 	}
 	// The driver has no getter for this option.
 	now := reflect.ValueOf(got.Batch).Elem().FieldByName("nowInSeconds")
+	if !now.IsValid() {
+		t.Fatal("gocql.Batch field nowInSeconds was not found")
+	}
 	if now.IsNil() {
 		t.Fatal("now-in-seconds option was not forwarded to the batch")
 	}

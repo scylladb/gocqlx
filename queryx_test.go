@@ -243,6 +243,9 @@ func TestQueryxProtocolV5Options(t *testing.T) {
 	}
 	// The driver has no getter for this option.
 	now := reflect.ValueOf(got.Query).Elem().FieldByName("nowInSecondsValue")
+	if !now.IsValid() {
+		t.Fatal("gocql.Query field nowInSecondsValue was not found")
+	}
 	if now.IsNil() {
 		t.Fatal("now-in-seconds option was not forwarded to the query")
 	}
