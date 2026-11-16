@@ -63,7 +63,8 @@ func CompileNamedQuery(qs []byte) (stmt string, names []string, err error) {
 			inName = false
 			// if this is the final byte of the string and it is part of the name, then
 			// make sure to add it to the name
-			if i == last && allowedBindRune(b) {
+			nameByte := allowedBindRune(b) || b == '_'
+			if i == last && nameByte {
 				name = append(name, b)
 			}
 			// add the string representation to the names list
@@ -73,7 +74,7 @@ func CompileNamedQuery(qs []byte) (stmt string, names []string, err error) {
 			// add this byte to string unless it was not part of the name
 			if i != last {
 				rebound = append(rebound, b)
-			} else if !allowedBindRune(b) {
+			} else if !nameByte {
 				rebound = append(rebound, b)
 			}
 		default:
