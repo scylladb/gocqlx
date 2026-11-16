@@ -39,6 +39,12 @@ func TestCompileQuery(t *testing.T) {
 			R: `SELECT 'a:b:c' || first_name, '::ABC:_:' FROM person WHERE first_name=? AND last_name=?`,
 			V: []string{"first_name", "last_name"},
 		},
+		// A named parameter ending the string with a trailing underscore
+		{
+			Q: `SELECT * FROM t WHERE key_=:key_`,
+			R: `SELECT * FROM t WHERE key_=?`,
+			V: []string{"key_"},
+		},
 		/* This unicode awareness test sadly fails, because of our byte-wise worldview.
 		 * We could certainly iterate by Rune instead, though it's a great deal slower,
 		 * it's probably the RightWay(tm)
