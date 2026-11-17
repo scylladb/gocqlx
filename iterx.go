@@ -195,9 +195,12 @@ func (iter *Iterx) scanAll(dest interface{}) bool {
 		}
 	}
 
-	// update dest if allocated slice
+	// update dest if allocated slice, otherwise there were no rows: clear
+	// any stale elements the caller left in dest
 	if alloc {
 		reflect.Indirect(value).Set(v)
+	} else if dst := reflect.Indirect(value); dst.Len() > 0 {
+		dst.Set(dst.Slice(0, 0))
 	}
 
 	return true
